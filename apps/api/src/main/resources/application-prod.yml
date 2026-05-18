@@ -1,0 +1,33 @@
+# Laminar API — prod 프로파일 (Task 1.3.3)
+# 활성화: SPRING_PROFILES_ACTIVE=prod (Fly.io env)
+spring:
+  datasource:
+    url: ${DATABASE_URL}  # Neon pooler
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      pool-name: laminar-main-prod
+      data-source-properties:
+        prepareThreshold: 0  # Neon pooler 호환 — Postgres prepared statement 비활성
+  jpa:
+    show-sql: false
+
+# Cron 전용 DataSource (Task 1.3.4) — direct 엔드포인트, 풀 크기 3
+app:
+  datasource:
+    cron:
+      url: ${DATABASE_URL_DIRECT}
+      username: ${DATABASE_USERNAME}
+      password: ${DATABASE_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 3
+        pool-name: laminar-cron-prod
+
+logging:
+  level:
+    com.laminar: INFO
+    org.springframework.security: WARN

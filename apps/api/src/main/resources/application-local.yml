@@ -1,0 +1,34 @@
+# Laminar API — local 프로파일 (Task 1.3.2)
+# 활성화: ./gradlew bootRun --args='--spring.profiles.active=local'
+spring:
+  datasource:
+    url: ${DATABASE_URL_DIRECT}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      pool-name: laminar-main-local
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Cron 전용 DataSource (Task 1.3.4) — direct 엔드포인트, 풀 크기 3
+app:
+  datasource:
+    cron:
+      url: ${DATABASE_URL_DIRECT}
+      username: ${DATABASE_USERNAME}
+      password: ${DATABASE_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 3
+        pool-name: laminar-cron-local
+
+logging:
+  level:
+    com.laminar: DEBUG
+    org.flywaydb: INFO

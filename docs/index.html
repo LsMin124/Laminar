@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laminar — Docs</title>
+<style>
+:root {
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --ink: #1a1a1a;
+  --muted: #7a7a78;
+  --rule: #e2e0da;
+  --accent: #2c5f5d;
+  --font-body: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Noto Sans KR", sans-serif;
+  --font-serif: "Charter", "Iowan Old Style", "Georgia", "Noto Serif KR", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--bg); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.container { max-width: 920px; margin: 0 auto; padding: 0 1.5rem; }
+a { color: var(--accent); }
+
+.hero { background: linear-gradient(180deg, var(--accent) 0%, #234948 100%); color: #fff; padding: 4rem 0 3rem; }
+.hero .meta { display: flex; gap: 0.6rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.hero h1 { font-family: var(--font-serif); font-size: clamp(2.2rem, 4vw, 3rem); margin: 0 0 0.6rem; letter-spacing: -0.01em; line-height: 1.1; }
+.hero .lead { color: rgba(255,255,255,0.88); font-size: 1.05rem; max-width: 62ch; margin: 0; line-height: 1.6; }
+.hero .lead a { color: rgba(255,255,255,0.95); }
+.badge { display: inline-block; padding: 0.2em 0.6em; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+
+.docs { padding: 3rem 0 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+@media (max-width: 720px) { .docs { grid-template-columns: 1fr; } }
+
+.doc-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.75rem; text-decoration: none; color: var(--ink); transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; display: block; }
+.doc-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: var(--accent); }
+.doc-card .doc-tag { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600; margin-bottom: 0.5rem; }
+.doc-card h2 { font-family: var(--font-serif); font-size: 1.5rem; margin: 0 0 0.6rem; }
+.doc-card p { margin: 0 0 1.2rem; font-size: 0.92rem; color: var(--muted); line-height: 1.6; }
+.doc-card .arrow { color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+
+.about { padding: 2rem 0; margin-top: 2rem; border-top: 1px solid var(--rule); }
+.about h3 { font-family: var(--font-serif); font-size: 1.15rem; margin: 0 0 0.6rem; }
+.about p { font-size: 0.92rem; color: var(--muted); line-height: 1.65; margin: 0 0 0.6rem; }
+.about code { font-family: var(--font-mono); background: var(--rule); padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.86em; color: var(--ink); }
+
+footer { padding: 1.5rem 0 2rem; text-align: center; font-size: 0.84rem; color: var(--muted); border-top: 1px solid var(--rule); }
+footer a { text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="meta">
+      <span class="badge">📘 Laminar</span>
+      <span class="badge">v5.1</span>
+      <span class="badge">PROPRIETARY</span>
+    </div>
+    <h1>Laminar — Docs</h1>
+    <p class="lead">연구실 일정·실험 샘플 관리 웹 서비스. 옵시디언 Laminar 플러그인의 웹 리빌드. 코드는 <a href="https://github.com/LsMin124/Laminar">github.com/LsMin124/Laminar</a>.</p>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="docs">
+    <a href="Laminar_Spec.html" class="doc-card">
+      <div class="doc-tag">전체 명세 · 합류자 가이드</div>
+      <h2>Spec</h2>
+      <p>제품 비전 · 6엔티티 도메인 모델 · 5 시나리오 · 외부 통합 · MVP DoD 11개 · 시스템 구성 · 13주 로드맵 · v3→v5.1 변경 이력.</p>
+      <span class="arrow">읽기 →</span>
+    </a>
+    <a href="Laminar_Phase0_Runbook.html" class="doc-card">
+      <div class="doc-tag">인프라 운영 가이드</div>
+      <h2>Phase 0 Runbook</h2>
+      <p>외부 서비스 6종(Fly · Neon · R2 · Resend · Google · Sentry) 셋업 절차 · 시크릿 흐름 · 검증 체크리스트 · 로테이션 · 트러블슈팅 · 인계.</p>
+      <span class="arrow">읽기 →</span>
+    </a>
+  </section>
+
+  <section class="about">
+    <h3>본 페이지에 대해</h3>
+    <p>GitHub Pages가 <code>main</code> 브랜치의 <code>/docs</code> 디렉토리를 호스팅합니다. 원본은 옵시디언 vault에서 손수 설계한 self-contained HTML(외부 CDN 0)이라 MD 갱신 시 별도 동기화가 필요합니다.</p>
+    <p>코드·task 분해는 vault의 <code>Laminar_Implementation.md</code>(SSOT)에서 추적합니다.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    Laminar · PROPRIETARY · <a href="https://github.com/LsMin124/Laminar/blob/main/LICENSE">LICENSE</a> · <a href="https://github.com/LsMin124/Laminar">소스 저장소</a>
+  </div>
+</footer>
+
+</body>
+</html>

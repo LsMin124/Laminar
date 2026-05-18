@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laminar — Phase 0 운영 가이드</title>
+<style>
+:root {
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --surface-2: #f5f4f0;
+  --ink: #1a1a1a;
+  --ink-2: #4a4a4a;
+  --muted: #7a7a78;
+  --rule: #e2e0da;
+  --accent: #2c5f5d;
+  --accent-soft: #e6efee;
+  --accent-line: #b8d1cf;
+  --done: #1e7c4a;
+  --done-soft: #e4f3eb;
+  --warn: #b76e00;
+  --warn-soft: #fbf0dd;
+  --pending: #7a7a78;
+  --pending-soft: #ededeb;
+  --alert: #a92020;
+  --alert-soft: #f8e8e8;
+  --code-bg: #f4f3ef;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
+  --shadow-hover: 0 2px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+  --font-body: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Noto Sans KR", sans-serif;
+  --font-serif: "Charter", "Iowan Old Style", "Georgia", "Noto Serif KR", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--bg); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.container { max-width: 1140px; margin: 0 auto; padding: 0 1.5rem; }
+
+.hero { background: linear-gradient(180deg, var(--accent) 0%, #234948 100%); color: #fff; padding: 3rem 0 2.5rem; }
+.hero-meta { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.hero h1 { font-family: var(--font-serif); font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+.hero .lead { font-size: 1.05rem; color: rgba(255,255,255,0.85); max-width: 64ch; margin: 0 0 2rem; }
+.hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.stat { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 1rem 1.1rem; }
+.stat-num { font-family: var(--font-serif); font-size: 2.2rem; font-weight: 600; line-height: 1; display: block; margin-bottom: 0.2rem; }
+.stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.75); letter-spacing: 0.04em; text-transform: uppercase; }
+.stat.warn .stat-num { color: #ffd9a3; }
+@media (max-width: 720px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.badge { display: inline-block; padding: 0.2em 0.6em; border-radius: 999px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; line-height: 1.4; }
+.badge.done { background: var(--done-soft); color: var(--done); }
+.badge.partial { background: var(--warn-soft); color: var(--warn); }
+.badge.pending { background: var(--pending-soft); color: var(--pending); }
+.badge.hero-badge { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+
+.quicknav { background: var(--surface); border-bottom: 1px solid var(--rule); position: sticky; top: 0; z-index: 10; }
+.quicknav-inner { display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.6rem 0; }
+.quicknav a { color: var(--ink-2); text-decoration: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.88rem; white-space: nowrap; transition: background 0.1s; }
+.quicknav a:hover { background: var(--accent-soft); color: var(--accent); }
+
+.section { padding: 3rem 0 1rem; }
+.section h2 { font-family: var(--font-serif); font-size: 1.75rem; margin: 0 0 1.5rem; letter-spacing: -0.005em; }
+.section h2 .subtitle { display: block; font-family: var(--font-body); font-size: 0.95rem; color: var(--muted); font-weight: 400; margin-top: 0.2rem; letter-spacing: 0; }
+
+.service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 900px) { .service-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .service-grid { grid-template-columns: 1fr; } }
+.service-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem 1.25rem 1rem; box-shadow: var(--shadow-card); position: relative; transition: box-shadow 0.15s, transform 0.15s; }
+.service-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.service-card.partial::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--warn); border-radius: 8px 0 0 8px; }
+.service-card.done::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--done); border-radius: 8px 0 0 8px; }
+.service-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.9rem; }
+.service-icon { width: 38px; height: 38px; border-radius: 8px; background: var(--surface-2); display: grid; place-items: center; font-size: 1.1rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+.service-name { flex: 1; }
+.service-name h3 { font-size: 1rem; margin: 0; font-weight: 600; }
+.service-name .task-tag { font-size: 0.74rem; color: var(--muted); font-family: var(--font-mono); }
+.service-meta { list-style: none; padding: 0; margin: 0 0 0.85rem; font-size: 0.86rem; }
+.service-meta li { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px dashed var(--rule); gap: 0.5rem; }
+.service-meta li:last-child { border-bottom: 0; }
+.service-meta .k { color: var(--muted); flex-shrink: 0; }
+.service-meta .v { color: var(--ink); font-family: var(--font-mono); font-size: 0.82rem; text-align: right; word-break: break-word; }
+.service-card .jump { display: inline-block; font-size: 0.82rem; color: var(--accent); text-decoration: none; font-weight: 500; }
+.service-card .jump:hover { text-decoration: underline; }
+
+.alerts { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 760px) { .alerts { grid-template-columns: 1fr; } }
+.alert-card { background: var(--surface); border: 1px solid var(--warn-soft); border-left: 4px solid var(--warn); border-radius: 6px; padding: 1.1rem 1.25rem; }
+.alert-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.alert-tag { font-family: var(--font-mono); font-size: 0.78rem; background: var(--warn-soft); color: var(--warn); padding: 0.15em 0.55em; border-radius: 4px; }
+.alert-card h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.alert-body { font-size: 0.92rem; }
+.alert-body .row { display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; margin: 0.3rem 0; }
+.alert-body .row .label { color: var(--muted); font-size: 0.85rem; }
+
+.flow { display: flex; align-items: stretch; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap; }
+.flow-node { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.1rem 1rem; text-align: center; }
+.flow-node .flow-icon { font-size: 1.7rem; display: block; margin-bottom: 0.4rem; }
+.flow-node .flow-name { font-weight: 600; margin-bottom: 0.3rem; }
+.flow-node .flow-sub { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+.flow-arrow { display: grid; place-items: center; font-size: 1.4rem; color: var(--accent); min-width: 24px; }
+.flow-caption { font-size: 0.88rem; color: var(--muted); text-align: center; font-style: italic; }
+
+.env-catalog { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem; margin-top: 1rem; }
+.env-catalog h3 { margin: 0 0 0.85rem; font-size: 1rem; }
+.env-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.4rem; }
+.env-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; background: var(--surface-2); border-radius: 4px; font-family: var(--font-mono); font-size: 0.82rem; }
+.env-item .env-svc { font-size: 0.7rem; background: var(--accent-soft); color: var(--accent); padding: 0.1em 0.4em; border-radius: 3px; font-family: var(--font-body); font-weight: 600; letter-spacing: 0.02em; flex-shrink: 0; }
+
+details.setup { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; margin-bottom: 0.6rem; overflow: hidden; }
+details.setup[open] { box-shadow: var(--shadow-card); }
+details.setup > summary { cursor: pointer; list-style: none; padding: 0.85rem 1.2rem; display: flex; align-items: center; gap: 0.85rem; user-select: none; font-size: 0.95rem; }
+details.setup > summary::-webkit-details-marker { display: none; }
+details.setup > summary::before { content: "▸"; color: var(--muted); font-size: 0.8rem; transition: transform 0.15s; flex-shrink: 0; }
+details.setup[open] > summary::before { transform: rotate(90deg); }
+details.setup > summary .step-num { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+details.setup > summary .step-name { font-weight: 600; flex: 1; }
+details.setup > summary:hover { background: var(--surface-2); }
+.setup-body { padding: 0.5rem 1.5rem 1.25rem; border-top: 1px solid var(--rule); }
+.setup-body ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+.setup-body ol li { margin: 0.5rem 0; }
+.setup-body .env-tag { background: var(--accent-soft); color: var(--ink); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.86rem; margin-top: 0.85rem; }
+.setup-body .env-tag strong { color: var(--accent); }
+.setup-body code { font-family: var(--font-mono); font-size: 0.84em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; }
+.setup-body pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 5px; padding: 0.75rem 1rem; font-family: var(--font-mono); font-size: 0.82rem; overflow-x: auto; margin: 0.6rem 0; }
+.setup-body pre code { background: transparent; padding: 0; }
+.note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 0.7rem 0.95rem; border-radius: 0 4px 4px 0; font-size: 0.88rem; margin: 0.75rem 0; }
+.note strong { color: var(--accent); }
+
+.checklist { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem 1.5rem; }
+.checklist-item { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.45rem 0; border-bottom: 1px solid var(--rule); font-size: 0.92rem; }
+.checklist-item:last-child { border-bottom: 0; }
+.checklist-item .icon { flex-shrink: 0; width: 18px; height: 18px; border: 1.5px solid var(--muted); border-radius: 3px; display: grid; place-items: center; font-size: 0.7rem; margin-top: 0.18rem; color: transparent; }
+.checklist-item.done .icon { background: var(--done); border-color: var(--done); color: #fff; }
+.checklist-item.done .icon::before { content: "✓"; }
+
+.trouble { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.trouble table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.trouble th { background: var(--surface-2); color: var(--ink-2); text-align: left; padding: 0.7rem 1rem; font-weight: 600; font-size: 0.82rem; letter-spacing: 0.03em; text-transform: uppercase; border-bottom: 1px solid var(--rule); }
+.trouble td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.trouble tr:last-child td { border-bottom: 0; }
+.trouble td:first-child { width: 28%; color: var(--alert); font-weight: 500; }
+.trouble td:nth-child(2) { width: 35%; color: var(--ink-2); }
+.trouble code { font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; }
+
+.rotation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 800px) { .rotation-grid { grid-template-columns: 1fr; } }
+.rotation-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.1rem 1.25rem; }
+.rotation-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--accent); }
+.rotation-card ol { font-size: 0.88rem; padding-left: 1.2rem; margin: 0.5rem 0 0; }
+.rotation-card li { margin: 0.25rem 0; }
+
+footer { margin-top: 4rem; padding: 1.75rem 0; border-top: 1px solid var(--rule); text-align: center; font-size: 0.85rem; color: var(--muted); }
+footer code { font-family: var(--font-mono); }
+
+@media print {
+  body { background: #fff; font-size: 10pt; }
+  .hero { background: #fff; color: var(--ink); border-bottom: 2px solid var(--accent); }
+  .hero .stat { border: 1px solid var(--rule); background: var(--surface-2); }
+  .stat-num { color: var(--accent); }
+  .stat-label { color: var(--muted); }
+  .badge.hero-badge { background: var(--surface-2); color: var(--ink); border-color: var(--rule); }
+  .quicknav { display: none; }
+  details.setup > summary::before { display: none; }
+  details.setup .setup-body { display: block !important; }
+  .service-card { box-shadow: none; page-break-inside: avoid; }
+  .alert-card { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="hero-meta">
+      <span class="badge hero-badge">✅ 실질 완료</span>
+      <span class="badge hero-badge">2026-05-15</span>
+      <span class="badge hero-badge">v1</span>
+    </div>
+    <h1>Phase 0 — 인프라 운영 가이드</h1>
+    <p class="lead">코드 한 줄 없이 외부 의존성과 시크릿만 갖추는 단계. 원작자·운영자가 셋업·운영·갱신할 수 있도록 구성.</p>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">6</span><span class="stat-label">외부 서비스</span></div>
+      <div class="stat"><span class="stat-num">4</span><span class="stat-label">자체 시크릿</span></div>
+      <div class="stat"><span class="stat-num">17</span><span class="stat-label">Fly secrets staged</span></div>
+      <div class="stat warn"><span class="stat-num">2</span><span class="stat-label">배포 전 보류</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="quicknav">
+  <div class="container quicknav-inner">
+    <a href="#services">서비스 상태</a>
+    <a href="#deferred">배포 전 보류</a>
+    <a href="#flow">시크릿 흐름</a>
+    <a href="#setup">셋업 절차</a>
+    <a href="#fly-register">Fly 등록</a>
+    <a href="#verify">검증</a>
+    <a href="#rotation">로테이션</a>
+    <a href="#troubleshoot">트러블슈팅</a>
+    <a href="#handoff">인계</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<section id="services" class="section">
+  <h2>서비스 상태 <span class="subtitle">6개 외부 서비스 · 카드 클릭 시 상세 절차로 이동</span></h2>
+  <div class="service-grid">
+
+    <div class="service-card partial">
+      <div class="service-head">
+        <div class="service-icon">F</div>
+        <div class="service-name"><h3>Fly.io</h3><span class="task-tag">Task 0.1</span></div>
+        <span class="badge partial">🔸 부분</span>
+      </div>
+      <ul class="service-meta">
+        <li><span class="k">앱</span><span class="v">laminar-prod</span></li>
+        <li><span class="k">호스트</span><span class="v">laminar-prod.fly.dev</span></li>
+        <li><span class="k">리전</span><span class="v">nrt (도쿄)</span></li>
+        <li><span class="k">보류</span><span class="v">0.1.4 결제 카드</span></li>
+      </ul>
+      <a href="#setup-fly" class="jump">셋업 절차 →</a>
+    </div>
+
+    <div class="service-card done">
+      <div class="service-head">
+        <div class="service-icon">N</div>
+        <div class="service-name"><h3>Neon Postgres</h3><span class="task-tag">Task 0.2</span></div>
+        <span class="badge done">✅</span>
+      </div>
+      <ul class="service-meta">
+        <li><span class="k">DB</span><span class="v">neondb</span></li>
+        <li><span class="k">리전</span><span class="v">ap-southeast-1</span></li>
+        <li><span class="k">확장</span><span class="v">citext</span></li>
+        <li><span class="k">URL 형식</span><span class="v">JDBC + 인증분리</span></li>
+      </ul>
+      <a href="#setup-neon" class="jump">셋업 절차 →</a>
+    </div>
+
+    <div class="service-card done">
+      <div class="service-head">
+        <div class="service-icon">R</div>
+        <div class="service-name"><h3>Cloudflare R2</h3><span class="task-tag">Task 0.3</span></div>
+        <span class="badge done">✅</span>
+      </div>
+      <ul class="service-meta">
+        <li><span class="k">버킷</span><span class="v">laminar-prod-attachments</span></li>
+        <li><span class="k">리전</span><span class="v">APAC</span></li>
+        <li><span class="k">버저닝</span><span class="v">ON</span></li>
+        <li><span class="k">토큰 범위</span><span class="v">bucket 한정</span></li>
+      </ul>
+      <a href="#setup-r2" class="jump">셋업 절차 →</a>
+    </div>
+
+    <div class="service-card partial">
+      <div class="service-head">
+        <div class="service-icon">M</div>
+        <div class="service-name"><h3>Resend</h3><span class="task-tag">Task 0.4</span></div>
+        <span class="badge partial">🔸 부분</span>
+      </div>
+      <ul class="service-meta">
+        <li><span class="k">계정</span><span class="v">생성</span></li>
+        <li><span class="k">API 키</span><span class="v">발급</span></li>
+        <li><span class="k">도메인 검증</span><span class="v">보류</span></li>
+        <li><span class="k">정책</span><span class="v">§12.3.1 v3</span></li>
+      </ul>
+      <a href="#setup-resend" class="jump">셋업 절차 →</a>
+    </div>
+
+    <div class="service-card done">
+      <div class="service-head">
+        <div class="service-icon">G</div>
+        <div class="service-name"><h3>Google OAuth</h3><span class="task-tag">Task 0.5</span></div>
+        <span class="badge done">✅</span>
+      </div>
+      <ul class="service-meta">
+        <li><span class="k">GCP 프로젝트</span><span class="v">laminar-prod</span></li>
+        <li><span class="k">OAuth client</span><span class="v">laminar-web</span></li>
+        <li><span class="k">모드</span><span class="v">Testing</span></li>
+        <li><span class="k">scope</span><span class="v">calendar + profile</span></li>
+      </ul>
+      <a href="#setup-google" class="jump">셋업 절차 →</a>
+    </div>
+
+    <div class="service-card done">
+      <div class="service-head">
+        <div class="service-icon">S</div>
+        <div class="service-name"><h3>Sentry</h3><span class="task-tag">Task 0.6</span></div>
+        <span class="badge done">✅</span>
+      </div>
+      <ul class="service-meta">
+        <li><span class="k">org</span><span class="v">lsmin124</span></li>
+        <li><span class="k">project</span><span class="v">laminar-api</span></li>
+        <li><span class="k">플랫폼</span><span class="v">Java/Spring</span></li>
+        <li><span class="k">sample rate</span><span class="v">0.1</span></li>
+      </ul>
+      <a href="#setup-sentry" class="jump">셋업 절차 →</a>
+    </div>
+
+  </div>
+</section>
+
+<section id="deferred" class="section">
+  <h2>배포 전 보류 2건 <span class="subtitle">Phase 1~11 개발은 막지 않음 · 배포·출시 전 필수</span></h2>
+  <div class="alerts">
+
+    <div class="alert-card">
+      <div class="alert-head">
+        <span class="alert-tag">Task 0.1.4</span>
+        <h3>Fly 결제 카드 등록</h3>
+        <span class="badge partial">⏸ 보류</span>
+      </div>
+      <div class="alert-body">
+        <div class="row"><span class="label">언제까지</span><span><strong>Phase 12 첫 배포 전</strong></span></div>
+        <div class="row"><span class="label">이유</span><span>앱 생성은 무료지만 머신 배포는 카드 필요. Free allowance 내 운영 의도라 실 과금 0 예상.</span></div>
+        <div class="row"><span class="label">액션</span><span>Fly 대시보드 → Billing → 카드 등록</span></div>
+      </div>
+    </div>
+
+    <div class="alert-card">
+      <div class="alert-head">
+        <span class="alert-tag">Task 0.4.2~0.4.3</span>
+        <h3>Resend 도메인 검증</h3>
+        <span class="badge partial">⏸ 보류</span>
+      </div>
+      <div class="alert-body">
+        <div class="row"><span class="label">언제까지</span><span><strong>공개 출시 전</strong> (회원 초대·비번 리셋 메일이 외부 주소로 나가야 하는 시점)</span></div>
+        <div class="row"><span class="label">이유</span><span><code>laminar-prod.fly.dev</code>는 Fly 서브도메인이라 DNS 편집 불가. §12.3.1 v3 정책으로 <code>no_domain_verified</code> 마킹 운영 중.</span></div>
+        <div class="row"><span class="label">액션</span><span>커스텀 도메인 → Resend 도메인 추가 → DNS 레코드(TXT/CNAME/MX) → 검증 대기</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section id="flow" class="section">
+  <h2>시크릿 흐름 <span class="subtitle">콘솔 → .env → Fly secrets · .env는 수집 그릇, 진실 출처는 Fly</span></h2>
+  <div class="flow">
+    <div class="flow-node">
+      <span class="flow-icon">🌐</span>
+      <div class="flow-name">서비스 콘솔</div>
+      <div class="flow-sub">6개 외부 서비스<br>(Fly · Neon · R2 · Resend · Google · Sentry)</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <span class="flow-icon">📄</span>
+      <div class="flow-name">.env</div>
+      <div class="flow-sub">로컬 수집 그릇<br>(<code>.gitignore</code>됨)</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <span class="flow-icon">☁</span>
+      <div class="flow-name">Fly secrets</div>
+      <div class="flow-sub">17개 staged<br><code>fly secrets import --stage</code></div>
+    </div>
+  </div>
+  <p class="flow-caption">첫 배포 시 staged secrets가 VM에 적용된다.</p>
+
+  <div class="env-catalog">
+    <h3>.env 키 카탈로그 (17개)</h3>
+    <div class="env-grid">
+      <div class="env-item"><span class="env-svc">Neon</span>DATABASE_URL</div>
+      <div class="env-item"><span class="env-svc">Neon</span>DATABASE_URL_DIRECT</div>
+      <div class="env-item"><span class="env-svc">Neon</span>DATABASE_USERNAME</div>
+      <div class="env-item"><span class="env-svc">Neon</span>DATABASE_PASSWORD</div>
+      <div class="env-item"><span class="env-svc">R2</span>R2_ACCOUNT_ID</div>
+      <div class="env-item"><span class="env-svc">R2</span>R2_ACCESS_KEY_ID</div>
+      <div class="env-item"><span class="env-svc">R2</span>R2_SECRET_ACCESS_KEY</div>
+      <div class="env-item"><span class="env-svc">R2</span>R2_BUCKET</div>
+      <div class="env-item"><span class="env-svc">R2</span>R2_ENDPOINT</div>
+      <div class="env-item"><span class="env-svc">Resend</span>RESEND_API_KEY</div>
+      <div class="env-item"><span class="env-svc">Google</span>AUTH_GOOGLE_ID</div>
+      <div class="env-item"><span class="env-svc">Google</span>AUTH_GOOGLE_SECRET</div>
+      <div class="env-item"><span class="env-svc">Sentry</span>SENTRY_DSN</div>
+      <div class="env-item"><span class="env-svc">자체</span>AUTH_SECRET</div>
+      <div class="env-item"><span class="env-svc">자체</span>APP_SECRET_V1</div>
+      <div class="env-item"><span class="env-svc">자체</span>CRON_SECRET</div>
+      <div class="env-item"><span class="env-svc">자체</span>SAMPLE_MANAGER_HMAC_SECRET</div>
+    </div>
+  </div>
+</section>
+
+<section id="setup" class="section">
+  <h2>셋업 절차 <span class="subtitle">서비스별 단계 · 클릭으로 펼침</span></h2>
+
+  <details class="setup" id="setup-fly">
+    <summary><span class="step-num">2.1</span><span class="step-name">Fly.io — 앱 생성</span><span class="badge partial">🔸</span></summary>
+    <div class="setup-body">
+      <ol>
+        <li><a href="https://fly.io">fly.io</a> 가입 → <code>fly auth login</code> (브라우저 인증)</li>
+        <li>앱 생성:<pre><code>fly apps create laminar-prod --org personal</code></pre>호스트네임 <code>laminar-prod.fly.dev</code> 확정 — OAuth redirect·CORS의 기준값.</li>
+        <li><strong>리전</strong>: <code>fly regions set</code>은 flyctl 0.4.x에서 deprecated. <code>fly.toml</code>의 <code>primary_region = "nrt"</code>로 지정 (Phase 1 Task 1.8).</li>
+        <li><strong>⚠ 결제 카드 (보류 중)</strong>: 앱 생성은 카드 없이 되지만 첫 배포는 카드 필요. Fly 대시보드 → Billing. <strong>Phase 12 배포 전까지</strong> 처리.</li>
+      </ol>
+      <div class="env-tag"><strong>.env 기록:</strong> 없음 (앱 이름·도메인은 코드/<code>fly.toml</code>)</div>
+    </div>
+  </details>
+
+  <details class="setup" id="setup-neon">
+    <summary><span class="step-num">2.2</span><span class="step-name">Neon Postgres</span><span class="badge done">✅</span></summary>
+    <div class="setup-body">
+      <ol>
+        <li><a href="https://neon.tech">neon.tech</a> 가입 → 프로젝트 생성, 리전 <code>ap-southeast-1</code></li>
+        <li>기본 branch + DB <code>neondb</code> 자동 생성</li>
+        <li>대시보드 → <strong>Connect</strong> → 연결 문자열 2종:<br>• Pooled (호스트 <code>-pooler</code> 포함) → <code>DATABASE_URL</code><br>• Direct (Pooled OFF) → <code>DATABASE_URL_DIRECT</code></li>
+        <li><strong>citext 확장 활성화</strong> — Neon 콘솔 SQL Editor:<pre><code>CREATE EXTENSION IF NOT EXISTS citext;</code></pre></li>
+      </ol>
+      <div class="note"><strong>⚠ JDBC URL 함정</strong>: Neon이 주는 URL은 <code>postgresql://user:pass@host/db?...&amp;channel_binding=require</code> (libpq 형식). 그대로 <code>jdbc:</code> 접두사만 붙이면 pgjdbc가 거부함 — <code>user:pass@host</code> 인증과 <code>channel_binding</code> 키 모두 인식 못함. 해결: <code>.env</code>에 <strong>URL은 <code>jdbc:postgresql://host/db?sslmode=require</code> 형식, USERNAME·PASSWORD 별도 분리</strong>.</div>
+      <div class="env-tag"><strong>.env 기록 (4종):</strong> <code>DATABASE_URL</code> · <code>DATABASE_URL_DIRECT</code> · <code>DATABASE_USERNAME</code> · <code>DATABASE_PASSWORD</code></div>
+    </div>
+  </details>
+
+  <details class="setup" id="setup-r2">
+    <summary><span class="step-num">2.3</span><span class="step-name">Cloudflare R2</span><span class="badge done">✅</span></summary>
+    <div class="setup-body">
+      <ol>
+        <li>대시보드 → <strong>R2 Object Storage → Enable R2</strong> (카드 등록 필요)</li>
+        <li>Create bucket: <code>laminar-prod-attachments</code>, Location <strong>APAC</strong></li>
+        <li>버킷 Settings → <strong>Object versioning → Enable</strong></li>
+        <li>R2 메인 → <strong>Manage R2 API Tokens → Create</strong>: Object Read &amp; Write, 버킷 한정 → Access Key + Secret (1회 표시)</li>
+        <li><strong>Account ID</strong>: R2 개요 페이지 우측 → endpoint 구성에 필요</li>
+      </ol>
+      <div class="env-tag"><strong>.env 기록 (5종):</strong> <code>R2_ACCOUNT_ID</code> · <code>R2_ACCESS_KEY_ID</code> · <code>R2_SECRET_ACCESS_KEY</code> · <code>R2_BUCKET</code> · <code>R2_ENDPOINT</code><br>※ <code>R2_ENDPOINT = https://&lt;R2_ACCOUNT_ID&gt;.r2.cloudflarestorage.com</code> — placeholder 실제 ID로 치환 필수</div>
+      <div class="note">검증: <code>R2_ENDPOINT</code>에 HTTPS GET → <code>HTTP 400 InvalidArgument: Authorization</code> = 정상.</div>
+    </div>
+  </details>
+
+  <details class="setup" id="setup-resend">
+    <summary><span class="step-num">2.4</span><span class="step-name">Resend — API 키만</span><span class="badge partial">🔸</span></summary>
+    <div class="setup-body">
+      <ol>
+        <li><a href="https://resend.com">resend.com</a> 가입 (도메인 추가는 건너뜀)</li>
+        <li><strong>API Keys → Create</strong>: Name <code>laminar-prod</code>, Permission <strong>Sending access</strong>, Domain <strong>All Domains</strong> → <code>re_...</code> 키 1회 표시</li>
+      </ol>
+      <div class="note"><strong>⚠ 도메인 검증 보류 중</strong> (§12.3.1 v3 정책): 미검증 상태에서 <code>email_outbox.last_error='no_domain_verified'</code> 마킹만 하고 발송 보류. 가입 이메일 주소로만 테스트 가능.</div>
+      <div class="env-tag"><strong>.env 기록:</strong> <code>RESEND_API_KEY</code></div>
+    </div>
+  </details>
+
+  <details class="setup" id="setup-google">
+    <summary><span class="step-num">2.5</span><span class="step-name">Google Cloud — OAuth 클라이언트</span><span class="badge done">✅</span></summary>
+    <div class="setup-body">
+      <ol>
+        <li><a href="https://console.cloud.google.com">console.cloud.google.com</a> → 프로젝트 <code>laminar-prod</code> 생성</li>
+        <li><strong>APIs &amp; Services → Library</strong> → "Google Calendar API" → Enable</li>
+        <li><strong>OAuth consent screen</strong>: External, <strong>Testing 모드 유지</strong>, scopes <code>calendar.events.owned</code> + <code>calendar.readonly</code> + <code>openid email profile</code>, Test users 등록</li>
+        <li><strong>Credentials → OAuth client ID</strong>: Web application, Name <code>laminar-web</code>, Redirect URIs:<pre><code>http://localhost:8080/api/auth/oauth2/callback/google
+https://laminar-prod.fly.dev/api/auth/oauth2/callback/google</code></pre></li>
+      </ol>
+      <div class="note"><strong>Testing 모드 유지 이유</strong>: 연구실 내부용이라 test user(≤100명) 충분. Production 전환 시 sensitive scope 앱 검증 필요. Trade-off: refresh token 7일 만료 → Phase 3 재인증 플로우.</div>
+      <div class="note"><strong>콜백 경로 주의</strong>: <code>/api/auth/oauth2/callback/google</code>은 §11.2 지정 커스텀. Spring Security 기본값(<code>/login/oauth2/code/google</code>)과 다름 → Phase 3 명시 설정.</div>
+      <div class="env-tag"><strong>.env 기록 (2종):</strong> <code>AUTH_GOOGLE_ID</code> · <code>AUTH_GOOGLE_SECRET</code></div>
+    </div>
+  </details>
+
+  <details class="setup" id="setup-sentry">
+    <summary><span class="step-num">2.6</span><span class="step-name">Sentry</span><span class="badge done">✅</span></summary>
+    <div class="setup-body">
+      <ol>
+        <li><a href="https://sentry.io">sentry.io</a> 가입 → <strong>Create Project</strong>: Platform <strong>Java → Spring Boot</strong>, name <code>laminar-api</code></li>
+        <li>SDK 매뉴얼 표시 — <strong>Phase 0에서 가져갈 건 DSN 하나뿐</strong>. 나머지(Gradle 플러그인·OpenTelemetry agent)는 Phase 1+ 코드 작업</li>
+        <li>DSN 위치: 생성 화면 또는 <strong>Settings → Projects → laminar-api → Client Keys (DSN)</strong></li>
+      </ol>
+      <div class="note"><strong>SENTRY_AUTH_TOKEN</strong>은 Gradle 플러그인 source context 업로드용 <strong>빌드타임</strong> 시크릿 — Fly secrets 대상 아님.</div>
+      <div class="env-tag"><strong>.env 기록:</strong> <code>SENTRY_DSN</code> · <strong>정책:</strong> <code>traces-sample-rate = 0.1</code> (Phase 1 <code>application.yml</code>)</div>
+    </div>
+  </details>
+
+  <details class="setup">
+    <summary><span class="step-num">2.7</span><span class="step-name">자체 시크릿 생성 (Task 0.7.1~0.7.4)</span><span class="badge done">✅</span></summary>
+    <div class="setup-body">
+      <p>4종 각 32바이트 random → base64. <strong>값을 stdout에 노출하지 않고</strong> <code>.env</code>에 직접 기록:</p>
+      <pre><code>F=/home/lsmin124/laminar/.env
+for k in AUTH_SECRET APP_SECRET_V1 CRON_SECRET SAMPLE_MANAGER_HMAC_SECRET; do
+  v=$(openssl rand -base64 32)
+  sed -i "s|^${k}=.*|${k}=\"${v}\"|" "$F"
+done</code></pre>
+      <ul style="font-size: 0.88rem; padding-left: 1.4rem;">
+        <li><code>AUTH_SECRET</code> — 세션 토큰 서명</li>
+        <li><code>APP_SECRET_V1</code> — envelope AES-GCM (버전드, 로테이션 시 <code>_V2</code> 추가)</li>
+        <li><code>CRON_SECRET</code> — cron trigger 엔드포인트 인증</li>
+        <li><code>SAMPLE_MANAGER_HMAC_SECRET</code> — SampleManager bridge HMAC</li>
+      </ul>
+      <p>검증: 각 값이 44자(32바이트 base64).</p>
+    </div>
+  </details>
+</section>
+
+<section id="fly-register" class="section">
+  <h2>Fly secrets 등록 <span class="subtitle">.env 17개를 stdin으로 일괄 등록 (argv 노출 방지)</span></h2>
+  <pre style="background: var(--code-bg); border: 1px solid var(--rule); padding: 1rem 1.25rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; overflow-x: auto;"><code>F=/home/lsmin124/laminar/.env
+grep -E '^[A-Z]' "$F" | sed 's/="/=/; s/"$//' | fly secrets import --stage -a laminar-prod</code></pre>
+  <ul style="font-size: 0.92rem; padding-left: 1.4rem;">
+    <li><code>grep -E '^[A-Z]'</code> — 주석·빈 줄 제외</li>
+    <li><code>sed 's/="/=/; s/"$//'</code> — 감싼 따옴표 제거</li>
+    <li><code>--stage</code> — 배포 트리거 없이 스테이징 (첫 배포 시 VM 적용)</li>
+  </ul>
+  <p>검증: <code>fly secrets list -a laminar-prod</code> → 17개 키 + digest, <strong>값은 노출 안 됨</strong></p>
+</section>
+
+<section id="verify" class="section">
+  <h2>검증 체크리스트 <span class="subtitle">Phase 0 완료 선언 전 확인</span></h2>
+  <div class="checklist">
+    <div class="checklist-item done"><span class="icon"></span><span><code>fly apps list</code>에 <code>laminar-prod</code> 존재</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span>Neon 콘솔에서 DB <code>neondb</code> + <code>citext</code> 확장 활성 확인</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span><code>.env</code>에 런타임 변수 17종 모두 비어있지 않음</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span><code>R2_ENDPOINT</code>의 <code>&lt;R2_ACCOUNT_ID&gt;</code> 자리표시자 치환됨</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span>R2 엔드포인트 HTTPS 도달 (<code>curl</code> → HTTP 400 InvalidArgument)</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span>Google OAuth consent screen <code>Testing</code> 모드 + redirect URI 2종 등록</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span><code>fly secrets list -a laminar-prod</code> → 17개 Staged</span></div>
+    <div class="checklist-item done"><span class="icon"></span><span><code>.env</code>가 <code>.gitignore</code>에 포함 (<code>git check-ignore .env</code>)</span></div>
+  </div>
+</section>
+
+<section id="rotation" class="section">
+  <h2>시크릿 로테이션 <span class="subtitle">유출·정기 교체 시 절차</span></h2>
+  <div class="rotation-grid">
+    <div class="rotation-card">
+      <h3>외부 서비스 키</h3>
+      <p style="font-size: 0.85rem; color: var(--muted); margin: 0 0 0.4rem;">R2 · Resend · Google · Sentry DSN</p>
+      <ol>
+        <li>콘솔에서 <strong>새 키 발급</strong> (기존 키 유지)</li>
+        <li><code>.env</code> 갱신</li>
+        <li><code>fly secrets import --stage</code> 재실행</li>
+        <li>배포 → 새 키 동작 확인</li>
+        <li>콘솔에서 <strong>기존 키 폐기</strong></li>
+      </ol>
+    </div>
+    <div class="rotation-card">
+      <h3>자체 시크릿</h3>
+      <p style="font-size: 0.85rem; color: var(--muted); margin: 0 0 0.4rem;">AUTH · CRON · HMAC</p>
+      <ol>
+        <li>생성 스크립트 재실행 (<code>openssl rand</code>)</li>
+        <li><code>.env</code> 갱신 → fly secrets import</li>
+        <li><strong>AUTH_SECRET 교체</strong> 시 기존 세션 전부 무효화</li>
+        <li><strong>APP_SECRET_V1</strong>은 <strong>버전드</strong> — 덮어쓰지 말고 <code>_V2</code> 추가 + 복호화 폴백 + 재암호화 마이그레이션</li>
+      </ol>
+    </div>
+    <div class="rotation-card">
+      <h3>Neon DB 비밀번호</h3>
+      <ol>
+        <li>Neon 콘솔에서 role 비밀번호 재설정</li>
+        <li><code>DATABASE_USERNAME</code>·<code>DATABASE_PASSWORD</code> 갱신</li>
+        <li><code>fly secrets import</code> → 배포</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="troubleshoot" class="section">
+  <h2>트러블슈팅 <span class="subtitle">최초 셋업에서 실제 발생한 이슈</span></h2>
+  <div class="trouble">
+    <table>
+      <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>fly: command not found</code></td>
+          <td>flyctl 설치 후 PATH 미반영 (기존 셸은 <code>.bashrc</code> 수정 전 시작됨)</td>
+          <td><code>~/.local/bin/fly</code> 심볼릭 링크 생성 (즉시 반영)</td>
+        </tr>
+        <tr>
+          <td><code>fly regions set nrt</code> → "no longer supported"</td>
+          <td>flyctl 0.4.x에서 deprecated</td>
+          <td>리전은 <code>fly.toml</code>의 <code>primary_region</code>으로</td>
+        </tr>
+        <tr>
+          <td><code>psql: command not found</code></td>
+          <td>DB 클라이언트 미설치, sudo 없음</td>
+          <td>Neon 웹 SQL Editor로 <code>citext</code> 활성화. 접속은 TCP 도달 확인으로 갈음</td>
+        </tr>
+        <tr>
+          <td><code>.env</code> 편집했는데 비어 보임</td>
+          <td>에디터 저장 타이밍 — 저장 직전에 읽음</td>
+          <td>잠시 후 재확인. 다른 경로 편집 여부 점검</td>
+        </tr>
+        <tr>
+          <td><code>R2_ENDPOINT</code>에 <code>&lt;R2_ACCOUNT_ID&gt;</code> 그대로</td>
+          <td>템플릿 placeholder 미치환</td>
+          <td>실제 account ID로 치환</td>
+        </tr>
+        <tr>
+          <td>모든 <code>fly</code> 명령에 "Metrics token unavailable"</td>
+          <td>flyctl의 알려진 무해한 표시</td>
+          <td>무시</td>
+        </tr>
+        <tr>
+          <td>Spring Boot 부팅 시 <code>Driver claims to not accept jdbcUrl postgresql://...</code></td>
+          <td>pgjdbc는 <code>user:pass@host</code> URL 인증 거부 + libpq <code>channel_binding</code> 인식 못함</td>
+          <td><code>.env</code> URL을 <code>jdbc:postgresql://host/db?sslmode=require</code>로 변경 + USERNAME·PASSWORD 분리</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="handoff" class="section">
+  <h2>인계 체크리스트 <span class="subtitle">운영자 변경 시</span></h2>
+  <div class="checklist">
+    <div class="checklist-item"><span class="icon"></span><span>Fly.io: 조직 멤버 추가 또는 앱 소유권 이전</span></div>
+    <div class="checklist-item"><span class="icon"></span><span>Neon: 프로젝트 멤버 추가</span></div>
+    <div class="checklist-item"><span class="icon"></span><span>Cloudflare: 계정 공유 또는 R2 토큰 재발급</span></div>
+    <div class="checklist-item"><span class="icon"></span><span>Resend: 팀 멤버 추가</span></div>
+    <div class="checklist-item"><span class="icon"></span><span>Google Cloud: 프로젝트 IAM에 새 운영자 추가, OAuth consent screen test users 갱신</span></div>
+    <div class="checklist-item"><span class="icon"></span><span>Sentry: 조직 멤버 추가</span></div>
+    <div class="checklist-item"><span class="icon"></span><span><code>/home/lsmin124/laminar/.env</code>를 안전한 경로로 전달 (절대 커밋·평문 채널 금지)</span></div>
+    <div class="checklist-item"><span class="icon"></span><span>인계 후 §로테이션 절차로 전 시크릿 로테이션 권장</span></div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>Laminar Phase 0 운영 가이드 · 최초 셋업 <strong>2026-05-15</strong></p>
+    <p>관련: <code>Laminar_Implementation.md</code> Phase 0 (체크박스 SSOT) · <code>Laminar_Spec.md</code> §2.1 (스택) · <code>Laminar_Phase0_Runbook.md</code> (장문 원본)</p>
+  </div>
+</footer>
+
+</body>
+</html>

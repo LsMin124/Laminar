@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laminar — 전체 명세 v5.1</title>
+<style>
+:root {
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --surface-2: #f5f4f0;
+  --ink: #1a1a1a;
+  --ink-2: #4a4a4a;
+  --muted: #7a7a78;
+  --rule: #e2e0da;
+  --accent: #2c5f5d;
+  --accent-soft: #e6efee;
+  --accent-line: #b8d1cf;
+  --done: #1e7c4a;
+  --done-soft: #e4f3eb;
+  --warn: #b76e00;
+  --warn-soft: #fbf0dd;
+  --alert: #a92020;
+  --alert-soft: #f8e8e8;
+  --code-bg: #f4f3ef;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
+  --font-body: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Noto Sans KR", sans-serif;
+  --font-serif: "Charter", "Iowan Old Style", "Georgia", "Noto Serif KR", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--bg); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.container { max-width: 1140px; margin: 0 auto; padding: 0 1.5rem; }
+
+.hero { background: linear-gradient(180deg, var(--accent) 0%, #234948 100%); color: #fff; padding: 3rem 0 2.5rem; }
+.hero-meta { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.hero h1 { font-family: var(--font-serif); font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+.hero .lead { font-size: 1.05rem; color: rgba(255,255,255,0.9); max-width: 70ch; margin: 0 0 2rem; line-height: 1.6; }
+.hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.stat { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 1rem 1.1rem; }
+.stat-num { font-family: var(--font-serif); font-size: 2.2rem; font-weight: 600; line-height: 1; display: block; margin-bottom: 0.2rem; }
+.stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.75); letter-spacing: 0.04em; text-transform: uppercase; }
+@media (max-width: 720px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.badge { display: inline-block; padding: 0.2em 0.6em; border-radius: 999px; font-size: 0.78rem; font-weight: 600; line-height: 1.4; }
+.badge.hero-badge { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.badge.v3 { background: #ededeb; color: var(--muted); }
+.badge.v4 { background: var(--accent-soft); color: var(--accent); }
+.badge.v5 { background: var(--done-soft); color: var(--done); }
+
+.quicknav { background: var(--surface); border-bottom: 1px solid var(--rule); position: sticky; top: 0; z-index: 10; }
+.quicknav-inner { display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.6rem 0; }
+.quicknav a { color: var(--ink-2); text-decoration: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.88rem; white-space: nowrap; transition: background 0.1s; }
+.quicknav a:hover { background: var(--accent-soft); color: var(--accent); }
+
+.section { padding: 3rem 0 1rem; }
+.section h2 { font-family: var(--font-serif); font-size: 1.75rem; margin: 0 0 1.5rem; letter-spacing: -0.005em; }
+.section h2 .subtitle { display: block; font-family: var(--font-body); font-size: 0.95rem; color: var(--muted); font-weight: 400; margin-top: 0.2rem; }
+.section .more-link { display: inline-block; margin-top: 0.6rem; font-size: 0.85rem; color: var(--accent); text-decoration: none; }
+.section .more-link:hover { text-decoration: underline; }
+
+.diff-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+@media (max-width: 720px) { .diff-cols { grid-template-columns: 1fr; } }
+.diff-col h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule); }
+.diff-col .item { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 0.5rem; font-size: 0.92rem; line-height: 1.5; }
+.diff-col.motive h3 { color: var(--accent); }
+.diff-col.limit h3 { color: var(--alert); }
+
+.key-decisions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; margin-top: 1rem; }
+@media (max-width: 720px) { .key-decisions { grid-template-columns: 1fr; } }
+.key-card { background: var(--accent); color: #fff; padding: 1rem 1.2rem; border-radius: 8px; }
+.key-card .key-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; margin-bottom: 0.3rem; }
+.key-card .key-body { font-size: 0.92rem; line-height: 1.45; font-weight: 500; }
+
+.scope-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 800px) { .scope-grid { grid-template-columns: 1fr; } }
+.scope-col { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.1rem 1.25rem; }
+.scope-col h3 { margin: 0 0 0.85rem; padding-bottom: 0.5rem; border-bottom: 2px solid; font-size: 0.95rem; }
+.scope-col.keep h3 { color: var(--done); border-color: var(--done-soft); }
+.scope-col.drop h3 { color: var(--alert); border-color: var(--alert-soft); }
+.scope-col.new h3 { color: var(--accent); border-color: var(--accent-line); }
+.scope-col ul { list-style: none; padding: 0; margin: 0; }
+.scope-col li { padding: 0.4rem 0; border-bottom: 1px dashed var(--rule); font-size: 0.88rem; line-height: 1.5; }
+.scope-col li:last-child { border-bottom: 0; }
+.scope-col li strong { display: block; color: var(--ink); }
+
+.entity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 900px) { .entity-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .entity-grid { grid-template-columns: 1fr; } }
+.entity-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.1rem 1.25rem; box-shadow: var(--shadow-card); }
+.entity-card .entity-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.entity-card .entity-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
+.entity-card h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.entity-card .entity-desc { font-size: 0.88rem; color: var(--ink-2); margin: 0 0 0.6rem; line-height: 1.5; }
+.entity-card .entity-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.entity-card .tag { font-size: 0.72rem; background: var(--surface-2); color: var(--muted); padding: 0.15em 0.5em; border-radius: 3px; }
+.entity-card .tag.hot { color: var(--warn); background: var(--warn-soft); }
+
+.scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; margin-top: 0.5rem; }
+.scenario-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.2rem 1.15rem 1rem; position: relative; }
+.scenario-card .scenario-letter { position: absolute; top: -10px; left: 12px; background: var(--accent); color: #fff; font-family: var(--font-serif); font-size: 0.85rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; line-height: 1; }
+.scenario-card h3 { margin: 0.2rem 0 0.4rem; font-size: 0.95rem; font-weight: 600; }
+.scenario-card p { margin: 0; font-size: 0.85rem; color: var(--ink-2); line-height: 1.5; }
+
+.integration-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 800px) { .integration-grid { grid-template-columns: 1fr; } }
+.integration-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.25rem; }
+.integration-card .ig-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem; }
+.integration-card .ig-icon { font-size: 1.5rem; }
+.integration-card h3 { margin: 0; font-size: 1.05rem; }
+.integration-card dl { margin: 0; font-size: 0.85rem; }
+.integration-card dl > div { display: grid; grid-template-columns: 70px 1fr; gap: 0.5rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--rule); }
+.integration-card dl > div:last-child { border-bottom: 0; }
+.integration-card dl dt { color: var(--muted); }
+.integration-card dl dd { margin: 0; color: var(--ink); }
+
+.dod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+@media (max-width: 760px) { .dod-grid { grid-template-columns: 1fr; } }
+.dod-item { background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 4px; padding: 0.7rem 1rem; display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.88rem; }
+.dod-item .dod-num { background: var(--accent); color: #fff; font-family: var(--font-mono); font-size: 0.78rem; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; line-height: 1; }
+.dod-item .dod-text { line-height: 1.5; }
+
+.two-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 900px) { .two-tables { grid-template-columns: 1fr; } }
+.mini-table { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.mini-table h3 { margin: 0; padding: 0.75rem 1rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface-2); color: var(--ink-2); border-bottom: 1px solid var(--rule); }
+.mini-table h3.warn-h { color: var(--warn); }
+.mini-table h3.accent-h { color: var(--accent); }
+.mini-table table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.mini-table td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.mini-table tr:last-child td { border-bottom: 0; }
+.mini-table td:first-child { width: 45%; color: var(--ink-2); }
+.mini-table td:nth-child(2) { color: var(--ink); }
+
+.arch { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 2rem; }
+.arch-tier { background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; padding: 0.85rem 1.1rem; margin-bottom: 0.4rem; text-align: center; }
+.arch-tier .tier-name { font-weight: 600; color: var(--accent); font-size: 0.95rem; margin-bottom: 0.2rem; }
+.arch-tier .tier-detail { font-size: 0.8rem; color: var(--muted); }
+.arch-arrow { text-align: center; color: var(--accent); font-size: 1.2rem; line-height: 1; margin: 0.1rem 0; }
+.arch-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.4rem; }
+@media (max-width: 700px) { .arch-row { grid-template-columns: 1fr; } }
+.arch-side { background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: 6px; padding: 0.85rem 1rem; }
+.arch-side .side-name { font-weight: 600; color: var(--accent); font-size: 0.9rem; margin-bottom: 0.2rem; }
+.arch-side .side-detail { font-size: 0.78rem; color: var(--ink-2); line-height: 1.5; }
+.arch-cron { background: #f4ede0; border: 1px dashed var(--warn); border-radius: 6px; padding: 0.85rem 1.1rem; margin-top: 0.6rem; }
+.arch-cron .cron-name { font-size: 0.82rem; color: var(--warn); font-weight: 600; margin-bottom: 0.3rem; }
+.arch-cron .cron-list { font-size: 0.78rem; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.arch-cron .cron-list span { background: rgba(255,255,255,0.7); padding: 0.15em 0.5em; border-radius: 3px; font-family: var(--font-mono); }
+.arch-stack-note { margin-top: 1rem; padding: 0.8rem 1rem; background: var(--accent-soft); border-radius: 6px; font-size: 0.86rem; color: var(--ink-2); line-height: 1.6; }
+.arch-stack-note strong { color: var(--accent); }
+
+.roadmap { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1.5rem; }
+.roadmap-legend { display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.82rem; align-items: center; }
+.roadmap-legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 0.3rem; vertical-align: middle; }
+.roadmap-track { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; margin-bottom: 2rem; height: 18px; position: relative; }
+.roadmap-cell { background: var(--surface-2); border-radius: 3px; position: relative; }
+.roadmap-cell.done { background: var(--done); }
+.roadmap-cell.progress { background: var(--warn); }
+.roadmap-cell::after { content: attr(data-w); position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: var(--muted); font-family: var(--font-mono); }
+.roadmap-row { display: grid; grid-template-columns: 80px 1fr; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.88rem; }
+.roadmap-row:last-child { border-bottom: 0; }
+.roadmap-row .wk { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+.roadmap-row .desc { color: var(--ink-2); line-height: 1.5; }
+.roadmap-divider { padding: 0.7rem 0; color: var(--warn); font-size: 0.85rem; font-weight: 600; border-top: 1px dashed var(--warn); border-bottom: 1px dashed var(--warn); margin: 0.4rem 0; }
+
+.history { position: relative; padding-left: 1.5rem; border-left: 2px solid var(--rule); margin-left: 0.5rem; }
+.history-entry { position: relative; padding-bottom: 1.3rem; }
+.history-entry::before { content: ""; position: absolute; left: -1.85rem; top: 0.3rem; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.history-entry.major::before { background: var(--accent); }
+.history-entry .h-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.4rem; flex-wrap: wrap; }
+.history-entry h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.history-entry .h-date { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); }
+.history-entry ul { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; color: var(--ink-2); }
+.history-entry li { margin: 0.2rem 0; }
+
+footer { margin-top: 4rem; padding: 1.75rem 0; border-top: 1px solid var(--rule); text-align: center; font-size: 0.85rem; color: var(--muted); }
+footer code { font-family: var(--font-mono); }
+
+@media print {
+  body { background: #fff; font-size: 10pt; }
+  .hero { background: #fff; color: var(--ink); border-bottom: 2px solid var(--accent); }
+  .stat { background: var(--surface-2); border-color: var(--rule); }
+  .stat-num { color: var(--accent); }
+  .stat-label { color: var(--muted); }
+  .badge.hero-badge { background: var(--surface-2); color: var(--ink); border-color: var(--rule); }
+  .key-card { background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule); }
+  .key-card .key-label { color: var(--muted); }
+  .quicknav { display: none; }
+  .roadmap-cell.done { background: var(--ink-2); }
+  .scenario-card, .entity-card, .integration-card, .dod-item { box-shadow: none; page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="hero-meta">
+      <span class="badge hero-badge">📘 Spec v5.1</span>
+      <span class="badge hero-badge">2026-05-14</span>
+      <span class="badge hero-badge">합류자 가이드</span>
+    </div>
+    <h1>Laminar 웹 리빌드 — 전체 명세</h1>
+    <p class="lead">옵시디언 플러그인 Laminar의 카드·화살표·그룹·탭 + 영구 노트 + 캘린더 작업 흐름을, 개인이 웹 브라우저에서 사용하면서 공용 실험장비 예약·log를 팀이 함께 관리하는 형태로 다시 만든다. 알림은 GCal에 위임, vault는 1회 임포트.</p>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">6</span><span class="stat-label">도메인 엔티티</span></div>
+      <div class="stat"><span class="stat-num">11</span><span class="stat-label">MVP DoD</span></div>
+      <div class="stat"><span class="stat-num">9~13</span><span class="stat-label">주 일정</span></div>
+      <div class="stat"><span class="stat-num">14</span><span class="stat-label">Phase (0~14)</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="quicknav">
+  <div class="container quicknav-inner">
+    <a href="#why">WHY</a>
+    <a href="#scope">스코프</a>
+    <a href="#domain">도메인 6엔티티</a>
+    <a href="#scenarios">시나리오</a>
+    <a href="#integration">외부 통합</a>
+    <a href="#dod">MVP 기준</a>
+    <a href="#excluded">제외·미래</a>
+    <a href="#arch">시스템 구성</a>
+    <a href="#roadmap">로드맵</a>
+    <a href="#history">변경 이력</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<section id="why" class="section">
+  <h2>WHY — 왜 다시 만드는가 <span class="subtitle">기존 플러그인의 한계와 웹 리빌드의 가치</span></h2>
+  <div class="diff-cols">
+    <div class="diff-col motive">
+      <h3>동기</h3>
+      <div class="item">기존 플러그인은 obsidian-kanban 포크 위 vibe-coding 누적 결과물</div>
+      <div class="item">옵시디언은 단일 사용자 환경에 종속</div>
+      <div class="item">공용 실험장비 예약·log를 팀이 함께 관리할 수단 부재</div>
+    </div>
+    <div class="diff-col limit">
+      <h3>한계</h3>
+      <div class="item">구조 부채 → 새 기능 추가·동작 보장 점점 어려워짐</div>
+      <div class="item">모바일·외부 접근 어렵고, GCal 같은 현대 도구 통합 부족</div>
+      <div class="item">개별 일정에 더해 공용 자원 관리 기능이 필요함</div>
+    </div>
+  </div>
+  <div class="key-decisions">
+    <div class="key-card"><div class="key-label">결정 1</div><div class="key-body">도메인 지식만 가져오고, <strong>코드는 from-scratch</strong></div></div>
+    <div class="key-card"><div class="key-label">결정 2</div><div class="key-body">서비스 본질 = <strong>Personal-First</strong><br>(개인 도구 + 공용 자원만 공유)</div></div>
+    <div class="key-card"><div class="key-label">결정 3</div><div class="key-body">GCal = <strong>웹 알림 인프라 위임</strong><br>(자체 푸시 미지원)</div></div>
+  </div>
+</section>
+
+<section id="scope" class="section">
+  <h2>스코프 한눈에 <span class="subtitle">v4 기준 무엇을 보존·폐기·신설하는가</span></h2>
+  <div class="scope-grid">
+    <div class="scope-col keep">
+      <h3>✅ 그대로 (보존)</h3>
+      <ul>
+        <li><strong>6엔티티 모델</strong> 카드/화살표/그룹/그룹화살표/탭/영구노트</li>
+        <li><strong>다중 멤버십</strong> 한 카드가 여러 그룹에 동시 소속</li>
+        <li><strong>캘린더 우선 뷰</strong> + 멀티데이 카드</li>
+        <li><strong>마크다운 본문</strong> (CodeMirror 6)</li>
+        <li><strong>Sample Manager</strong> 양방향 (push 우선)</li>
+        <li><strong>perpetual-ver</strong> 영구노트 결합 (v4 의미 정정)</li>
+      </ul>
+    </div>
+    <div class="scope-col drop">
+      <h3>❌ 폐기 (v4)</h3>
+      <ul>
+        <li><strong>옵시디언 파일 시스템</strong> → DB</li>
+        <li><strong>frontmatter 위키링크</strong> → 외래키</li>
+        <li><strong>basename = ID</strong> → UUID</li>
+        <li><strong>obsidian-kanban 포크 코드</strong> 전부</li>
+        <li><strong>옵시디언 의존</strong> (<code>obsidian://</code>)</li>
+        <li><strong>importance 2종</strong> <code>planned</code>·<code>future</code> (사용 0건)</li>
+        <li><strong>수식 화살표·Gemini AI</strong> → Phase 2 이후</li>
+      </ul>
+    </div>
+    <div class="scope-col new">
+      <h3>✨ 신규 (v4 — 큰 변경)</h3>
+      <ul>
+        <li><strong>다중 사용자 + 워크스페이스</strong> + 3역할 + <code>equipment_admin</code></li>
+        <li><strong>구글 캘린더 양방향</strong> + 알림 위임 (사용자별 OAuth)</li>
+        <li><strong>워크스페이스 검색</strong></li>
+        <li><strong>첨부 업로드</strong> (Cloudflare R2)</li>
+        <li><strong>일 1회 자동 백업</strong></li>
+        <li><strong>공용 캘린더</strong> 장비별 예약·log·공지</li>
+        <li><strong>반복 일정 (RRULE)</strong></li>
+        <li><strong>운영 콘솔</strong> owner 메타 관리 (강한 격리)</li>
+        <li><strong><code>process</code> importance</strong> SampleManager step</li>
+        <li><strong>Personal-First 격리</strong> calendarboard/card user별</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="domain" class="section">
+  <h2>도메인 6엔티티 <span class="subtitle">모든 것은 1급 시민 노트 — 관계조차 노트</span></h2>
+  <div class="entity-grid">
+    <div class="entity-card">
+      <div class="entity-head"><div class="entity-icon">C</div><h3>카드</h3></div>
+      <p class="entity-desc">가장 작은 단위. 일반 노트 한 장. 시작/종료일 있으면 캘린더에 자동 배치.</p>
+      <div class="entity-tags"><span class="tag">평면</span><span class="tag hot">자주 변경</span></div>
+    </div>
+    <div class="entity-card">
+      <div class="entity-head"><div class="entity-icon">→</div><h3>화살표</h3></div>
+      <p class="entity-desc">두 카드 사이의 관계 1개를 노트로 표현 (인과·분석 대기·참조 등).</p>
+      <div class="entity-tags"><span class="tag">평면(간선)</span><span class="tag">가끔</span></div>
+    </div>
+    <div class="entity-card">
+      <div class="entity-head"><div class="entity-icon">G</div><h3>그룹</h3></div>
+      <p class="entity-desc">카드들의 <strong>단기 목표</strong> 묶음. 화살표 그릴 때 자동 형성.</p>
+      <div class="entity-tags"><span class="tag">평면</span><span class="tag hot">자주 변경</span></div>
+    </div>
+    <div class="entity-card">
+      <div class="entity-head"><div class="entity-icon">⇒</div><h3>그룹 화살표</h3></div>
+      <p class="entity-desc">그룹 사이의 거시적 흐름 ("합성 단계 → 분석 단계"). 보조 기능.</p>
+      <div class="entity-tags"><span class="tag">평면(간선)</span><span class="tag">거의 안 바뀜</span></div>
+    </div>
+    <div class="entity-card">
+      <div class="entity-head"><div class="entity-icon">T</div><h3>탭 <small style="color:var(--muted);font-weight:400">v5.1</small></h3></div>
+      <p class="entity-desc">그룹들의 <strong>중기 목표</strong> 묶음. 트리 + 탭 화살표 둘 다. <strong>visible 부모는 후손 흡수, hidden 부모는 후손 개별 노출</strong> — 줌인·아웃 핵심 UX.</p>
+      <div class="entity-tags"><span class="tag">트리+DAG</span><span class="tag">거의 안 바뀜</span></div>
+    </div>
+    <div class="entity-card">
+      <div class="entity-head"><div class="entity-icon">P</div><h3>영구 노트 <small style="color:var(--muted);font-weight:400">v5.1</small></h3></div>
+      <p class="entity-desc">시간축 밖의 참조 자료 + 버전 이력. <strong>버전 마커 카드 중 최신 1건만 diff 라이브, 과거는 frozen</strong>.</p>
+      <div class="entity-tags"><span class="tag">트리+버전</span><span class="tag">가끔</span></div>
+    </div>
+  </div>
+  <div style="background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 0.9rem 1.2rem; border-radius: 0 4px 4px 0; margin-top: 1.5rem; font-size: 0.92rem;">
+    <strong style="color: var(--accent)">위계 관계</strong> — <strong>그룹</strong>(단기, 평면)이 <strong>탭</strong>(중기, 트리+DAG)에 속함. 같은 카드가 여러 그룹 + 그 그룹들이 한 탭에 속하면 카드는 <em>간접적으로</em> 탭의 멤버.<br>
+    <strong style="color: var(--accent)">화살표↔그룹 자동 연동</strong> — 화살표 그릴 때 그룹 자동 형성. 다른 그룹 시 <strong>흡수 모달</strong>(v5.1). 화살표 삭제로 끊긴 그룹은 <strong>사용자 선택 모달</strong>(유지/분리, v5.1).
+  </div>
+  <a href="Laminar_DataModel.md" class="more-link">→ 데이터 모델 자세히 (DataModel.md)</a>
+</section>
+
+<section id="scenarios" class="section">
+  <h2>대표 사용자 시나리오 <span class="subtitle">5가지 핵심 작업 흐름</span></h2>
+  <div class="scenario-grid">
+    <div class="scenario-card">
+      <div class="scenario-letter">A</div>
+      <h3>새 실험 카드 + 일정</h3>
+      <p>워크스페이스 로그인 → 자기 보드 → 캘린더 날짜 컬럼 <code>+</code> → 카드 표면 icon/box로 시작/종료/todo/GCal 토글 (모달 없이). GCal 활성 시 자기 GCal로 일정 + 알림. <strong>자기 카드만 보임</strong>.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-letter">B</div>
+      <h3>실험 흐름 표현</h3>
+      <p>카드 1 (합성) ↔ 카드 2 (분석) 화살표 연결 → <strong>그룹 "분말 합성 후 광학적특성 평가" 자동 형성</strong>. 그 그룹은 "후보군 특성평가" 중기 목표 탭에 속함. 카드의 탭 이동은 예외적.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-letter">C</div>
+      <h3>매주 랩미팅 (RRULE)</h3>
+      <p>카드 "랩미팅" 시작일=월요일 10시 + 반복 설정 "매주 월요일" RRULE → GCal에 한 번 등록, GCal이 매주 알림 송신. 사용자는 매주 새 카드 안 만들어도 됨.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-letter">D</div>
+      <h3>영구노트 + perpetual-ver</h3>
+      <p>보드 사이드바에 "시약 카탈로그" 영구노트 항상 노출. 편집 시 baseline이 perpetual-ver 카드로 자동 저장 → 캘린더에 그 시점 배치. 카드 클릭 = <strong>현재 vs 그 시점 diff</strong> (git diff 동일).</p>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-letter">E</div>
+      <h3>공용 장비 예약</h3>
+      <p>별도 view → "박막증착기" 공용 캘린더 → 시간대 드래그 예약 → 충돌 검증. 예약 후 log 작성 (장비별 컬럼 Pressure·Recipe). <code>equipment_admin</code>은 공지·log 컬럼 정의 가능.</p>
+    </div>
+  </div>
+</section>
+
+<section id="integration" class="section">
+  <h2>외부 통합 <span class="subtitle">GCal · Sample Manager · 옵시디언 vault</span></h2>
+  <div class="integration-grid">
+    <div class="integration-card">
+      <div class="ig-head"><span class="ig-icon">📅</span><h3>Google Calendar</h3></div>
+      <dl>
+        <div><dt>모델</dt><dd>사용자별 OAuth, 양방향</dd></div>
+        <div><dt>알림</dt><dd>GCal에 위임 (자체 푸시 X)</dd></div>
+        <div><dt>지연</dt><dd>자동 ~5분 / 수동 수 초</dd></div>
+        <div><dt>충돌</dt><dd>Last-Write-Wins + 1분 내 토스트</dd></div>
+        <div><dt>RRULE</dt><dd>MVP 포함 (반복 일정)</dd></div>
+        <div><dt>토큰 만료</dt><dd>재연결 배너 (닫기 불가)</dd></div>
+      </dl>
+    </div>
+    <div class="integration-card">
+      <div class="ig-head"><span class="ig-icon">🧪</span><h3>Sample Manager</h3></div>
+      <dl>
+        <div><dt>방향</dt><dd>SM → Laminar push (단방향, MVP)</dd></div>
+        <div><dt>카드</dt><dd>importance = <code>process</code> 자동</dd></div>
+        <div><dt>인증</dt><dd>워크스페이스 API 키 1개</dd></div>
+        <div><dt>서명</dt><dd>HMAC-SHA256 + 5분 윈도우</dd></div>
+        <div><dt>멱등성</dt><dd>같은 sample+step 재import 안전</dd></div>
+      </dl>
+    </div>
+    <div class="integration-card">
+      <div class="ig-head"><span class="ig-icon">📦</span><h3>옵시디언 vault</h3></div>
+      <dl>
+        <div><dt>방향</dt><dd>1회 임포트 (양방향 X)</dd></div>
+        <div><dt>크기</dt><dd>최대 500MB zip</dd></div>
+        <div><dt>순서</dt><dd>카드→화살표→그룹→탭→영구노트→첨부</dd></div>
+        <div><dt>깨진 참조</dt><dd>건너뛰고 보고서</dd></div>
+        <div><dt>vault</dt><dd>읽기 전용 백업 보관</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section id="dod" class="section">
+  <h2>MVP 출시 기준 <span class="subtitle">11가지 Definition of Done — 전부 충족 시 출시</span></h2>
+  <div class="dod-grid">
+    <div class="dod-item"><span class="dod-num">1</span><div class="dod-text">1명 워크스페이스 1개에 옵시디언 vault 1개 임포트 완료</div></div>
+    <div class="dod-item"><span class="dod-num">2</span><div class="dod-text">일주일간 1~5명이 본인 일정·실험 카드 + 공용 장비 예약·log 함께 관리, 데이터 깨짐 0건</div></div>
+    <div class="dod-item"><span class="dod-num">3</span><div class="dod-text">cross-workspace 누출 0건 + cross-user 누출 0건 — 격리 매트릭스 5종 검증</div></div>
+    <div class="dod-item"><span class="dod-num">4</span><div class="dod-text">모든 멤버가 자기 GCal에 연결, push/pull 양방향 + RRULE 반복 일정 동작</div></div>
+    <div class="dod-item"><span class="dod-num">5</span><div class="dod-text">일 1회 백업 자동 + 1회 수동 복원 테스트 성공</div></div>
+    <div class="dod-item"><span class="dod-num">6</span><div class="dod-text">자기 변경 즉시 반영, 남의 변경 30초 내 반영, 동시 변경은 409 처리</div></div>
+    <div class="dod-item"><span class="dod-num">7</span><div class="dod-text">GCal 토큰 갱신 실패 시 재연결 배너가 모든 멤버에게 표시·동작</div></div>
+    <div class="dod-item"><span class="dod-num">8</span><div class="dod-text">워크스페이스 quota 422 응답 동작 (카드/첨부/멤버/equipment/log 한도)</div></div>
+    <div class="dod-item"><span class="dod-num">9</span><div class="dod-text">공용 장비 예약·log 시트 5명 이상 동시 사용 동작</div></div>
+    <div class="dod-item"><span class="dod-num">10</span><div class="dod-text">운영 콘솔 강한 격리 (owner 본문 접근 거부 + audit_log + escape hatch)</div></div>
+    <div class="dod-item"><span class="dod-num">11</span><div class="dod-text">캘린더 보드 레이아웃 엔진 4종 알고리즘 회귀 테스트 통과 + 함정 3건 회피 (v5)</div></div>
+  </div>
+</section>
+
+<section id="excluded" class="section">
+  <h2>의도적 제외 · 미래 추가 <span class="subtitle">MVP 스코프 경계 + 트리거별 추가 후보</span></h2>
+  <div class="two-tables">
+    <div class="mini-table">
+      <h3 class="warn-h">MVP 제외</h3>
+      <table>
+        <tr><td>결제·요금제</td><td>연구실 내부 도구</td></tr>
+        <tr><td>실시간 협업 (WS·CRDT)</td><td>5명 규모면 30초 polling 충분</td></tr>
+        <tr><td>MFA·SSO·SAML</td><td>엔터프라이즈 진입 시</td></tr>
+        <tr><td>모바일 PWA·푸시</td><td>알림은 GCal 위임</td></tr>
+        <tr><td>다국어</td><td>한국어만</td></tr>
+        <tr><td>외부 webhook 발송</td><td>외부 시스템 통합 시</td></tr>
+        <tr><td>옵시디언 양방향 동기</td><td>이중 진실 출처 문제</td></tr>
+        <tr><td><strong>AI 주석/채팅 (Gemini)</strong></td><td><em>Phase 2 이후 반드시 구현</em></td></tr>
+        <tr><td><strong>수식 화살표</strong></td><td><em>Phase 2 이후 반드시 구현</em></td></tr>
+        <tr><td><strong>Canvas (화이트보드)</strong></td><td><strong>Phase 2 별도 출시</strong></td></tr>
+      </table>
+    </div>
+    <div class="mini-table">
+      <h3 class="accent-h">미래 추가 트리거</h3>
+      <table>
+        <tr><td>MVP 출시 후</td><td>Canvas, 수식 화살표 + PDF export</td></tr>
+        <tr><td>AI 요구</td><td>Gemini/Claude API 통합</td></tr>
+        <tr><td>카드 1만+/워크스페이스</td><td>한국어 검색 강화</td></tr>
+        <tr><td>모바일 요구</td><td>PWA + 푸시</td></tr>
+        <tr><td>편집 충돌 빈발</td><td>본문 CRDT (Yjs)</td></tr>
+        <tr><td>GCal 멤버 50+</td><td>공유 캘린더 모델 전환</td></tr>
+        <tr><td>결제 시작</td><td>Stripe + 요금제</td></tr>
+        <tr><td>audit_log 1000만 row</td><td>월 PARTITION BY RANGE</td></tr>
+        <tr><td>GCal 첨부·참석자</td><td>추가 sync field</td></tr>
+        <tr><td>엔터프라이즈 진입</td><td>SSO/SAML + SOC 2 + DR</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="arch" class="section">
+  <h2>시스템 구성 <span class="subtitle">단일 인스턴스 모놀리스 · Personal-First 격리</span></h2>
+  <div class="arch">
+    <div class="arch-tier">
+      <div class="tier-name">브라우저</div>
+      <div class="tier-detail">React 19 + Vite (TypeScript) · TanStack Query · Zustand · Tailwind · shadcn/ui · @dnd-kit · CodeMirror 6</div>
+    </div>
+    <div class="arch-arrow">▼ HTTPS (REST API + 30s polling)</div>
+    <div class="arch-tier">
+      <div class="tier-name">Spring Boot 3.5 (Java 21 LTS)</div>
+      <div class="tier-detail">Spring Security · Spring Data JPA + Hibernate 6 · 3계층 컨텍스트 (UserScopedDb · WorkspaceSharedDb · SystemDb)</div>
+    </div>
+    <div class="arch-arrow">▼</div>
+    <div class="arch-row">
+      <div class="arch-side">
+        <div class="side-name">📊 Postgres (Neon)</div>
+        <div class="side-detail">25+ 테이블 · <code>citext</code> · <code>jobs_outbox</code> · <code>email_outbox</code> · pooler/direct 2종 연결</div>
+      </div>
+      <div class="arch-side">
+        <div class="side-name">📁 Cloudflare R2 (S3)</div>
+        <div class="side-detail">첨부파일 · presigned URL TTL 5분 · 버킷 versioning</div>
+      </div>
+      <div class="arch-side">
+        <div class="side-name">📅 Google Calendar API</div>
+        <div class="side-detail">사용자별 OAuth · push/pull · RRULE</div>
+      </div>
+    </div>
+    <div class="arch-cron">
+      <div class="cron-name">⏰ Spring @Scheduled (Fly.io 단일 인스턴스)</div>
+      <div class="cron-list">
+        <span>gcal-sync (5m)</span>
+        <span>email-flush (1m)</span>
+        <span>cleanup (daily)</span>
+        <span>backup (daily)</span>
+        <span>integrity-check (daily)</span>
+        <span>key-rotate (daily)</span>
+        <span>rrule-expand (daily)</span>
+      </div>
+    </div>
+    <div class="arch-stack-note">
+      <strong>스택 결정</strong>: Java 21 LTS · Spring Boot 3.5 · Gradle Kotlin DSL · React 19 · Vite · Fly.io (NRT) · Neon Postgres · Cloudflare R2 · Resend · Sentry · UptimeRobot. 구체 의존성·환경변수는 Implementation.md §19.
+    </div>
+  </div>
+</section>
+
+<section id="roadmap" class="section">
+  <h2>로드맵 <span class="subtitle">13주 일정 (v4·v5 격상 영역 Week 10~13) · 현재 Phase 1 진행중</span></h2>
+  <div class="roadmap">
+    <div class="roadmap-legend">
+      <span><span class="swatch" style="background: var(--done);"></span>완료</span>
+      <span><span class="swatch" style="background: var(--warn);"></span>진행 중</span>
+      <span><span class="swatch" style="background: var(--surface-2); border: 1px solid var(--rule);"></span>예정</span>
+    </div>
+    <div class="roadmap-track">
+      <div class="roadmap-cell progress" data-w="W1"></div>
+      <div class="roadmap-cell" data-w="W2"></div>
+      <div class="roadmap-cell" data-w="W3"></div>
+      <div class="roadmap-cell" data-w="W4"></div>
+      <div class="roadmap-cell" data-w="W5"></div>
+      <div class="roadmap-cell" data-w="W6"></div>
+      <div class="roadmap-cell" data-w="W7"></div>
+      <div class="roadmap-cell" data-w="W8"></div>
+      <div class="roadmap-cell" data-w="W9"></div>
+      <div class="roadmap-cell" data-w="W10"></div>
+      <div class="roadmap-cell" data-w="W11"></div>
+      <div class="roadmap-cell" data-w="W12"></div>
+      <div class="roadmap-cell" data-w="W13"></div>
+    </div>
+    <div>
+      <div class="roadmap-row"><span class="wk">Week 1</span><span class="desc">인프라·인증·워크스페이스 · Spring Boot · JPA · Fly.io · Neon · R2 · 3계층 격리 타입</span></div>
+      <div class="roadmap-row"><span class="wk">Week 2</span><span class="desc">보드·카드 CRUD·캘린더 뷰 · 멀티데이 · DnD · 마크다운 에디터 · TZ · Personal-First</span></div>
+      <div class="roadmap-row"><span class="wk">Week 3</span><span class="desc">화살표·그룹·자동 연동 · SVG 오버레이 · 그룹 멤버십 · 마퀴 선택</span></div>
+      <div class="roadmap-row"><span class="wk">Week 4</span><span class="desc">탭 트리·탭 화살표 DAG · 부모 흡수 · DAG 사이클 검출 · cross-board 이동(v5.1)</span></div>
+      <div class="roadmap-row"><span class="wk">Week 5</span><span class="desc">영구노트·perpetual_versions · 트리(깊이 10) · 버전 마커(최신만 live diff) · perpetual_columns 타입 시스템(v5.1)</span></div>
+      <div class="roadmap-row"><span class="wk">Week 6</span><span class="desc">멤버 초대·세션 revoke · 초대 토큰 · viewer/member · audit_log · quota</span></div>
+      <div class="roadmap-row"><span class="wk">Week 7</span><span class="desc">구글 캘린더 연동 · OAuth · 토큰 SOR · push · pull (fan-out) · 충돌 LWW · RRULE</span></div>
+      <div class="roadmap-row"><span class="wk">Week 8</span><span class="desc">Sample Manager · 임포터 · API key + HMAC · zip 임포트 resumable · 사이드 패널</span></div>
+      <div class="roadmap-row"><span class="wk">Week 9</span><span class="desc">다듬기·Cron·백업·QA · 7 cron · 백업 dump · 격리 매트릭스 5종 · 실팀 온보딩 — <strong>최소 출시</strong></span></div>
+      <div class="roadmap-divider">⬇ v4·v5 격상 영역 ⬇</div>
+      <div class="roadmap-row"><span class="wk">Week 10</span><span class="desc">공용 장비 · equipment·equipment_admins · 장비 CRUD · admin 임명 · 권한 매트릭스</span></div>
+      <div class="roadmap-row"><span class="wk">Week 11</span><span class="desc">공용 캘린더 + 예약 · shared_calendars · reservations · exclusion constraint</span></div>
+      <div class="roadmap-row"><span class="wk">Week 12</span><span class="desc">log 시트 + 공지 · log_columns 동적 설계 · log row JSONB · 공지</span></div>
+      <div class="roadmap-row"><span class="wk">Week 13</span><span class="desc">RRULE + 운영 콘솔 · RRULE expand cron · GCal recurrence · 운영 콘솔 격리 + escape hatch</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="history" class="section">
+  <h2>변경 이력 <span class="subtitle">v3 → v4 → v5 → v5.1 회수 라운드</span></h2>
+  <div class="history">
+    <div class="history-entry">
+      <div class="h-head"><h3>v3</h3><span class="h-date">2026-05-09 이전</span><span class="badge v3">초안</span></div>
+      <ul>
+        <li>BLOCKER 22건 결정 (인덱스 · Neon · 트랜잭션 · token SOR 등)</li>
+        <li>9주 MVP 일정 가정</li>
+      </ul>
+    </div>
+    <div class="history-entry major">
+      <div class="h-head"><h3>v4 — 원작자 회신 6+1건 회수</h3><span class="h-date">2026-05-10</span><span class="badge v4">major</span></div>
+      <ul>
+        <li><strong>Personal-First 격리 모델</strong> — workspace_id + user_id 이중 격리</li>
+        <li><strong>GCal = 알림 인프라 위임</strong> 명문화</li>
+        <li><strong>importance 8종 → 7종</strong> (<code>planned</code>·<code>future</code> 폐기, <code>process</code> 신설)</li>
+        <li><strong>공용 장비 N:N + RRULE MVP 격상</strong></li>
+        <li><strong>운영 콘솔 강한 격리</strong></li>
+        <li><strong>Canvas Phase 2 분리</strong></li>
+        <li>MVP 일정 9주 → 9~13주 확장</li>
+      </ul>
+    </div>
+    <div class="history-entry major">
+      <div class="h-head"><h3>v5 — FinalConfirmation 28+5건 + 원본 코드 분석</h3><span class="h-date">2026-05-10</span><span class="badge v5">major</span></div>
+      <ul>
+        <li><strong>카드 cascade</strong> hard delete 철회 → soft delete + 복원 dialog</li>
+        <li><strong>영구노트 삭제 dialog</strong></li>
+        <li><strong>same-date arrow cycle 거부</strong> (409)</li>
+        <li><strong>카드 본문 250KB + <code>attrs.long_body_override</code></strong></li>
+        <li><strong>영구노트 트리 깊이 10</strong> (v4의 5 → 10)</li>
+        <li><strong>LayoutEngine · ArrowRouter · DnDHandler</strong> 4가지 알고리즘 명세화</li>
+        <li><strong>함정 3건 회피</strong> — IntervalSet · window 전역 · UnionFind class split</li>
+        <li>MVP 출시 기준 10개 → 11개</li>
+      </ul>
+    </div>
+    <div class="history-entry">
+      <div class="h-head"><h3>v5 통합 — 11문서 → 4문서</h3><span class="h-date">2026-05-11</span><span class="badge v5">정리</span></div>
+      <ul>
+        <li>Spec + DataModel + Implementation + Archive로 통합</li>
+        <li>옛 11문서는 <code>_archive/_planning_history/v5_legacy_docs/</code>에 보존</li>
+      </ul>
+    </div>
+    <div class="history-entry major">
+      <div class="h-head"><h3>v5.1 — 원작자 cross-ref 검토</h3><span class="h-date">2026-05-14</span><span class="badge v5">현재</span></div>
+      <ul>
+        <li><strong>perpetual-ver "최신만 live diff"</strong> — 과거는 frozen baseline</li>
+        <li><strong>탭 visibility 부모-자식 흡수</strong> — visible은 흡수, hidden은 개별 노출</li>
+        <li><strong>그룹 merge = 흡수 방식</strong> — 신규 생성 폐기</li>
+        <li><strong>그룹 split = 사용자 선택 모달</strong> — 자동 분할 폐기 (1-멤버는 자동 삭제)</li>
+        <li><strong>perpetual_columns 타입 시스템</strong> — text/dropdown/checkbox</li>
+        <li><strong>탭 cross-board 이동 (MVP 포함)</strong></li>
+        <li><strong>LayoutEngine 미명시 규칙 6종</strong> — Task 10.22 테스트</li>
+        <li>카드 thumbnail · GCal importance 색상 매핑 · cross-tab 화살표 판정</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>Laminar 전체 명세 <strong>v5.1</strong> · 2026-05-14</p>
+    <p>4문서 체계: 본 문서 (제품·범위·도메인) · <code>Laminar_DataModel.md</code> (DB 스키마) · <code>Laminar_Implementation.md</code> (Phase 0~14 task) · <code>Laminar_Archive.md</code> (회수 이력)</p>
+  </div>
+</footer>
+
+</body>
+</html>

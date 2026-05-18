@@ -1,0 +1,58 @@
+# Laminar 로컬 개발 환경 (Task 1.7.4)
+# 사용: docker compose up -d
+#
+# 프로덕션 의존성과 1:1 매핑:
+#   postgres:16          → 프로덕션 Neon (JDBC 인증·schema 동일)
+#   minio (S3 호환)      → 프로덕션 Cloudflare R2
+#   mailhog              → 프로덕션 Resend (검증 안 된 도메인 우회 — Phase 0.4 보류 정책 대안)
+#
+# 주의: 로컬은 평문 placeholder 시크릿. 프로덕션 시크릿은 Fly secrets (Task 0.7) 참조.
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: laminar-postgres
+    environment:
+      POSTGRES_DB: laminar
+      POSTGRES_USER: laminar_dev
+      POSTGRES_PASSWORD: laminar_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laminar_dev -d laminar"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: laminar-minio
+    environment:
+      MINIO_ROOT_USER: laminar_dev
+      MINIO_ROOT_PASSWORD: laminar_dev_password
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # 웹 콘솔
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    # Resend 도메인 검증 보류 중(§12.3.1 v3 정책) — 로컬 dev는 Mailhog로 메일 흐름 검증
+    image: mailhog/mailhog:latest
+    container_name: laminar-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # 웹 UI (http://localhost:8025)
+
+volumes:
+  postgres-data:
+  minio-data:

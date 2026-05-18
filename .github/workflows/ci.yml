@@ -1,0 +1,72 @@
+name: CI
+
+# Task 1.9 — push·PR에서 빌드·린트·ArchUnit 검증
+# Phase 12에서 fly deploy 잡 추가 예정 (현재는 Fly 결제 카드 보류 + FLY_API_TOKEN 미발급)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: pnpm install (apps/web)
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint (apps/web)
+        working-directory: apps/web
+        run: pnpm lint
+
+      # gradle.properties는 로컬 개발자 JDK 경로를 핀하지만 CI는 actions/setup-java의
+      # JAVA_HOME을 사용해야 함 → -D로 override
+      - name: Gradle build + ArchUnit (apps/api)
+        working-directory: apps/api
+        run: |
+          ./gradlew --no-daemon \
+            -Dorg.gradle.java.home=$JAVA_HOME \
+            build
+
+      - name: Upload build reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports
+          path: apps/api/build/reports/
+          retention-days: 7

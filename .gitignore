@@ -1,0 +1,29 @@
+# ── 시크릿 — 절대 커밋 금지 ──
+.env
+.env.*
+!.env.example
+
+# ── 빌드 산출물 ──
+build/
+out/
+dist/
+target/
+.gradle/
+
+# ── 의존성 ──
+node_modules/
+
+# ── IDE / OS ──
+.idea/
+.vscode/
+*.iml
+.DS_Store
+*.log
+
+# ── 로컬 JDK (Phase 1 선결, 프로젝트 디렉토리에 적재) ──
+jdk-21*/
+openjdk-*.zip
+*.tar.gz
+
+# ── 빌드 산출물 (Phase 1.6 buildWebApp/copyWebDist가 매번 갱신, 파일명에 해시 포함) ──
+apps/api/src/main/resources/static/

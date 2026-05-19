@@ -54,14 +54,11 @@ jobs:
         working-directory: apps/web
         run: pnpm lint
 
-      # gradle.properties는 로컬 개발자 JDK 경로를 핀하지만 CI는 actions/setup-java의
-      # JAVA_HOME을 사용해야 함 → -D로 override
       - name: Gradle build + ArchUnit (apps/api)
         working-directory: apps/api
-        run: |
-          ./gradlew --no-daemon \
-            -Dorg.gradle.java.home=$JAVA_HOME \
-            build
+        # setup-java가 JAVA_HOME 설정 → Gradle 데몬 launch JVM에 자동 사용.
+        # 프로젝트 gradle.properties는 portability 위해 java.home 핀 안 함.
+        run: ./gradlew --no-daemon build
 
       - name: Upload build reports on failure
         if: failure()

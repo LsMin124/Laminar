@@ -3,6 +3,12 @@
 spring:
   application:
     name: api
+  mvc:
+    pathmatch:
+      # SpaForwardController의 정규식 + ** 패턴이 Spring Boot 3의 PathPattern과
+      # 호환 안 됨 → legacy AntPathMatcher 사용. Phase 5에서 SPA fallback을
+      # PathPattern 호환 방식(필터·view controller)으로 재설계 시 제거.
+      matching-strategy: ant_path_matcher
   jackson:
     property-naming-strategy: SNAKE_CASE
   jpa:

@@ -27,3 +27,6 @@ openjdk-*.zip
 
 # ── 빌드 산출물 (Phase 1.6 buildWebApp/copyWebDist가 매번 갱신, 파일명에 해시 포함) ──
 apps/api/src/main/resources/static/
+
+# ── GateGuard project-local 임시 marker (Phase 3 entity bulk write 동안만) ──
+.gateguard-disabled

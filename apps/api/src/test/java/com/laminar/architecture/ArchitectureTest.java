@@ -104,16 +104,21 @@ public class ArchitectureTest {
               "com.laminar.config..");
 
   /**
-   * 3.5.2 — SystemRepository 구현체는 com.laminar.system 패키지에만 위치.
+   * 3.5.2 — SystemRepository 파생 (interface extends 또는 class implements)은 com.laminar.system 패키지에만 위치.
    *
    * <p>시스템 컨텍스트 (격리 우회)는 명시적으로 system 패키지에 격리. 일반 도메인 Repository가
-   * 우연히 SystemRepository를 구현해 격리 우회하는 사고를 차단.
+   * 우연히 SystemRepository를 상속해 격리 우회하는 사고를 차단.
+   *
+   * <p>{@code areAssignableTo}는 interface→interface 상속도 매칭 (vs {@code implement}는 class→interface만).
+   * SystemRepository 자체는 제외 (자기 자신 매칭 제외).
    */
   @ArchTest
   static final ArchRule system_repository_only_in_system_package =
       classes()
           .that()
-          .implement(SystemRepository.class)
+          .areAssignableTo(SystemRepository.class)
+          .and()
+          .areNotAssignableFrom(SystemRepository.class)
           .should()
           .resideInAPackage("com.laminar.system..");
 
@@ -129,6 +134,6 @@ public class ArchitectureTest {
           .resideInAPackage("com.laminar.web.controller..")
           .should()
           .dependOnClassesThat()
-          .implement(SystemRepository.class)
+          .areAssignableTo(SystemRepository.class)
           .allowEmptyShould(true);
 }

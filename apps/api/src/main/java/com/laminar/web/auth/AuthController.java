@@ -6,6 +6,7 @@ import com.laminar.user.SessionEntity;
 import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
 import com.laminar.user.UserService;
+import com.laminar.workspace.WorkspaceService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,14 +37,17 @@ public class AuthController {
 
     private final UserService userService;
     private final SessionService sessionService;
+    private final WorkspaceService workspaceService;
     private final boolean cookieSecure;
 
     public AuthController(
             UserService userService,
             SessionService sessionService,
+            WorkspaceService workspaceService,
             @Value("${app.cookie.secure:true}") boolean cookieSecure) {
         this.userService = userService;
         this.sessionService = sessionService;
+        this.workspaceService = workspaceService;
         this.cookieSecure = cookieSecure;
     }
 
@@ -52,6 +56,7 @@ public class AuthController {
             @Valid @RequestBody AuthDtos.SignupRequest request,
             HttpServletResponse response) {
         UserEntity user = userService.signup(request.email(), request.password(), request.displayName());
+        workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
         SessionEntity session = sessionService.issue(user.getId());
         writeSessionCookie(response, session.getSessionToken());
         return ResponseEntity.ok(toResponse(user));

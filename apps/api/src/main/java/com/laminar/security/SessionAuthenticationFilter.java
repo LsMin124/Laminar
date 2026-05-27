@@ -31,7 +31,7 @@ import java.util.Optional;
 @Component
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
-    static final String COOKIE_NAME = "laminar-session";
+    public static final String COOKIE_NAME = "laminar-session";
 
     private final SessionSystemRepository sessionRepo;
     private final UserSystemRepository userRepo;

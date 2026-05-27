@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.Filter;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
@@ -20,6 +21,8 @@ import java.util.UUID;
                 columnNames = {"board_id", "user_id", "google_calendar_id"}
         )
 )
+@Filter(name = "personalFirstFilter",
+        condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
 public class BoardCalendarLinkEntity {
 
     @Id

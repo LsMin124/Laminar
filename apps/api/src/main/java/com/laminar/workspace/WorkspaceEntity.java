@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "workspaces")
+@Filter(name = "workspaceSharedFilter", condition = "id = :ctxWorkspaceId")
 public class WorkspaceEntity {
 
     @Id

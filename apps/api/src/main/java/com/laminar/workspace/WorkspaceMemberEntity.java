@@ -4,12 +4,14 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Filter;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
 @Entity
 @Table(name = "workspace_members")
+@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
 public class WorkspaceMemberEntity {
 
     @EmbeddedId

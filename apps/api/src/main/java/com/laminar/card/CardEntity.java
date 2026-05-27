@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -19,6 +20,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "cards")
+@Filter(name = "personalFirstFilter",
+        condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
 public class CardEntity {
 
     @Id

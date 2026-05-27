@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -24,6 +25,8 @@ import java.util.UUID;
                 columnNames = {"workspace_id", "user_id", "slug"}
         )
 )
+@Filter(name = "personalFirstFilter",
+        condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
 public class BoardEntity {
 
     @Id

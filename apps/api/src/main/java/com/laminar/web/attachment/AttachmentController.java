@@ -3,6 +3,7 @@ package com.laminar.web.attachment;
 import com.laminar.attachment.AttachmentEntity;
 import com.laminar.attachment.AttachmentParentType;
 import com.laminar.attachment.AttachmentService;
+import com.laminar.attachment.R2StorageService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,9 +23,11 @@ import java.util.UUID;
 public class AttachmentController {
 
     private final AttachmentService service;
+    private final R2StorageService storage;
 
-    public AttachmentController(AttachmentService service) {
+    public AttachmentController(AttachmentService service, R2StorageService storage) {
         this.service = service;
+        this.storage = storage;
     }
 
     @PostMapping
@@ -67,6 +70,24 @@ public class AttachmentController {
     public ResponseEntity<Void> delete(@PathVariable UUID attachmentId) {
         service.softDelete(attachmentId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/upload-url")
+    public ResponseEntity<AttachmentDtos.PresignedUrlResponse> createUploadUrl(
+            @Valid @RequestBody AttachmentDtos.PresignedUrlRequest request) {
+        R2StorageService.PresignedUpload upload = storage.createUploadUrl(request.filename(), request.mime());
+        return ResponseEntity.ok(new AttachmentDtos.PresignedUrlResponse(
+                upload.url(), upload.storageKey(), upload.expiresInSeconds()));
+    }
+
+    @GetMapping("/{attachmentId}/download-url")
+    public ResponseEntity<AttachmentDtos.PresignedUrlResponse> createDownloadUrl(@PathVariable UUID attachmentId) {
+        return service.findById(attachmentId)
+                .map(a -> storage.createDownloadUrl(a.getStorageKey()))
+                .map(url -> new AttachmentDtos.PresignedUrlResponse(
+                        url, null, R2StorageService.PRESIGN_TTL_SECONDS))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private AttachmentDtos.AttachmentResponse toResponse(AttachmentEntity a) {

@@ -5,8 +5,6 @@ import jakarta.persistence.PersistenceContext;
 import org.hibernate.Filter;
 import org.hibernate.Session;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -68,16 +66,6 @@ public class HibernateFilterActivator {
         filter.setParameter(PersonalFirstFilters.PARAM_WORKSPACE_ID, workspaceId);
         filter.setParameter(PersonalFirstFilters.PARAM_USER_ID, userId);
         filter.validate();
-    }
-
-    /**
-     * 트랜잭션 종료 후 등록된 sync는 자동 호출되어 ThreadLocal 정리 보장.
-     * (이중 정리 — request filter clear와 무관, 트랜잭션 단위 격리 보강.)
-     */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMPLETION)
-    public void onTransactionEnd() {
-        // no-op: Hibernate Session이 close되면 filter도 자동 해제됨.
-        // 이 메서드는 향후 audit hook / metrics용 placeholder.
     }
 
     /**

@@ -33,9 +33,13 @@ public class CardService {
     private static final int MAX_SPAN_DAYS = 30;
 
     private final CardRepository cardRepo;
+    private final com.laminar.perpetual.PerpetualVersionService perpetualVersionService;
 
-    public CardService(CardRepository cardRepo) {
+    public CardService(
+            CardRepository cardRepo,
+            com.laminar.perpetual.PerpetualVersionService perpetualVersionService) {
         this.cardRepo = cardRepo;
+        this.perpetualVersionService = perpetualVersionService;
     }
 
     @Transactional
@@ -68,7 +72,19 @@ public class CardService {
         card.setOrigin(input.origin() == null ? CardOrigin.MANUAL : input.origin());
         card.setPriority(nextPriority);
         card.setAttrs(input.attrs() == null ? new HashMap<>() : input.attrs());
-        return cardRepo.save(card);
+        CardEntity saved = cardRepo.save(card);
+
+        // Spec §3.5 카드 ↔ 영구노트: importance=perpetual-ver + linked_perpetual_id 있으면
+        // 영구노트 새 버전 자동 commit + card_id 1:1 매핑 (uq_perpetual_versions_card).
+        if (saved.getImportance() == CardImportance.PERPETUAL_VER && saved.getLinkedPerpetualId() != null) {
+            perpetualVersionService.commit(
+                    saved.getLinkedPerpetualId(),
+                    saved.getId(),
+                    saved.getTitle(),
+                    saved.getBodyMd(),
+                    true);
+        }
+        return saved;
     }
 
     @Transactional(readOnly = true)

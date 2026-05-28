@@ -51,7 +51,7 @@ public class EquipmentService {
     @Transactional(readOnly = true)
     public List<EquipmentEntity> listActive() {
         WorkspaceContextHolder.require();
-        return equipmentRepo.findByIsActiveTrueAndDeletedAtIsNullOrderByName();
+        return equipmentRepo.findByActiveTrueAndDeletedAtIsNullOrderByName();
     }
 
     @Transactional(readOnly = true)

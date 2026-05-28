@@ -13,7 +13,7 @@ public interface EquipmentRepository extends JpaRepository<EquipmentEntity, UUID
 
     List<EquipmentEntity> findByDeletedAtIsNullOrderByName();
 
-    List<EquipmentEntity> findByIsActiveTrueAndDeletedAtIsNullOrderByName();
+    List<EquipmentEntity> findByActiveTrueAndDeletedAtIsNullOrderByName();
 
     Optional<EquipmentEntity> findByNameAndDeletedAtIsNull(String name);
 }

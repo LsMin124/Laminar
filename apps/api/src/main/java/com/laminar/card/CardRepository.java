@@ -1,6 +1,8 @@
 package com.laminar.card;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,4 +21,23 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID> {
             UUID boardId, LocalDate from, LocalDate to);
 
     java.util.Optional<CardEntity> findFirstByBoardIdAndDeletedAtIsNullOrderByPriorityDesc(UUID boardId);
+
+    /**
+     * 멀티데이 카드 overlap 쿼리 — 시작일이 to 이전이고, (종료일이 from 이후 또는 종료일 없이 시작일이 from 이후).
+     * 미지정 카드 (start_date NULL)는 캘린더 뷰 미노출.
+     */
+    @Query("""
+            SELECT c FROM CardEntity c
+            WHERE c.boardId = :boardId
+              AND c.deletedAt IS NULL
+              AND c.startDate IS NOT NULL
+              AND c.startDate <= :to
+              AND ((c.endDate IS NOT NULL AND c.endDate >= :from)
+                   OR (c.endDate IS NULL AND c.startDate >= :from))
+            ORDER BY c.startDate ASC, c.priority ASC
+            """)
+    List<CardEntity> findOverlappingByBoardId(
+            @Param("boardId") UUID boardId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
 }

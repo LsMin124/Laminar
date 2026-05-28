@@ -1,0 +1,224 @@
+package com.laminar.card;
+
+import com.laminar.context.WorkspaceContext;
+import com.laminar.context.WorkspaceContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * 카드 CRUD — Personal-First 격리 + 도메인 invariant 강제.
+ *
+ * 검증 (V3 cards 테이블 CHECK 제약 + Spec §3.5):
+ *   - end_date >= start_date (DB chk_cards_end_date_order와 동일)
+ *   - end_date - start_date <= 30 (DB chk_cards_max_span)
+ *   - importance=perpetual-ver ↔ linked_perpetual_id NN (DB chk_cards_perpetual_link)
+ *   - rrule 있으면 all_day OR start_time NN (DB chk_cards_rrule_time)
+ *
+ * DB CHECK가 최종 방어선이지만 application 단에서 명시 검증으로 사용자 친화 에러.
+ */
+@Service
+public class CardService {
+
+    private static final int PRIORITY_STEP = 100;
+    private static final int MAX_SPAN_DAYS = 30;
+
+    private final CardRepository cardRepo;
+
+    public CardService(CardRepository cardRepo) {
+        this.cardRepo = cardRepo;
+    }
+
+    @Transactional
+    public CardEntity create(CreateInput input) {
+        WorkspaceContext ctx = requirePersonalWritable();
+        validateInvariants(input);
+
+        int nextPriority = input.boardId() == null
+                ? PRIORITY_STEP
+                : cardRepo.findFirstByBoardIdAndDeletedAtIsNullOrderByPriorityDesc(input.boardId())
+                        .map(c -> c.getPriority() + PRIORITY_STEP)
+                        .orElse(PRIORITY_STEP);
+
+        CardEntity card = new CardEntity();
+        card.setWorkspaceId(ctx.workspaceId());
+        card.setUserId(ctx.userId());
+        card.setCreatedBy(ctx.userId());
+        card.setBoardId(input.boardId());
+        card.setTitle(input.title());
+        card.setSlug(input.slug());
+        card.setBodyMd(input.bodyMd());
+        card.setStartDate(input.startDate());
+        card.setEndDate(input.endDate());
+        card.setStartTime(input.startTime());
+        card.setAllDay(input.allDay() == null ? true : input.allDay());
+        card.setTimeZone(input.timeZone());
+        card.setImportance(input.importance() == null ? CardImportance.NORMAL : input.importance());
+        card.setLinkedPerpetualId(input.linkedPerpetualId());
+        card.setRrule(input.rrule());
+        card.setOrigin(input.origin() == null ? CardOrigin.MANUAL : input.origin());
+        card.setPriority(nextPriority);
+        card.setAttrs(input.attrs() == null ? new HashMap<>() : input.attrs());
+        return cardRepo.save(card);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CardEntity> listByBoard(UUID boardId) {
+        WorkspaceContextHolder.require();
+        return cardRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CardEntity> listByBoardAndDateRange(UUID boardId, LocalDate from, LocalDate to) {
+        WorkspaceContextHolder.require();
+        return cardRepo.findByBoardIdAndStartDateBetweenAndDeletedAtIsNull(boardId, from, to);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CardEntity> findById(UUID cardId) {
+        WorkspaceContextHolder.require();
+        return cardRepo.findById(cardId).filter(c -> c.getDeletedAt() == null);
+    }
+
+    @Transactional
+    public CardEntity update(UUID cardId, UpdateInput input) {
+        requirePersonalWritable();
+        CardEntity card = cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+
+        if (input.title() != null && !input.title().isBlank()) card.setTitle(input.title());
+        if (input.bodyMd() != null) card.setBodyMd(input.bodyMd());
+        if (input.startDate() != null) card.setStartDate(input.startDate());
+        if (input.endDate() != null) card.setEndDate(input.endDate());
+        if (input.startTime() != null) card.setStartTime(input.startTime());
+        if (input.allDay() != null) card.setAllDay(input.allDay());
+        if (input.timeZone() != null) card.setTimeZone(input.timeZone());
+        if (input.importance() != null) card.setImportance(input.importance());
+        if (input.linkedPerpetualId() != null) card.setLinkedPerpetualId(input.linkedPerpetualId());
+        if (input.rrule() != null) card.setRrule(input.rrule());
+        if (input.completed() != null) card.setCompleted(input.completed());
+        if (input.attrs() != null) card.setAttrs(input.attrs());
+
+        validateInvariants(card);
+        return cardRepo.save(card);
+    }
+
+    @Transactional
+    public void archive(UUID cardId) {
+        requirePersonalWritable();
+        cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> c.getArchivedAt() == null)
+                .ifPresent(card -> {
+                    card.setArchivedAt(OffsetDateTime.now());
+                    cardRepo.save(card);
+                });
+    }
+
+    @Transactional
+    public void softDelete(UUID cardId) {
+        requirePersonalWritable();
+        cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .ifPresent(card -> {
+                    card.setDeletedAt(OffsetDateTime.now());
+                    cardRepo.save(card);
+                });
+    }
+
+    private WorkspaceContext requirePersonalWritable() {
+        WorkspaceContext ctx = WorkspaceContextHolder.require();
+        if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+            throw new IllegalStateException("PERSONAL scope required");
+        }
+        if (!ctx.canWrite()) {
+            throw new IllegalStateException("VIEWER cannot mutate cards");
+        }
+        return ctx;
+    }
+
+    private void validateInvariants(CreateInput input) {
+        validateDateRange(input.startDate(), input.endDate());
+        validatePerpetualLink(input.importance(), input.linkedPerpetualId());
+        validateRruleTime(input.rrule(), input.allDay(), input.startTime());
+    }
+
+    private void validateInvariants(CardEntity card) {
+        validateDateRange(card.getStartDate(), card.getEndDate());
+        validatePerpetualLink(card.getImportance(), card.getLinkedPerpetualId());
+        validateRruleTime(card.getRrule(), card.isAllDay(), card.getStartTime());
+    }
+
+    private void validateDateRange(LocalDate start, LocalDate end) {
+        if (start == null || end == null) return;
+        if (end.isBefore(start)) {
+            throw new IllegalArgumentException("end_date must be >= start_date");
+        }
+        long days = ChronoUnit.DAYS.between(start, end);
+        if (days > MAX_SPAN_DAYS) {
+            throw new IllegalArgumentException("date span exceeds " + MAX_SPAN_DAYS + " days");
+        }
+    }
+
+    private void validatePerpetualLink(CardImportance importance, UUID linkedPerpetualId) {
+        if (importance == null) return;
+        boolean isPerpetualVer = importance == CardImportance.PERPETUAL_VER;
+        boolean linkPresent = linkedPerpetualId != null;
+        if (isPerpetualVer != linkPresent) {
+            throw new IllegalArgumentException(
+                    "importance=perpetual-ver requires linked_perpetual_id (and vice versa)");
+        }
+    }
+
+    private void validateRruleTime(String rrule, Boolean allDay, LocalTime startTime) {
+        if (rrule == null || rrule.isBlank()) return;
+        boolean allDayOn = allDay == null ? true : allDay;
+        if (!allDayOn && startTime == null) {
+            throw new IllegalArgumentException("rrule requires all_day or start_time");
+        }
+    }
+
+    public record CreateInput(
+            UUID boardId,
+            String title,
+            String slug,
+            String bodyMd,
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalTime startTime,
+            Boolean allDay,
+            String timeZone,
+            CardImportance importance,
+            UUID linkedPerpetualId,
+            String rrule,
+            CardOrigin origin,
+            Map<String, Object> attrs
+    ) {
+    }
+
+    public record UpdateInput(
+            String title,
+            String bodyMd,
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalTime startTime,
+            Boolean allDay,
+            String timeZone,
+            CardImportance importance,
+            UUID linkedPerpetualId,
+            String rrule,
+            Boolean completed,
+            Map<String, Object> attrs
+    ) {
+    }
+}

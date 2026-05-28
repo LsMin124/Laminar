@@ -17,4 +17,6 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID> {
 
     List<CardEntity> findByBoardIdAndStartDateBetweenAndDeletedAtIsNull(
             UUID boardId, LocalDate from, LocalDate to);
+
+    java.util.Optional<CardEntity> findFirstByBoardIdAndDeletedAtIsNullOrderByPriorityDesc(UUID boardId);
 }

@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-05-29 — 프론트엔드 MVP (Phase 15~23)
+
+### Phase 15 — 인증 + 워크스페이스 + 보드 목록
+- React 19 + Vite + TanStack Query 셋업
+- `lib/api.ts` (Cookie 세션 + workspace 헤더 자동 주입 + ApiError)
+- LoginPage·SignupPage·BoardsPage + workspace localStorage persist
+
+### Phase 16 — 보드 상세 + 캘린더 월 뷰 + 카드 상세
+- react-router v7 라우터 (`/`·`/boards/:id`·`/boards/:id/cards/:cardId`)
+- `lib/calendar.ts` 6주 그리드 + 멀티데이 lane overlap 알고리즘
+- MonthGrid (today highlight · importance 컬러 · continues-left/right)
+- CardDetailPage (서버측 OWASP sanitized HTML 표시)
+
+### Phase 17 — 카드 CRUD UI + CodeMirror 에디터 + 첨부
+- CodeMirror 6 minimal markdown editor
+- CardForm + CardDialog (생성/편집 공용)
+- AttachmentUploader (presigned PUT → finalize 3단계)
+
+### Phase 18 — 그래프 시각화 + 멤버 초대 UI
+- BoardGraph SVG circular layout (그룹 안쪽 · 카드 바깥쪽 · 화살표 marker)
+- WorkspaceMemberController + listPending invitations (API)
+- MembersPage 멤버 목록·역할·강퇴 + 초대 발송·토큰·취소
+
+### Phase 19 — 영구노트 + 시트 컬럼 + 버전 diff
+- 3-pane 페이지: 탭 tree / 노트 tree / 노트 상세
+- 동적 시트 컬럼 6종 타입 (TEXT/NUMBER/DATE/BOOLEAN/ENUM/JSON)
+- 버전 commit + currentDiff 토글 + diff 뷰
+
+### Phase 20 — 그룹·관계 인라인 편집
+- 그룹 CRUD + 멤버(카드) 토글 + 색상 picker
+- 카드·그룹 관계 from/to select + kind·summary 인라인 생성/삭제
+- 그래프 캐시 invalidate로 즉시 시각화 반영
+
+### Phase 21 — 공용 자원 (장비 + 예약)
+- EquipmentController + ReservationController (시간 겹침 차단)
+- EquipmentPage 그리드 + create form + 활성화 토글
+- EquipmentDetailPage datetime-local 예약 form + 30일 현황
+
+### Phase 22 — 운영 콘솔
+- AdminPage 전체 보드 메타 + 카드 메타 + 본문 reveal (사유 10자 검증)
+- 최근 100건 audit log + severity 색상 분리 (high=red)
+
+### Phase 23 — E2E + CI 보강
+- Playwright config (chromium headless + E2E_DISABLE_BACKEND skip)
+- 인증 화면 smoke + boards flow (백엔드 연결 시)
+- e2e.yml workflow (PR 시 자동)
+- deploy.yml은 사용자 명시 승인 후 별도 추가 (FLY_API_TOKEN 발급 + AUTO_DEPLOY var)
+
 ## 2026-05-29 — 백엔드 MVP (Phase 0~13)
 
 ### Phase 0~1 — 인프라

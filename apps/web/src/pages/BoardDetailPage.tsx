@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { addMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { MonthGrid } from "../components/calendar/MonthGrid";
 import { BoardGraph } from "../components/graph/BoardGraph";
+import { GroupManager } from "../components/group/GroupManager";
 import {
   CardForm,
   emptyCardForm,
@@ -155,15 +156,21 @@ export function BoardDetailPage() {
       ) : graph.error ? (
         <p className="auth-error">그래프 로드 실패: {String(graph.error)}</p>
       ) : (
-        <BoardGraph
-          cards={graph.data?.cards ?? []}
-          groups={graph.data?.groups ?? []}
-          cardRelations={graph.data?.cardRelations ?? []}
-          groupRelations={graph.data?.groupRelations ?? []}
-          onCardClick={(cardId) =>
-            navigate(`/boards/${boardId}/cards/${cardId}`)
-          }
-        />
+        <div className="board-detail-graph-wrap">
+          <BoardGraph
+            cards={graph.data?.cards ?? []}
+            groups={graph.data?.groups ?? []}
+            cardRelations={graph.data?.cardRelations ?? []}
+            groupRelations={graph.data?.groupRelations ?? []}
+            onCardClick={(cardId) =>
+              navigate(`/boards/${boardId}/cards/${cardId}`)
+            }
+          />
+          <GroupManager
+            boardId={boardId}
+            cards={graph.data?.cards ?? []}
+          />
+        </div>
       )}
       <CardDialog
         open={createInitialDate !== null}

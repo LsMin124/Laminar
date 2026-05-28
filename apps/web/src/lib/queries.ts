@@ -11,7 +11,10 @@ import type {
   BoardGraphResponse,
   BoardResponse,
   CalendarViewResponse,
+  CardRelationResponse,
   CardResponse,
+  GroupRelationResponse,
+  GroupResponse,
   MemberResponse,
   PendingInvitationResponse,
   PerpetualColumnDefinitionResponse,
@@ -598,6 +601,204 @@ export function useMarkVersionCurrent(noteId: string) {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: perpetualKeys.noteVersions(noteId) });
+    },
+  });
+}
+
+export const groupKeys = {
+  byBoard: (boardId: string) => ["boards", boardId, "groups"] as const,
+  members: (groupId: string) => ["groups", groupId, "cards"] as const,
+  cardRelations: (boardId: string) =>
+    ["boards", boardId, "card-relations"] as const,
+  groupRelations: (boardId: string) =>
+    ["boards", boardId, "group-relations"] as const,
+};
+
+export function useGroups(boardId: string | null) {
+  return useQuery<GroupResponse[]>({
+    queryKey: boardId ? groupKeys.byBoard(boardId) : ["groups", "noop"],
+    queryFn: () => api.get<GroupResponse[]>(`/api/boards/${boardId}/groups`),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreateGroup(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; color?: string | null }) =>
+      api.post<GroupResponse>("/api/groups", {
+        boardId,
+        name: input.name,
+        color: input.color ?? null,
+        attrs: {},
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.byBoard(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useUpdateGroup(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      name,
+      color,
+    }: {
+      groupId: string;
+      name?: string;
+      color?: string | null;
+    }) =>
+      api.patch<GroupResponse>(`/api/groups/${groupId}`, {
+        name,
+        color: color ?? null,
+        attrs: undefined,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.byBoard(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useDeleteGroup(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) =>
+      api.delete<void>(`/api/groups/${groupId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.byBoard(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useGroupMembers(groupId: string | null) {
+  return useQuery<string[]>({
+    queryKey: groupId ? groupKeys.members(groupId) : ["groups", "noop"],
+    queryFn: () => api.get<string[]>(`/api/groups/${groupId}/cards`),
+    enabled: Boolean(groupId),
+  });
+}
+
+export function useAddGroupMember(boardId: string, groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (cardId: string) =>
+      api.post<void>(`/api/groups/${groupId}/cards/${cardId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.members(groupId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useRemoveGroupMember(boardId: string, groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (cardId: string) =>
+      api.delete<void>(`/api/groups/${groupId}/cards/${cardId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.members(groupId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useCardRelations(boardId: string | null) {
+  return useQuery<CardRelationResponse[]>({
+    queryKey: boardId
+      ? groupKeys.cardRelations(boardId)
+      : ["card-relations", "noop"],
+    queryFn: () =>
+      api.get<CardRelationResponse[]>(
+        `/api/boards/${boardId}/card-relations`,
+      ),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreateCardRelation(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      fromCardId: string;
+      toCardId: string;
+      relationKind?: string;
+      summary?: string;
+    }) =>
+      api.post<CardRelationResponse>("/api/card-relations", {
+        ...input,
+        relationKind: input.relationKind ?? "RELATED",
+        summary: input.summary ?? null,
+        bodyMd: null,
+        attrs: {},
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.cardRelations(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useDeleteCardRelation(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (relationId: string) =>
+      api.delete<void>(`/api/card-relations/${relationId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.cardRelations(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useGroupRelations(boardId: string | null) {
+  return useQuery<GroupRelationResponse[]>({
+    queryKey: boardId
+      ? groupKeys.groupRelations(boardId)
+      : ["group-relations", "noop"],
+    queryFn: () =>
+      api.get<GroupRelationResponse[]>(
+        `/api/boards/${boardId}/group-relations`,
+      ),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreateGroupRelation(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      fromGroupId: string;
+      toGroupId: string;
+      relationKind?: string;
+      summary?: string;
+    }) =>
+      api.post<GroupRelationResponse>("/api/group-relations", {
+        ...input,
+        relationKind: input.relationKind ?? "RELATED",
+        summary: input.summary ?? null,
+        bodyMd: null,
+        attrs: {},
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.groupRelations(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export function useDeleteGroupRelation(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (relationId: string) =>
+      api.delete<void>(`/api/group-relations/${relationId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: groupKeys.groupRelations(boardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }

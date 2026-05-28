@@ -110,6 +110,19 @@
   border-color: var(--accent);
 }
 
+.board-detail-graph-wrap {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .board-detail-graph-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
 .board-detail-tabs {
   display: flex;
   gap: 0.25rem;

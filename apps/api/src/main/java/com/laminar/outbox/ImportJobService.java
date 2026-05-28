@@ -59,6 +59,7 @@ public class ImportJobService {
         requirePersonalWritable();
         ImportJobEntity job = importRepo.findById(jobId)
                 .filter(j -> j.getDeletedAt() == null)
+                .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() != ImportJobStatus.RUNNING) {
             throw new IllegalStateException("progress update requires RUNNING status (got " + job.getStatus() + ")");
@@ -84,6 +85,7 @@ public class ImportJobService {
         requirePersonalWritable();
         ImportJobEntity job = importRepo.findById(jobId)
                 .filter(j -> j.getDeletedAt() == null)
+                .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         job.setStatus(ImportJobStatus.FAILED);
         job.setLastError(errorMessage);
@@ -96,6 +98,7 @@ public class ImportJobService {
         requirePersonalWritable();
         ImportJobEntity job = importRepo.findById(jobId)
                 .filter(j -> j.getDeletedAt() == null)
+                .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() == ImportJobStatus.COMPLETED || job.getStatus() == ImportJobStatus.FAILED) {
             throw new IllegalStateException("cannot cancel terminal status: " + job.getStatus());
@@ -107,19 +110,22 @@ public class ImportJobService {
 
     @Transactional(readOnly = true)
     public List<ImportJobEntity> listRecent() {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return importRepo.findByDeletedAtIsNullOrderByCreatedAtDesc();
     }
 
     @Transactional(readOnly = true)
     public Optional<ImportJobEntity> findById(UUID jobId) {
-        WorkspaceContextHolder.require();
-        return importRepo.findById(jobId).filter(j -> j.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        return importRepo.findById(jobId)
+                .filter(j -> j.getDeletedAt() == null)
+                .filter(j -> ctx.ownsPersonal(j.getWorkspaceId(), j.getUserId()));
     }
 
     private ImportJobEntity requirePending(UUID jobId) {
         ImportJobEntity job = importRepo.findById(jobId)
                 .filter(j -> j.getDeletedAt() == null)
+                .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() != ImportJobStatus.PENDING) {
             throw new IllegalStateException("start requires PENDING status (got " + job.getStatus() + ")");
@@ -130,6 +136,7 @@ public class ImportJobService {
     private ImportJobEntity requireRunning(UUID jobId) {
         ImportJobEntity job = importRepo.findById(jobId)
                 .filter(j -> j.getDeletedAt() == null)
+                .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() != ImportJobStatus.RUNNING) {
             throw new IllegalStateException("complete requires RUNNING status (got " + job.getStatus() + ")");

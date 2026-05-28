@@ -54,6 +54,7 @@ public class BoardCalendarLinkService {
         requirePersonalWritable();
         BoardCalendarLinkEntity link = linkRepo.findById(linkId)
                 .filter(l -> l.getDeletedAt() == null)
+                .filter(l -> WorkspaceContextHolder.require().ownsPersonal(l.getWorkspaceId(), l.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("link not found"));
         link.setSyncToken(syncToken);
         link.setLastSyncAt(OffsetDateTime.now());
@@ -66,6 +67,7 @@ public class BoardCalendarLinkService {
         requirePersonalWritable();
         BoardCalendarLinkEntity link = linkRepo.findById(linkId)
                 .filter(l -> l.getDeletedAt() == null)
+                .filter(l -> WorkspaceContextHolder.require().ownsPersonal(l.getWorkspaceId(), l.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("link not found"));
         link.setLastSyncError(error);
         link.setLastSyncAt(OffsetDateTime.now());
@@ -74,9 +76,10 @@ public class BoardCalendarLinkService {
 
     @Transactional
     public void revoke(UUID linkId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         linkRepo.findById(linkId)
                 .filter(l -> l.getDeletedAt() == null)
+                .filter(l -> ctx.ownsPersonal(l.getWorkspaceId(), l.getUserId()))
                 .ifPresent(link -> {
                     link.setActive(false);
                     link.setDeletedAt(OffsetDateTime.now());
@@ -86,7 +89,7 @@ public class BoardCalendarLinkService {
 
     @Transactional(readOnly = true)
     public List<BoardCalendarLinkEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return linkRepo.findByBoardIdAndDeletedAtIsNull(boardId);
     }
 

@@ -66,32 +66,34 @@ public class PerpetualNoteService {
 
     @Transactional(readOnly = true)
     public List<PerpetualNoteEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return noteRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
     }
 
     @Transactional(readOnly = true)
     public List<PerpetualNoteEntity> listByTab(UUID tabId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return noteRepo.findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(tabId);
     }
 
     @Transactional(readOnly = true)
     public List<PerpetualNoteEntity> listRootsByTab(UUID tabId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return noteRepo.findByTabIdAndParentPerpetualIdIsNullAndDeletedAtIsNullOrderByPriorityAsc(tabId);
     }
 
     @Transactional(readOnly = true)
     public List<PerpetualNoteEntity> listChildren(UUID parentId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return noteRepo.findByParentPerpetualIdAndDeletedAtIsNullOrderByPriorityAsc(parentId);
     }
 
     @Transactional(readOnly = true)
     public Optional<PerpetualNoteEntity> findById(UUID noteId) {
-        WorkspaceContextHolder.require();
-        return noteRepo.findById(noteId).filter(n -> n.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        return noteRepo.findById(noteId)
+                .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()));
     }
 
     @Transactional
@@ -101,9 +103,10 @@ public class PerpetualNoteService {
             String bodyMd,
             UUID parentPerpetualId,
             Map<String, Object> attrs) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         PerpetualNoteEntity note = noteRepo.findById(noteId)
                 .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("note not found: " + noteId));
 
         if (title != null && !title.isBlank()) note.setTitle(title);
@@ -121,7 +124,7 @@ public class PerpetualNoteService {
 
     @Transactional
     public List<PerpetualNoteEntity> reorder(UUID tabId, List<UUID> orderedNoteIds) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         if (orderedNoteIds == null || orderedNoteIds.isEmpty()) return List.of();
         List<PerpetualNoteEntity> result = new ArrayList<>(orderedNoteIds.size());
         for (int i = 0; i < orderedNoteIds.size(); i++) {
@@ -129,6 +132,7 @@ public class PerpetualNoteService {
             int newPriority = (i + 1) * PRIORITY_STEP;
             noteRepo.findById(noteId)
                     .filter(n -> n.getDeletedAt() == null)
+                    .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
                     .filter(n -> tabId == null || tabId.equals(n.getTabId()))
                     .ifPresent(n -> {
                         n.setPriority(newPriority);
@@ -140,9 +144,10 @@ public class PerpetualNoteService {
 
     @Transactional
     public void softDelete(UUID noteId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         noteRepo.findById(noteId)
                 .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
                 .ifPresent(note -> {
                     note.setDeletedAt(OffsetDateTime.now());
                     noteRepo.save(note);

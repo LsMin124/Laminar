@@ -44,9 +44,11 @@ public class CardRelationService {
         }
         CardEntity from = cardRepo.findById(fromCardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("from card not found"));
         CardEntity to = cardRepo.findById(toCardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("to card not found"));
         UUID boardId = from.getBoardId();
         if (boardId == null || !Objects.equals(boardId, to.getBoardId())) {
@@ -69,15 +71,16 @@ public class CardRelationService {
 
     @Transactional(readOnly = true)
     public List<CardRelationEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return relationRepo.findByBoardIdAndDeletedAtIsNull(boardId);
     }
 
     @Transactional
     public void softDelete(UUID relationId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         relationRepo.findById(relationId)
                 .filter(r -> r.getDeletedAt() == null)
+                .filter(r -> ctx.ownsPersonal(r.getWorkspaceId(), r.getUserId()))
                 .ifPresent(r -> {
                     r.setDeletedAt(OffsetDateTime.now());
                     relationRepo.save(r);

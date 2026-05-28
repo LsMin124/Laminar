@@ -78,26 +78,28 @@ public class TabService {
 
     @Transactional(readOnly = true)
     public List<TabEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return tabRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
     }
 
     @Transactional(readOnly = true)
     public List<TabEntity> listRootsByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return tabRepo.findByBoardIdAndParentTabIdIsNullAndDeletedAtIsNullOrderByPriorityAsc(boardId);
     }
 
     @Transactional(readOnly = true)
     public List<TabEntity> listChildren(UUID parentTabId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return tabRepo.findByParentTabIdAndDeletedAtIsNullOrderByPriorityAsc(parentTabId);
     }
 
     @Transactional(readOnly = true)
     public Optional<TabEntity> findById(UUID tabId) {
-        WorkspaceContextHolder.require();
-        return tabRepo.findById(tabId).filter(t -> t.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        return tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()));
     }
 
     @Transactional
@@ -110,9 +112,10 @@ public class TabService {
             Boolean showLabel,
             String labelColor,
             Map<String, Object> attrs) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         TabEntity tab = tabRepo.findById(tabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("tab not found: " + tabId));
 
         if (name != null && !name.isBlank()) tab.setName(name);
@@ -133,7 +136,7 @@ public class TabService {
 
     @Transactional
     public List<TabEntity> reorder(UUID boardId, List<UUID> orderedTabIds) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         if (orderedTabIds == null || orderedTabIds.isEmpty()) return List.of();
         List<TabEntity> result = new ArrayList<>(orderedTabIds.size());
         for (int i = 0; i < orderedTabIds.size(); i++) {
@@ -141,6 +144,7 @@ public class TabService {
             int newPriority = (i + 1) * PRIORITY_STEP;
             tabRepo.findById(tabId)
                     .filter(t -> t.getDeletedAt() == null)
+                    .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                     .filter(t -> boardId == null || boardId.equals(t.getBoardId()))
                     .ifPresent(t -> {
                         t.setPriority(newPriority);
@@ -152,9 +156,10 @@ public class TabService {
 
     @Transactional
     public void softDelete(UUID tabId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         tabRepo.findById(tabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .ifPresent(tab -> {
                     tab.setDeletedAt(OffsetDateTime.now());
                     tabRepo.save(tab);
@@ -169,9 +174,11 @@ public class TabService {
         WorkspaceContext ctx = requirePersonalWritable();
         tabRepo.findById(tabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("tab not found"));
         cardRepo.findById(cardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("card not found"));
 
         int nextPriority = memberRepo.findFirstByIdTabIdOrderByPriorityDesc(tabId)
@@ -187,9 +194,10 @@ public class TabService {
 
     @Transactional
     public void removeMember(UUID tabId, UUID cardId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         tabRepo.findById(tabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("tab not found"));
         memberRepo.findById(new TabMemberId(tabId, cardId))
                 .ifPresent(memberRepo::delete);
@@ -197,9 +205,10 @@ public class TabService {
 
     @Transactional(readOnly = true)
     public List<UUID> listCardIdsInTab(UUID tabId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
         tabRepo.findById(tabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("tab not found"));
         return memberRepo.findByIdTabIdOrderByPriorityAsc(tabId).stream()
                 .map(m -> m.getId().getCardId())
@@ -208,9 +217,10 @@ public class TabService {
 
     @Transactional(readOnly = true)
     public List<UUID> listTabIdsForCard(UUID cardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
         cardRepo.findById(cardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("card not found"));
         return memberRepo.findByIdCardId(cardId).stream()
                 .map(m -> m.getId().getTabId())

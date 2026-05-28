@@ -44,6 +44,7 @@ public class PerpetualVersionService {
         WorkspaceContext ctx = requirePersonalWritable();
         noteRepo.findById(perpetualNoteId)
                 .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("perpetual note not found"));
 
         int nextVersion = versionRepo
@@ -76,7 +77,7 @@ public class PerpetualVersionService {
 
     @Transactional(readOnly = true)
     public List<PerpetualVersionEntity> listByNote(UUID perpetualNoteId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return versionRepo.findByPerpetualNoteIdAndDeletedAtIsNullOrderByVersionNumberDesc(perpetualNoteId);
     }
 
@@ -85,9 +86,10 @@ public class PerpetualVersionService {
      */
     @Transactional
     public PerpetualVersionEntity markCurrentDiff(UUID versionId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         PerpetualVersionEntity target = versionRepo.findById(versionId)
                 .filter(v -> v.getDeletedAt() == null)
+                .filter(v -> ctx.ownsPersonal(v.getWorkspaceId(), v.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("version not found"));
         versionRepo
                 .findByPerpetualNoteIdAndCurrentDiffIsTrueAndDeletedAtIsNull(target.getPerpetualNoteId())

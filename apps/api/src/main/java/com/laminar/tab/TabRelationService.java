@@ -45,9 +45,11 @@ public class TabRelationService {
         }
         TabEntity from = tabRepo.findById(fromTabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("from tab not found"));
         TabEntity to = tabRepo.findById(toTabId)
                 .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("to tab not found"));
         if (!Objects.equals(from.getBoardId(), to.getBoardId())) {
             throw new IllegalArgumentException("from/to tabs must belong to the same board");
@@ -72,15 +74,16 @@ public class TabRelationService {
 
     @Transactional(readOnly = true)
     public List<TabRelationEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return relationRepo.findByBoardIdAndDeletedAtIsNull(boardId);
     }
 
     @Transactional
     public void softDelete(UUID relationId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         relationRepo.findById(relationId)
                 .filter(r -> r.getDeletedAt() == null)
+                .filter(r -> ctx.ownsPersonal(r.getWorkspaceId(), r.getUserId()))
                 .ifPresent(r -> {
                     r.setDeletedAt(OffsetDateTime.now());
                     relationRepo.save(r);

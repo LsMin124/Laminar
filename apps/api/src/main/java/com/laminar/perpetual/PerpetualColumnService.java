@@ -67,15 +67,16 @@ public class PerpetualColumnService {
 
     @Transactional(readOnly = true)
     public List<PerpetualColumnDefinitionEntity> listDefinitionsByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return definitionRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
     }
 
     @Transactional
     public void softDeleteDefinition(UUID definitionId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         definitionRepo.findById(definitionId)
                 .filter(d -> d.getDeletedAt() == null)
+                .filter(d -> ctx.ownsPersonal(d.getWorkspaceId(), d.getUserId()))
                 .ifPresent(d -> {
                     d.setDeletedAt(OffsetDateTime.now());
                     definitionRepo.save(d);
@@ -87,12 +88,14 @@ public class PerpetualColumnService {
      */
     @Transactional
     public PerpetualColumnEntity upsertValue(UUID perpetualNoteId, UUID columnDefinitionId, String value) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         noteRepo.findById(perpetualNoteId)
                 .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("perpetual note not found"));
         PerpetualColumnDefinitionEntity definition = definitionRepo.findById(columnDefinitionId)
                 .filter(d -> d.getDeletedAt() == null)
+                .filter(d -> ctx.ownsPersonal(d.getWorkspaceId(), d.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("column definition not found"));
         validateValue(definition, value);
 
@@ -108,14 +111,24 @@ public class PerpetualColumnService {
 
     @Transactional
     public void deleteValue(UUID perpetualNoteId, UUID columnDefinitionId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
+        // 값 엔티티는 @Filter 없는 junction → note 소유권 선검증 (cross-tenant 삭제 차단)
+        noteRepo.findById(perpetualNoteId)
+                .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
+                .orElseThrow(() -> new IllegalArgumentException("perpetual note not found"));
         columnRepo.findById(new PerpetualColumnId(perpetualNoteId, columnDefinitionId))
                 .ifPresent(columnRepo::delete);
     }
 
     @Transactional(readOnly = true)
     public List<PerpetualColumnEntity> listValuesForNote(UUID perpetualNoteId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        // 값 엔티티는 @Filter 없는 junction → note 소유권 선검증 (cross-tenant 열람 차단)
+        noteRepo.findById(perpetualNoteId)
+                .filter(n -> n.getDeletedAt() == null)
+                .filter(n -> ctx.ownsPersonal(n.getWorkspaceId(), n.getUserId()))
+                .orElseThrow(() -> new IllegalArgumentException("perpetual note not found"));
         return columnRepo.findByIdPerpetualNoteId(perpetualNoteId);
     }
 

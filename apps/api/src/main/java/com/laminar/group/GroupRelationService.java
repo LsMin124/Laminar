@@ -44,9 +44,11 @@ public class GroupRelationService {
         }
         GroupEntity from = groupRepo.findById(fromGroupId)
                 .filter(g -> g.getDeletedAt() == null)
+                .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("from group not found"));
         GroupEntity to = groupRepo.findById(toGroupId)
                 .filter(g -> g.getDeletedAt() == null)
+                .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("to group not found"));
         if (!Objects.equals(from.getBoardId(), to.getBoardId())) {
             throw new IllegalArgumentException("from/to groups must belong to the same board");
@@ -68,15 +70,16 @@ public class GroupRelationService {
 
     @Transactional(readOnly = true)
     public List<GroupRelationEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return relationRepo.findByBoardIdAndDeletedAtIsNull(boardId);
     }
 
     @Transactional
     public void softDelete(UUID relationId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         relationRepo.findById(relationId)
                 .filter(r -> r.getDeletedAt() == null)
+                .filter(r -> ctx.ownsPersonal(r.getWorkspaceId(), r.getUserId()))
                 .ifPresent(r -> {
                     r.setDeletedAt(OffsetDateTime.now());
                     relationRepo.save(r);

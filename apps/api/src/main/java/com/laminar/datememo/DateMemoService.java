@@ -53,13 +53,13 @@ public class DateMemoService {
 
     @Transactional(readOnly = true)
     public Optional<DateMemoEntity> findByDate(UUID boardId, LocalDate date) {
-        WorkspaceContext ctx = WorkspaceContextHolder.require();
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
         return memoRepo.findById(new DateMemoId(boardId, ctx.userId(), date));
     }
 
     @Transactional(readOnly = true)
     public List<DateMemoEntity> listByBoardDateRange(UUID boardId, LocalDate from, LocalDate to) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         if (from == null || to == null) {
             throw new IllegalArgumentException("from and to required");
         }

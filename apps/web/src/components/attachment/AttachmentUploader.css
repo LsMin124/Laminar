@@ -1,0 +1,43 @@
+.attachment-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attachment-uploader-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px dashed var(--rule);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.attachment-uploader-btn:hover:not(.disabled) {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.attachment-uploader-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attachment-uploader-btn input[type="file"] {
+  display: none;
+}
+
+.attachment-uploader-error {
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 0.8rem;
+}

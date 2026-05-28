@@ -2,7 +2,17 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { addMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { MonthGrid } from "../components/calendar/MonthGrid";
-import { useBoard, useBoardCalendar } from "../lib/queries";
+import {
+  CardForm,
+  emptyCardForm,
+  type CardFormValues,
+} from "../components/card/CardForm";
+import { CardDialog } from "../components/card/CardDialog";
+import {
+  useBoard,
+  useBoardCalendar,
+  useCreateCard,
+} from "../lib/queries";
 import "./BoardDetailPage.css";
 
 export function BoardDetailPage() {
@@ -10,6 +20,9 @@ export function BoardDetailPage() {
   const navigate = useNavigate();
   const boardId = params.boardId ?? "";
   const [anchor, setAnchor] = useState<Date>(() => startOfMonth(new Date()));
+  const [createInitialDate, setCreateInitialDate] = useState<string | null>(
+    null,
+  );
 
   const board = useBoard(boardId);
   const range = useMemo(() => {
@@ -21,6 +34,22 @@ export function BoardDetailPage() {
     };
   }, [anchor]);
   const calendar = useBoardCalendar(boardId, range.from, range.to);
+  const createCard = useCreateCard(boardId);
+
+  async function handleCreate(values: CardFormValues) {
+    await createCard.mutateAsync({
+      boardId,
+      title: values.title,
+      bodyMd: values.bodyMd || undefined,
+      startDate: values.startDate || null,
+      endDate: values.endDate || null,
+      startTime: values.startTime || null,
+      allDay: values.allDay,
+      importance: values.importance,
+      rrule: values.rrule || null,
+    });
+    setCreateInitialDate(null);
+  }
 
   return (
     <div className="board-detail">
@@ -40,6 +69,13 @@ export function BoardDetailPage() {
             <span className="board-detail-slug">/{board.data.slug}</span>
           )}
         </div>
+        <button
+          type="button"
+          className="board-detail-create"
+          onClick={() => setCreateInitialDate("")}
+        >
+          + 카드 추가
+        </button>
       </header>
       <div className="board-detail-toolbar">
         <button
@@ -75,8 +111,24 @@ export function BoardDetailPage() {
           cards={calendar.data?.cards ?? []}
           dateMemos={calendar.data?.dateMemos ?? []}
           onCardClick={(c) => navigate(`/boards/${boardId}/cards/${c.id}`)}
+          onCellClick={(iso) => setCreateInitialDate(iso)}
         />
       )}
+      <CardDialog
+        open={createInitialDate !== null}
+        title="새 카드"
+        onClose={() => setCreateInitialDate(null)}
+      >
+        {createInitialDate !== null && (
+          <CardForm
+            initial={emptyCardForm(createInitialDate || undefined)}
+            submitting={createCard.isPending}
+            submitLabel="생성"
+            onCancel={() => setCreateInitialDate(null)}
+            onSubmit={handleCreate}
+          />
+        )}
+      </CardDialog>
     </div>
   );
 }

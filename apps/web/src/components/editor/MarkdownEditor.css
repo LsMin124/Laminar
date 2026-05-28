@@ -1,0 +1,14 @@
+.md-editor {
+  width: 100%;
+  display: block;
+}
+
+.md-editor .cm-editor {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.md-editor .cm-scroller {
+  overflow: auto;
+}

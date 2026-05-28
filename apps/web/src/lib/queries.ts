@@ -5,6 +5,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, setCurrentWorkspaceId } from "./api";
 import type {
+  AttachmentParentType,
+  AttachmentResponse,
   AuthResponse,
   BoardResponse,
   CalendarViewResponse,
@@ -229,6 +231,45 @@ export function useDeleteCard(cardId: string, boardId: string) {
     mutationFn: () => api.delete<void>(`/api/cards/${cardId}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
+export const attachmentKeys = {
+  byParent: (parentType: AttachmentParentType, parentId: string) =>
+    ["attachments", parentType, parentId] as const,
+  downloadUrl: (attachmentId: string) =>
+    ["attachments", attachmentId, "download-url"] as const,
+};
+
+export function useAttachmentsByParent(
+  parentType: AttachmentParentType,
+  parentId: string | null,
+) {
+  return useQuery<AttachmentResponse[]>({
+    queryKey: parentId
+      ? attachmentKeys.byParent(parentType, parentId)
+      : ["attachments", "noop"],
+    queryFn: () =>
+      api.get<AttachmentResponse[]>(
+        `/api/attachments?parentType=${parentType}&parentId=${parentId}`,
+      ),
+    enabled: Boolean(parentId),
+  });
+}
+
+export function useDeleteAttachment(
+  parentType: AttachmentParentType,
+  parentId: string,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (attachmentId: string) =>
+      api.delete<void>(`/api/attachments/${attachmentId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: attachmentKeys.byParent(parentType, parentId),
+      });
     },
   });
 }

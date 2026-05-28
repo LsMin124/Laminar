@@ -101,3 +101,33 @@ export interface RenderedBodyResponse {
   cardId: Uuid;
   html: string;
 }
+
+export type AttachmentParentType =
+  | "CARD"
+  | "PERPETUAL_VERSION"
+  | "EQUIPMENT_LOG"
+  | "DATE_MEMO"
+  | "SAMPLE_MANAGER_LINK";
+
+export interface AttachmentResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  uploadedBy: Uuid;
+  parentType: AttachmentParentType;
+  parentId: Uuid;
+  storageKey: string;
+  originalName: string | null;
+  mime: string | null;
+  sizeBytes: number | null;
+  sha256: string | null;
+  accessCheckRequired: boolean;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface PresignedUrlResponse {
+  url: string;
+  storageKey: string | null;
+  expiresInSeconds: number;
+}

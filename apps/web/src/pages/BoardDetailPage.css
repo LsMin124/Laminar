@@ -74,3 +74,19 @@
 .board-detail-today {
   margin-left: auto;
 }
+
+.board-detail-create {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.board-detail-create:hover {
+  background: var(--accent-hover);
+}

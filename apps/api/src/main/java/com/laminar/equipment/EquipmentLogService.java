@@ -48,6 +48,7 @@ public class EquipmentLogService {
         WorkspaceContext ctx = requireWorkspaceWritable();
         equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
         if (columnRepo.findByEquipmentIdAndColumnKeyAndDeletedAtIsNull(equipmentId, columnKey).isPresent()) {
             throw new IllegalStateException("column key already exists: " + columnKey);
@@ -76,15 +77,16 @@ public class EquipmentLogService {
 
     @Transactional(readOnly = true)
     public List<EquipmentLogColumnEntity> listColumns(UUID equipmentId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return columnRepo.findByEquipmentIdAndDeletedAtIsNullOrderByPriorityAsc(equipmentId);
     }
 
     @Transactional
     public void softDeleteColumn(UUID columnId) {
-        requireWorkspaceWritable();
+        WorkspaceContext ctx = requireWorkspaceWritable();
         columnRepo.findById(columnId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsShared(c.getWorkspaceId()))
                 .ifPresent(c -> {
                     c.setDeletedAt(OffsetDateTime.now());
                     columnRepo.save(c);
@@ -101,6 +103,7 @@ public class EquipmentLogService {
         WorkspaceContext ctx = requireWorkspaceWritable();
         equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
         validateValues(equipmentId, values);
 
@@ -117,14 +120,14 @@ public class EquipmentLogService {
 
     @Transactional(readOnly = true)
     public List<EquipmentLogEntity> listLogs(UUID equipmentId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return logRepo.findByEquipmentIdAndDeletedAtIsNullOrderByLoggedAtDesc(equipmentId);
     }
 
     @Transactional(readOnly = true)
     public List<EquipmentLogEntity> listLogsInRange(
             UUID equipmentId, OffsetDateTime from, OffsetDateTime to) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return logRepo.findByEquipmentIdAndLoggedAtBetweenAndDeletedAtIsNull(equipmentId, from, to);
     }
 

@@ -56,6 +56,7 @@ public class EquipmentReservationService {
         }
         equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .filter(EquipmentEntity::isActive)
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found or inactive"));
 
@@ -87,8 +88,9 @@ public class EquipmentReservationService {
         WorkspaceContext ctx = requireWorkspaceWritable();
         EquipmentReservationEntity reservation = reservationRepo.findById(reservationId)
                 .filter(r -> r.getDeletedAt() == null)
+                .filter(r -> ctx.ownsShared(r.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("reservation not found"));
-        // 본인 예약 또는 OWNER만 취소
+        // 본인 예약 또는 OWNER만 취소 (OWNER override는 같은 workspace 한정 — ownsShared 선검증)
         if (!ctx.isOwner() && !reservation.getReservedBy().equals(ctx.userId())) {
             throw new IllegalStateException("can only cancel own reservation (OWNER override allowed)");
         }

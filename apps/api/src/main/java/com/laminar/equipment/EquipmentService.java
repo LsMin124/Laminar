@@ -62,8 +62,10 @@ public class EquipmentService {
 
     @Transactional(readOnly = true)
     public Optional<EquipmentEntity> findById(UUID equipmentId) {
-        WorkspaceContextHolder.require();
-        return equipmentRepo.findById(equipmentId).filter(e -> e.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.require();
+        return equipmentRepo.findById(equipmentId)
+                .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()));
     }
 
     @Transactional
@@ -73,9 +75,10 @@ public class EquipmentService {
             String description,
             String location,
             List<Map<String, Object>> defaultLogColumns) {
-        requireWorkspaceWritable();
+        WorkspaceContext ctx = requireWorkspaceWritable();
         EquipmentEntity equipment = equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
         if (name != null && !name.isBlank()) equipment.setName(name);
         if (description != null) equipment.setDescription(description);
@@ -86,9 +89,10 @@ public class EquipmentService {
 
     @Transactional
     public EquipmentEntity toggleActive(UUID equipmentId, boolean active) {
-        requireWorkspaceWritable();
+        WorkspaceContext ctx = requireWorkspaceWritable();
         EquipmentEntity equipment = equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
         equipment.setActive(active);
         return equipmentRepo.save(equipment);
@@ -96,9 +100,10 @@ public class EquipmentService {
 
     @Transactional
     public void softDelete(UUID equipmentId) {
-        requireOwner();
+        WorkspaceContext ctx = requireOwner();
         equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .ifPresent(e -> {
                     e.setDeletedAt(OffsetDateTime.now());
                     equipmentRepo.save(e);

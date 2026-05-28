@@ -52,28 +52,29 @@ public class CardEventLinkService {
 
     @Transactional(readOnly = true)
     public Optional<CardEventLinkEntity> findByCard(UUID boardCalendarLinkId, UUID cardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return eventLinkRepo.findByBoardCalendarLinkIdAndCardIdAndDeletedAtIsNull(boardCalendarLinkId, cardId);
     }
 
     @Transactional(readOnly = true)
     public Optional<CardEventLinkEntity> findByGoogleEventId(UUID boardCalendarLinkId, String googleEventId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return eventLinkRepo.findByBoardCalendarLinkIdAndGoogleEventIdAndDeletedAtIsNull(
                 boardCalendarLinkId, googleEventId);
     }
 
     @Transactional(readOnly = true)
     public List<CardEventLinkEntity> listByLink(UUID boardCalendarLinkId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return eventLinkRepo.findByBoardCalendarLinkIdAndDeletedAtIsNull(boardCalendarLinkId);
     }
 
     @Transactional
     public void softDelete(UUID linkId) {
-        requireWorkspaceWritable();
+        WorkspaceContext ctx = requireWorkspaceWritable();
         eventLinkRepo.findById(linkId)
                 .filter(l -> l.getDeletedAt() == null)
+                .filter(l -> ctx.ownsShared(l.getWorkspaceId()))
                 .ifPresent(l -> {
                     l.setDeletedAt(OffsetDateTime.now());
                     eventLinkRepo.save(l);

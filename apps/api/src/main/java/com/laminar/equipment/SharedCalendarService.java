@@ -51,21 +51,22 @@ public class SharedCalendarService {
 
     @Transactional(readOnly = true)
     public List<SharedCalendarEntity> listAll() {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return calendarRepo.findByDeletedAtIsNullOrderByName();
     }
 
     @Transactional(readOnly = true)
     public Optional<SharedCalendarEntity> findByEquipment(UUID equipmentId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return calendarRepo.findByEquipmentIdAndDeletedAtIsNull(equipmentId);
     }
 
     @Transactional
     public void softDelete(UUID calendarId) {
-        requireWorkspaceWritable();
+        WorkspaceContext ctx = requireWorkspaceWritable();
         calendarRepo.findById(calendarId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsShared(c.getWorkspaceId()))
                 .ifPresent(c -> {
                     c.setDeletedAt(OffsetDateTime.now());
                     calendarRepo.save(c);

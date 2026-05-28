@@ -29,6 +29,7 @@ public class EquipmentAdminService {
         WorkspaceContext ctx = requireOwner();
         equipmentRepo.findById(equipmentId)
                 .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
 
         EquipmentAdminEntity admin = new EquipmentAdminEntity();
@@ -39,14 +40,19 @@ public class EquipmentAdminService {
 
     @Transactional
     public void dismiss(UUID equipmentId, UUID userId) {
-        requireOwner();
+        WorkspaceContext ctx = requireOwner();
+        // 장비 소유권(workspace) 선검증 — 타 workspace 장비 담당자 해임 차단
+        equipmentRepo.findById(equipmentId)
+                .filter(e -> e.getDeletedAt() == null)
+                .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
+                .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
         adminRepo.findById(new EquipmentAdminId(equipmentId, userId))
                 .ifPresent(adminRepo::delete);
     }
 
     @Transactional(readOnly = true)
     public List<UUID> listAdminUserIds(UUID equipmentId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return adminRepo.findByIdEquipmentId(equipmentId).stream()
                 .map(a -> a.getId().getUserId())
                 .toList();
@@ -54,7 +60,7 @@ public class EquipmentAdminService {
 
     @Transactional(readOnly = true)
     public List<UUID> listEquipmentIdsForUser(UUID userId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return adminRepo.findByIdUserId(userId).stream()
                 .map(a -> a.getId().getEquipmentId())
                 .toList();
@@ -62,7 +68,7 @@ public class EquipmentAdminService {
 
     @Transactional(readOnly = true)
     public boolean isAdmin(UUID equipmentId, UUID userId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return adminRepo.findById(new EquipmentAdminId(equipmentId, userId)).isPresent();
     }
 

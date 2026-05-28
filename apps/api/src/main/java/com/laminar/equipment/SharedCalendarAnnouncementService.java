@@ -41,6 +41,7 @@ public class SharedCalendarAnnouncementService {
         }
         calendarRepo.findById(sharedCalendarId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsShared(c.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("shared calendar not found"));
 
         SharedCalendarAnnouncementEntity announcement = new SharedCalendarAnnouncementEntity();
@@ -57,7 +58,7 @@ public class SharedCalendarAnnouncementService {
     @Transactional(readOnly = true)
     public List<SharedCalendarAnnouncementEntity> listInRange(
             UUID sharedCalendarId, OffsetDateTime from, OffsetDateTime to) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return announcementRepo
                 .findBySharedCalendarIdAndStartAtBetweenAndDeletedAtIsNullOrderByStartAtAsc(
                         sharedCalendarId, from, to);
@@ -68,6 +69,7 @@ public class SharedCalendarAnnouncementService {
         WorkspaceContext ctx = requireWorkspaceWritable();
         announcementRepo.findById(announcementId)
                 .filter(a -> a.getDeletedAt() == null)
+                .filter(a -> ctx.ownsShared(a.getWorkspaceId()))
                 .ifPresent(a -> {
                     if (!ctx.isOwner() && !a.getPostedBy().equals(ctx.userId())) {
                         throw new IllegalStateException("can only delete own announcement (OWNER override)");

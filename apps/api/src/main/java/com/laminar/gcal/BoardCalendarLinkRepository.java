@@ -16,5 +16,5 @@ public interface BoardCalendarLinkRepository extends JpaRepository<BoardCalendar
     Optional<BoardCalendarLinkEntity> findByBoardIdAndGoogleCalendarIdAndDeletedAtIsNull(
             UUID boardId, String googleCalendarId);
 
-    List<BoardCalendarLinkEntity> findByIsActiveTrueAndDeletedAtIsNull();
+    List<BoardCalendarLinkEntity> findByActiveTrueAndDeletedAtIsNull();
 }

@@ -10,6 +10,8 @@ import { BoardDetailPage } from "./pages/BoardDetailPage";
 import { CardDetailPage } from "./pages/CardDetailPage";
 import { MembersPage } from "./pages/MembersPage";
 import { PerpetualPage } from "./pages/PerpetualPage";
+import { EquipmentPage } from "./pages/EquipmentPage";
+import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
 import type { WorkspaceResponse } from "./lib/types";
 import "./App.css";
 
@@ -65,6 +67,8 @@ function Shell() {
       />
       <Route path="/members" element={<MembersPage />} />
       <Route path="/boards/:boardId/perpetual" element={<PerpetualPage />} />
+      <Route path="/equipment" element={<EquipmentPage />} />
+      <Route path="/equipment/:equipmentId" element={<EquipmentDetailPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

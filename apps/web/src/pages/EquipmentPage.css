@@ -1,0 +1,202 @@
+.equipment-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.equipment-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.equipment-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.equipment-section {
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+}
+
+.equipment-section h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.equipment-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.equipment-section-head button.primary,
+.equipment-create-form button.primary {
+  padding: 0.4rem 0.9rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.equipment-section-head button.primary:hover,
+.equipment-create-form button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.equipment-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+.equipment-create-form input,
+.equipment-create-form textarea {
+  padding: 0.5rem 0.6rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.equipment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.7rem;
+}
+
+.equipment-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.equipment-card.inactive {
+  opacity: 0.6;
+}
+
+.equipment-card-main {
+  padding: 0.8rem;
+  cursor: pointer;
+  flex: 1;
+}
+
+.equipment-card-main:hover {
+  background: var(--bg);
+}
+
+.equipment-card-name {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge-inactive {
+  padding: 0.1rem 0.4rem;
+  background: var(--rule);
+  color: var(--text-dim);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.equipment-card-meta {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.equipment-card-desc {
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.equipment-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border-top: 1px solid var(--rule);
+  background: var(--bg);
+}
+
+.equipment-card-actions button {
+  flex: 1;
+  padding: 0.3rem;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.equipment-card-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.equipment-card-actions button.danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.reservation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.reservation-item {
+  padding: 0.7rem 0.9rem;
+  background: var(--surface-2);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.reservation-time {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.reservation-purpose {
+  margin-top: 0.3rem;
+  color: var(--text-dim);
+}
+
+.reservation-rrule {
+  display: inline-block;
+  margin-top: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  background: var(--bg);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: var(--accent);
+}

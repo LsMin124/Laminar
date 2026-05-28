@@ -41,6 +41,13 @@ export function BoardsPage() {
         <div className="boards-header-actions">
           <button
             type="button"
+            onClick={() => navigate("/equipment")}
+            className="logout-btn"
+          >
+            공용 자원
+          </button>
+          <button
+            type="button"
             onClick={() => navigate("/members")}
             className="logout-btn"
           >

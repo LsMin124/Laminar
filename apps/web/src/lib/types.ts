@@ -274,3 +274,30 @@ export interface PerpetualVersionResponse {
   committedAt: IsoDateTime;
   createdAt: IsoDateTime;
 }
+
+export interface EquipmentResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  createdBy: Uuid | null;
+  name: string;
+  description: string | null;
+  location: string | null;
+  active: boolean;
+  defaultLogColumns: Record<string, unknown>[];
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface EquipmentReservationResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  equipmentId: Uuid;
+  reservedBy: Uuid;
+  startAt: IsoDateTime;
+  endAt: IsoDateTime;
+  purpose: string | null;
+  rrule: string | null;
+  cardId: Uuid | null;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}

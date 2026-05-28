@@ -1,0 +1,88 @@
+.equipment-detail {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.equipment-detail-desc {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.equipment-detail-meta {
+  margin: 0 0 1.5rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.reserve-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.reserve-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.reserve-form label > span {
+  color: var(--text-dim);
+}
+
+.reserve-form input {
+  padding: 0.5rem 0.6rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.reserve-purpose {
+  grid-column: 1 / -1;
+}
+
+.reserve-form button.primary {
+  grid-column: 1 / -1;
+  padding: 0.6rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.reserve-form button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reservation-actions {
+  margin-top: 0.4rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reservation-actions button.danger {
+  padding: 0.25rem 0.7rem;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.reservation-actions button.danger:hover {
+  border-color: var(--danger);
+}

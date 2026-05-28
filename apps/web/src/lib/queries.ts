@@ -13,6 +13,8 @@ import type {
   CalendarViewResponse,
   CardRelationResponse,
   CardResponse,
+  EquipmentResponse,
+  EquipmentReservationResponse,
   GroupRelationResponse,
   GroupResponse,
   MemberResponse,
@@ -799,6 +801,165 @@ export function useDeleteGroupRelation(boardId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: groupKeys.groupRelations(boardId) });
       qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
+    },
+  });
+}
+
+export const equipmentKeys = {
+  list: (activeOnly: boolean) => ["equipment", { activeOnly }] as const,
+  byId: (equipmentId: string) => ["equipment", equipmentId] as const,
+  reservations: (equipmentId: string, from: string, to: string) =>
+    ["equipment", equipmentId, "reservations", from, to] as const,
+  myReservations: ["me", "reservations"] as const,
+};
+
+export function useEquipmentList(activeOnly = true) {
+  return useQuery<EquipmentResponse[]>({
+    queryKey: equipmentKeys.list(activeOnly),
+    queryFn: () =>
+      api.get<EquipmentResponse[]>(`/api/equipment?activeOnly=${activeOnly}`),
+  });
+}
+
+export function useEquipment(equipmentId: string | null) {
+  return useQuery<EquipmentResponse>({
+    queryKey: equipmentId
+      ? equipmentKeys.byId(equipmentId)
+      : ["equipment", "noop"],
+    queryFn: () => api.get<EquipmentResponse>(`/api/equipment/${equipmentId}`),
+    enabled: Boolean(equipmentId),
+  });
+}
+
+export function useCreateEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      description?: string;
+      location?: string;
+    }) =>
+      api.post<EquipmentResponse>("/api/equipment", {
+        ...input,
+        defaultLogColumns: [],
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["equipment"] });
+    },
+  });
+}
+
+export function useUpdateEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      equipmentId,
+      ...input
+    }: {
+      equipmentId: string;
+      name?: string;
+      description?: string;
+      location?: string;
+    }) => api.patch<EquipmentResponse>(`/api/equipment/${equipmentId}`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["equipment"] });
+    },
+  });
+}
+
+export function useToggleEquipmentActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      equipmentId,
+      active,
+    }: {
+      equipmentId: string;
+      active: boolean;
+    }) =>
+      api.post<EquipmentResponse>(
+        `/api/equipment/${equipmentId}/toggle-active`,
+        { active },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["equipment"] });
+    },
+  });
+}
+
+export function useDeleteEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (equipmentId: string) =>
+      api.delete<void>(`/api/equipment/${equipmentId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["equipment"] });
+    },
+  });
+}
+
+export function useEquipmentReservations(
+  equipmentId: string | null,
+  from: string,
+  to: string,
+) {
+  return useQuery<EquipmentReservationResponse[]>({
+    queryKey: equipmentId
+      ? equipmentKeys.reservations(equipmentId, from, to)
+      : ["reservations", "noop"],
+    queryFn: () =>
+      api.get<EquipmentReservationResponse[]>(
+        `/api/equipment/${equipmentId}/reservations?from=${encodeURIComponent(
+          from,
+        )}&to=${encodeURIComponent(to)}`,
+      ),
+    enabled: Boolean(equipmentId),
+  });
+}
+
+export function useMyReservations() {
+  return useQuery<EquipmentReservationResponse[]>({
+    queryKey: equipmentKeys.myReservations,
+    queryFn: () =>
+      api.get<EquipmentReservationResponse[]>("/api/me/reservations"),
+  });
+}
+
+export function useCreateReservation(equipmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      startAt: string;
+      endAt: string;
+      purpose?: string;
+      rrule?: string | null;
+      cardId?: string | null;
+    }) =>
+      api.post<EquipmentReservationResponse>(
+        `/api/equipment/${equipmentId}/reservations`,
+        {
+          startAt: input.startAt,
+          endAt: input.endAt,
+          purpose: input.purpose ?? null,
+          rrule: input.rrule ?? null,
+          cardId: input.cardId ?? null,
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["equipment", equipmentId] });
+      qc.invalidateQueries({ queryKey: equipmentKeys.myReservations });
+    },
+  });
+}
+
+export function useCancelReservation(equipmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reservationId: string) =>
+      api.delete<void>(`/api/reservations/${reservationId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["equipment", equipmentId] });
+      qc.invalidateQueries({ queryKey: equipmentKeys.myReservations });
     },
   });
 }

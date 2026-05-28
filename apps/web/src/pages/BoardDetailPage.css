@@ -75,8 +75,13 @@
   margin-left: auto;
 }
 
-.board-detail-create {
+.board-detail-header-actions {
   margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.board-detail-create {
   padding: 0.5rem 1rem;
   background: var(--accent);
   color: white;
@@ -89,6 +94,20 @@
 
 .board-detail-create:hover {
   background: var(--accent-hover);
+}
+
+.board-detail-perpetual {
+  padding: 0.5rem 1rem;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.board-detail-perpetual:hover {
+  border-color: var(--accent);
 }
 
 .board-detail-tabs {

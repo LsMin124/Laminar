@@ -9,6 +9,7 @@ import { BoardsPage } from "./pages/BoardsPage";
 import { BoardDetailPage } from "./pages/BoardDetailPage";
 import { CardDetailPage } from "./pages/CardDetailPage";
 import { MembersPage } from "./pages/MembersPage";
+import { PerpetualPage } from "./pages/PerpetualPage";
 import type { WorkspaceResponse } from "./lib/types";
 import "./App.css";
 
@@ -63,6 +64,7 @@ function Shell() {
         element={<CardDetailPage />}
       />
       <Route path="/members" element={<MembersPage />} />
+      <Route path="/boards/:boardId/perpetual" element={<PerpetualPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

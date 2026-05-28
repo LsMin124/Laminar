@@ -75,13 +75,22 @@ export function BoardDetailPage() {
             <span className="board-detail-slug">/{board.data.slug}</span>
           )}
         </div>
-        <button
-          type="button"
-          className="board-detail-create"
-          onClick={() => setCreateInitialDate("")}
-        >
-          + 카드 추가
-        </button>
+        <div className="board-detail-header-actions">
+          <button
+            type="button"
+            className="board-detail-perpetual"
+            onClick={() => navigate(`/boards/${boardId}/perpetual`)}
+          >
+            영구노트
+          </button>
+          <button
+            type="button"
+            className="board-detail-create"
+            onClick={() => setCreateInitialDate("")}
+          >
+            + 카드 추가
+          </button>
+        </div>
       </header>
       <div className="board-detail-tabs">
         <button

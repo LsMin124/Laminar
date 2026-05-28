@@ -202,3 +202,75 @@ export interface BoardGraphResponse {
   cardRelations: CardRelationResponse[];
   groupRelations: GroupRelationResponse[];
 }
+
+export interface TabResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  parentTabId: Uuid | null;
+  name: string;
+  priority: number;
+  visible: boolean;
+  collapsed: boolean;
+  showLabel: boolean;
+  labelColor: string | null;
+  attrs: Record<string, unknown>;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface PerpetualNoteResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  tabId: Uuid | null;
+  parentPerpetualId: Uuid | null;
+  title: string;
+  bodyMd: string | null;
+  priority: number;
+  attrs: Record<string, unknown>;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export type PerpetualColumnType =
+  | "TEXT"
+  | "NUMBER"
+  | "DATE"
+  | "BOOLEAN"
+  | "ENUM"
+  | "JSON";
+
+export interface PerpetualColumnDefinitionResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  boardId: Uuid;
+  name: string;
+  type: PerpetualColumnType;
+  enumValues: string[] | null;
+  priority: number;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface PerpetualColumnValueResponse {
+  perpetualNoteId: Uuid;
+  columnDefinitionId: Uuid;
+  value: string | null;
+}
+
+export interface PerpetualVersionResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  perpetualNoteId: Uuid;
+  cardId: Uuid | null;
+  versionNumber: number;
+  summary: string | null;
+  bodyDiffMd: string | null;
+  currentDiff: boolean;
+  committedAt: IsoDateTime;
+  createdAt: IsoDateTime;
+}

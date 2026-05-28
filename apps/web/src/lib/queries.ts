@@ -14,7 +14,13 @@ import type {
   CardResponse,
   MemberResponse,
   PendingInvitationResponse,
+  PerpetualColumnDefinitionResponse,
+  PerpetualColumnType,
+  PerpetualColumnValueResponse,
+  PerpetualNoteResponse,
+  PerpetualVersionResponse,
   RenderedBodyResponse,
+  TabResponse,
   WorkspaceResponse,
   WorkspaceRole,
 } from "./types";
@@ -350,6 +356,248 @@ export function useRevokeInvitation() {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: memberKeys.pending });
+    },
+  });
+}
+
+export const perpetualKeys = {
+  boardTabs: (boardId: string) => ["boards", boardId, "tabs"] as const,
+  boardNotes: (boardId: string) =>
+    ["boards", boardId, "perpetual-notes"] as const,
+  boardColumns: (boardId: string) =>
+    ["boards", boardId, "perpetual-columns"] as const,
+  noteColumns: (noteId: string) =>
+    ["perpetual-notes", noteId, "columns"] as const,
+  noteVersions: (noteId: string) =>
+    ["perpetual-notes", noteId, "versions"] as const,
+};
+
+export function useBoardTabs(boardId: string | null) {
+  return useQuery<TabResponse[]>({
+    queryKey: boardId ? perpetualKeys.boardTabs(boardId) : ["tabs", "noop"],
+    queryFn: () => api.get<TabResponse[]>(`/api/boards/${boardId}/tabs`),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreateTab(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      parentTabId?: string | null;
+      labelColor?: string | null;
+    }) =>
+      api.post<TabResponse>("/api/tabs", {
+        boardId,
+        parentTabId: input.parentTabId ?? null,
+        name: input.name,
+        visible: true,
+        collapsed: false,
+        showLabel: true,
+        labelColor: input.labelColor ?? null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardTabs(boardId) });
+    },
+  });
+}
+
+export function useDeleteTab(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tabId: string) => api.delete<void>(`/api/tabs/${tabId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardTabs(boardId) });
+    },
+  });
+}
+
+export function useBoardPerpetualNotes(boardId: string | null) {
+  return useQuery<PerpetualNoteResponse[]>({
+    queryKey: boardId
+      ? perpetualKeys.boardNotes(boardId)
+      : ["perpetual-notes", "noop"],
+    queryFn: () =>
+      api.get<PerpetualNoteResponse[]>(
+        `/api/boards/${boardId}/perpetual-notes`,
+      ),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreatePerpetualNote(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      tabId: string;
+      parentPerpetualId?: string | null;
+      title: string;
+      bodyMd?: string;
+    }) =>
+      api.post<PerpetualNoteResponse>("/api/perpetual-notes", {
+        boardId,
+        tabId: input.tabId,
+        parentPerpetualId: input.parentPerpetualId ?? null,
+        title: input.title,
+        bodyMd: input.bodyMd ?? "",
+        attrs: {},
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardNotes(boardId) });
+    },
+  });
+}
+
+export function useUpdatePerpetualNote(boardId: string, noteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      title?: string;
+      bodyMd?: string;
+      parentPerpetualId?: string | null;
+    }) =>
+      api.patch<PerpetualNoteResponse>(`/api/perpetual-notes/${noteId}`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardNotes(boardId) });
+      qc.invalidateQueries({ queryKey: perpetualKeys.noteVersions(noteId) });
+    },
+  });
+}
+
+export function useDeletePerpetualNote(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (noteId: string) =>
+      api.delete<void>(`/api/perpetual-notes/${noteId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardNotes(boardId) });
+    },
+  });
+}
+
+export function useBoardPerpetualColumns(boardId: string | null) {
+  return useQuery<PerpetualColumnDefinitionResponse[]>({
+    queryKey: boardId
+      ? perpetualKeys.boardColumns(boardId)
+      : ["perpetual-columns", "noop"],
+    queryFn: () =>
+      api.get<PerpetualColumnDefinitionResponse[]>(
+        `/api/boards/${boardId}/perpetual-column-definitions`,
+      ),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreatePerpetualColumn(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      type: PerpetualColumnType;
+      enumValues?: string[];
+    }) =>
+      api.post<PerpetualColumnDefinitionResponse>(
+        "/api/perpetual-column-definitions",
+        {
+          boardId,
+          name: input.name,
+          type: input.type,
+          enumValues: input.enumValues ?? null,
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardColumns(boardId) });
+    },
+  });
+}
+
+export function useDeletePerpetualColumn(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (definitionId: string) =>
+      api.delete<void>(`/api/perpetual-column-definitions/${definitionId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardColumns(boardId) });
+    },
+  });
+}
+
+export function useNoteColumns(noteId: string | null) {
+  return useQuery<PerpetualColumnValueResponse[]>({
+    queryKey: noteId
+      ? perpetualKeys.noteColumns(noteId)
+      : ["perpetual-notes", "noop", "columns"],
+    queryFn: () =>
+      api.get<PerpetualColumnValueResponse[]>(
+        `/api/perpetual-notes/${noteId}/columns`,
+      ),
+    enabled: Boolean(noteId),
+  });
+}
+
+export function useUpsertColumnValue(noteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      columnDefinitionId: string;
+      value: string | null;
+    }) =>
+      api.put<PerpetualColumnValueResponse>("/api/perpetual-column-values", {
+        perpetualNoteId: noteId,
+        columnDefinitionId: input.columnDefinitionId,
+        value: input.value,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.noteColumns(noteId) });
+    },
+  });
+}
+
+export function useNoteVersions(noteId: string | null) {
+  return useQuery<PerpetualVersionResponse[]>({
+    queryKey: noteId
+      ? perpetualKeys.noteVersions(noteId)
+      : ["perpetual-notes", "noop", "versions"],
+    queryFn: () =>
+      api.get<PerpetualVersionResponse[]>(
+        `/api/perpetual-notes/${noteId}/versions`,
+      ),
+    enabled: Boolean(noteId),
+  });
+}
+
+export function useCommitVersion(noteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      cardId?: string | null;
+      summary?: string;
+      bodyDiffMd?: string;
+      markCurrent?: boolean;
+    }) =>
+      api.post<PerpetualVersionResponse>("/api/perpetual-versions", {
+        perpetualNoteId: noteId,
+        cardId: input.cardId ?? null,
+        summary: input.summary ?? null,
+        bodyDiffMd: input.bodyDiffMd ?? null,
+        markCurrent: input.markCurrent ?? false,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.noteVersions(noteId) });
+    },
+  });
+}
+
+export function useMarkVersionCurrent(noteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (versionId: string) =>
+      api.post<PerpetualVersionResponse>(
+        `/api/perpetual-versions/${versionId}/mark-current-diff`,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.noteVersions(noteId) });
     },
   });
 }

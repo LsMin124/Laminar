@@ -7,7 +7,9 @@ import { api, setCurrentWorkspaceId } from "./api";
 import type {
   AuthResponse,
   BoardResponse,
+  CalendarViewResponse,
   CardResponse,
+  RenderedBodyResponse,
   WorkspaceResponse,
 } from "./types";
 
@@ -28,6 +30,10 @@ export const queryKeys = {
   boards: ["boards"] as const,
   board: (boardId: string) => ["boards", boardId] as const,
   boardCards: (boardId: string) => ["boards", boardId, "cards"] as const,
+  boardCalendar: (boardId: string, from: string, to: string) =>
+    ["boards", boardId, "calendar", from, to] as const,
+  card: (cardId: string) => ["cards", cardId] as const,
+  cardRendered: (cardId: string) => ["cards", cardId, "rendered"] as const,
 };
 
 export function useMe() {
@@ -117,5 +123,112 @@ export function useBoardCards(boardId: string | null) {
     queryFn: () =>
       api.get<CardResponse[]>(`/api/boards/${boardId}/cards`),
     enabled: Boolean(boardId),
+  });
+}
+
+export function useBoard(boardId: string | null) {
+  return useQuery<BoardResponse>({
+    queryKey: boardId ? queryKeys.board(boardId) : ["boards", "noop"],
+    queryFn: () => api.get<BoardResponse>(`/api/boards/${boardId}`),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useBoardCalendar(
+  boardId: string | null,
+  from: string,
+  to: string,
+) {
+  return useQuery<CalendarViewResponse>({
+    queryKey: boardId
+      ? queryKeys.boardCalendar(boardId, from, to)
+      : ["boards", "noop"],
+    queryFn: () =>
+      api.get<CalendarViewResponse>(
+        `/api/boards/${boardId}/calendar?from=${from}&to=${to}`,
+      ),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCard(cardId: string | null) {
+  return useQuery<CardResponse>({
+    queryKey: cardId ? queryKeys.card(cardId) : ["cards", "noop"],
+    queryFn: () => api.get<CardResponse>(`/api/cards/${cardId}`),
+    enabled: Boolean(cardId),
+  });
+}
+
+export function useCardRendered(cardId: string | null) {
+  return useQuery<RenderedBodyResponse>({
+    queryKey: cardId ? queryKeys.cardRendered(cardId) : ["cards", "noop"],
+    queryFn: () =>
+      api.get<RenderedBodyResponse>(`/api/cards/${cardId}/rendered`),
+    enabled: Boolean(cardId),
+  });
+}
+
+export interface CreateCardInput {
+  boardId: string;
+  title: string;
+  slug?: string;
+  bodyMd?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  startTime?: string | null;
+  allDay?: boolean;
+  timeZone?: string | null;
+  importance?: string;
+  linkedPerpetualId?: string | null;
+  rrule?: string | null;
+  attrs?: Record<string, unknown>;
+}
+
+export function useCreateCard(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateCardInput) =>
+      api.post<CardResponse>("/api/cards", { ...input, boardId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
+export interface UpdateCardInput {
+  title?: string;
+  bodyMd?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  startTime?: string | null;
+  allDay?: boolean;
+  timeZone?: string | null;
+  importance?: string;
+  completed?: boolean;
+  linkedPerpetualId?: string | null;
+  rrule?: string | null;
+  attrs?: Record<string, unknown>;
+}
+
+export function useUpdateCard(cardId: string, boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateCardInput) =>
+      api.patch<CardResponse>(`/api/cards/${cardId}`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.card(cardId) });
+      qc.invalidateQueries({ queryKey: queryKeys.cardRendered(cardId) });
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
+export function useDeleteCard(cardId: string, boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete<void>(`/api/cards/${cardId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
   });
 }

@@ -1,0 +1,76 @@
+.board-detail {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.board-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.board-detail-back {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.board-detail-back:hover {
+  border-color: var(--accent);
+}
+
+.board-detail-title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.board-detail-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.board-detail-slug {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-family: ui-monospace, monospace;
+}
+
+.board-detail-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.board-detail-toolbar button {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  font-size: 1rem;
+  min-width: 2rem;
+}
+
+.board-detail-toolbar button:hover {
+  border-color: var(--accent);
+}
+
+.board-detail-month {
+  margin: 0;
+  font-size: 1.15rem;
+  min-width: 8rem;
+  text-align: center;
+}
+
+.board-detail-today {
+  margin-left: auto;
+}

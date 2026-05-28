@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
 import { useBoards, useCreateBoard, useCurrentWorkspace, useLogout } from "../lib/queries";
 import { ApiError } from "../lib/api";
 
 export function BoardsPage() {
+  const navigate = useNavigate();
   const workspace = useCurrentWorkspace(true);
   const boards = useBoards(true);
   const createBoard = useCreateBoard();
@@ -83,7 +85,16 @@ export function BoardsPage() {
 
         <ul className="board-list">
           {boards.data?.map((board) => (
-            <li key={board.id} className="board-card">
+            <li
+              key={board.id}
+              className="board-card"
+              onClick={() => navigate(`/boards/${board.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") navigate(`/boards/${board.id}`);
+              }}
+            >
               <div className="board-name">{board.name}</div>
               <div className="board-meta">/{board.slug} · {board.defaultView}</div>
             </li>

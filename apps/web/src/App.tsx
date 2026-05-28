@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { useMe } from "./lib/queries";
 import { setCurrentWorkspaceId, api } from "./lib/api";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { BoardsPage } from "./pages/BoardsPage";
+import { BoardDetailPage } from "./pages/BoardDetailPage";
+import { CardDetailPage } from "./pages/CardDetailPage";
 import type { WorkspaceResponse } from "./lib/types";
 import "./App.css";
 
@@ -50,13 +53,25 @@ function Shell() {
 
   if (!workspaceReady) return <p className="loading">워크스페이스 확인 중...</p>;
 
-  return <BoardsPage />;
+  return (
+    <Routes>
+      <Route path="/" element={<BoardsPage />} />
+      <Route path="/boards/:boardId" element={<BoardDetailPage />} />
+      <Route
+        path="/boards/:boardId/cards/:cardId"
+        element={<CardDetailPage />}
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Shell />
+      <BrowserRouter>
+        <Shell />
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

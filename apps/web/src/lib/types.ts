@@ -80,3 +80,24 @@ export interface CardResponse {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 }
+
+export interface DateMemoResponse {
+  boardId: Uuid;
+  userId: Uuid;
+  date: IsoDate;
+  bodyMd: string;
+  attrs: Record<string, unknown>;
+}
+
+export interface CalendarViewResponse {
+  boardId: Uuid;
+  from: IsoDate;
+  to: IsoDate;
+  cards: CardResponse[];
+  dateMemos: DateMemoResponse[];
+}
+
+export interface RenderedBodyResponse {
+  cardId: Uuid;
+  html: string;
+}

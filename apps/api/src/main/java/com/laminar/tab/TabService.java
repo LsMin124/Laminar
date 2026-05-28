@@ -29,9 +29,16 @@ public class TabService {
     private static final int MAX_TREE_DEPTH = 10;
 
     private final TabRepository tabRepo;
+    private final TabMemberRepository memberRepo;
+    private final com.laminar.card.CardRepository cardRepo;
 
-    public TabService(TabRepository tabRepo) {
+    public TabService(
+            TabRepository tabRepo,
+            TabMemberRepository memberRepo,
+            com.laminar.card.CardRepository cardRepo) {
         this.tabRepo = tabRepo;
+        this.memberRepo = memberRepo;
+        this.cardRepo = cardRepo;
     }
 
     @Transactional
@@ -152,6 +159,62 @@ public class TabService {
                     tab.setDeletedAt(OffsetDateTime.now());
                     tabRepo.save(tab);
                 });
+    }
+
+    /**
+     * 탭 ↔ 카드 멤버십 추가 — priority (tab 안에서) 자동.
+     */
+    @Transactional
+    public TabMemberEntity addMember(UUID tabId, UUID cardId) {
+        WorkspaceContext ctx = requirePersonalWritable();
+        tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("tab not found"));
+        cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("card not found"));
+
+        int nextPriority = memberRepo.findFirstByIdTabIdOrderByPriorityDesc(tabId)
+                .map(m -> m.getPriority() + PRIORITY_STEP)
+                .orElse(PRIORITY_STEP);
+
+        TabMemberEntity member = new TabMemberEntity();
+        member.setId(new TabMemberId(tabId, cardId));
+        member.setPriority(nextPriority);
+        member.setAddedBy(ctx.userId());
+        return memberRepo.save(member);
+    }
+
+    @Transactional
+    public void removeMember(UUID tabId, UUID cardId) {
+        requirePersonalWritable();
+        tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("tab not found"));
+        memberRepo.findById(new TabMemberId(tabId, cardId))
+                .ifPresent(memberRepo::delete);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> listCardIdsInTab(UUID tabId) {
+        WorkspaceContextHolder.require();
+        tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("tab not found"));
+        return memberRepo.findByIdTabIdOrderByPriorityAsc(tabId).stream()
+                .map(m -> m.getId().getCardId())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> listTabIdsForCard(UUID cardId) {
+        WorkspaceContextHolder.require();
+        cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("card not found"));
+        return memberRepo.findByIdCardId(cardId).stream()
+                .map(m -> m.getId().getTabId())
+                .toList();
     }
 
     /**

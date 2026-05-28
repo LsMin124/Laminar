@@ -87,6 +87,28 @@ public class TabController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/tabs/{tabId}/cards/{cardId}")
+    public ResponseEntity<Void> addMember(@PathVariable UUID tabId, @PathVariable UUID cardId) {
+        tabService.addMember(tabId, cardId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/tabs/{tabId}/cards/{cardId}")
+    public ResponseEntity<Void> removeMember(@PathVariable UUID tabId, @PathVariable UUID cardId) {
+        tabService.removeMember(tabId, cardId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/tabs/{tabId}/cards")
+    public ResponseEntity<List<UUID>> listCardsInTab(@PathVariable UUID tabId) {
+        return ResponseEntity.ok(tabService.listCardIdsInTab(tabId));
+    }
+
+    @GetMapping("/cards/{cardId}/tabs")
+    public ResponseEntity<List<UUID>> listTabsForCard(@PathVariable UUID cardId) {
+        return ResponseEntity.ok(tabService.listTabIdsForCard(cardId));
+    }
+
     private TabDtos.TabResponse toResponse(TabEntity t) {
         return new TabDtos.TabResponse(
                 t.getId(), t.getWorkspaceId(), t.getUserId(), t.getBoardId(),

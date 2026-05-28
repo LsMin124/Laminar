@@ -26,6 +26,14 @@ app:
       hikari:
         maximum-pool-size: 3
         pool-name: laminar-cron-prod
+  # Cloudflare R2 (S3 호환) — Fly secret R2_* env var를 R2Config @Value 키로 매핑
+  r2:
+    endpoint: ${R2_ENDPOINT:}
+    access-key: ${R2_ACCESS_KEY_ID:}
+    secret-key: ${R2_SECRET_ACCESS_KEY:}
+    bucket: ${R2_BUCKET:laminar-attachments}
+  cookie:
+    secure: true
 
 logging:
   level:

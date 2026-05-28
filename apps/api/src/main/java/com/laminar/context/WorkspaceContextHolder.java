@@ -33,6 +33,18 @@ public final class WorkspaceContextHolder {
         return context;
     }
 
+    /**
+     * Personal-First 리소스 접근 시 PERSONAL scope를 강제한다 (workspace 헤더 누락 = SYSTEM 차단).
+     * SYSTEM/WORKSPACE_SHARED scope로 Personal-First 서비스 진입을 막아 fail-closed 보장.
+     */
+    public static WorkspaceContext requirePersonal() {
+        WorkspaceContext context = require();
+        if (context.scope() != WorkspaceContext.Scope.PERSONAL) {
+            throw new IllegalStateException("PERSONAL workspace scope required for this resource");
+        }
+        return context;
+    }
+
     public static void clear() {
         HOLDER.remove();
     }

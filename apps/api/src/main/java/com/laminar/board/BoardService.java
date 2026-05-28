@@ -66,14 +66,16 @@ public class BoardService {
 
     @Transactional(readOnly = true)
     public List<BoardEntity> listActive() {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return boardRepo.findByDeletedAtIsNullOrderByPriorityAsc();
     }
 
     @Transactional(readOnly = true)
     public Optional<BoardEntity> findById(UUID boardId) {
-        WorkspaceContextHolder.require();
-        return boardRepo.findById(boardId).filter(b -> b.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        return boardRepo.findById(boardId)
+                .filter(b -> b.getDeletedAt() == null)
+                .filter(b -> ctx.ownsPersonal(b.getWorkspaceId(), b.getUserId()));
     }
 
     @Transactional
@@ -84,9 +86,10 @@ public class BoardService {
             String iconName,
             String iconColor,
             Map<String, Object> settings) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         BoardEntity board = boardRepo.findById(boardId)
                 .filter(b -> b.getDeletedAt() == null)
+                .filter(b -> ctx.ownsPersonal(b.getWorkspaceId(), b.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("board not found: " + boardId));
 
         if (name != null && !name.isBlank()) board.setName(name);
@@ -103,7 +106,7 @@ public class BoardService {
      */
     @Transactional
     public List<BoardEntity> reorder(List<UUID> orderedBoardIds) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         if (orderedBoardIds == null || orderedBoardIds.isEmpty()) {
             return List.of();
         }
@@ -113,6 +116,7 @@ public class BoardService {
             int newPriority = (i + 1) * PRIORITY_STEP;
             boardRepo.findById(boardId)
                     .filter(b -> b.getDeletedAt() == null)
+                    .filter(b -> ctx.ownsPersonal(b.getWorkspaceId(), b.getUserId()))
                     .ifPresent(b -> {
                         b.setPriority(newPriority);
                         result.add(boardRepo.save(b));
@@ -123,9 +127,10 @@ public class BoardService {
 
     @Transactional
     public void softDelete(UUID boardId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         boardRepo.findById(boardId)
                 .filter(b -> b.getDeletedAt() == null)
+                .filter(b -> ctx.ownsPersonal(b.getWorkspaceId(), b.getUserId()))
                 .ifPresent(board -> {
                     board.setDeletedAt(OffsetDateTime.now());
                     boardRepo.save(board);

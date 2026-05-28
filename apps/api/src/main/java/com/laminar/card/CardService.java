@@ -89,27 +89,30 @@ public class CardService {
 
     @Transactional(readOnly = true)
     public List<CardEntity> listByBoard(UUID boardId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return cardRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
     }
 
     @Transactional(readOnly = true)
     public List<CardEntity> listByBoardAndDateRange(UUID boardId, LocalDate from, LocalDate to) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return cardRepo.findByBoardIdAndStartDateBetweenAndDeletedAtIsNull(boardId, from, to);
     }
 
     @Transactional(readOnly = true)
     public Optional<CardEntity> findById(UUID cardId) {
-        WorkspaceContextHolder.require();
-        return cardRepo.findById(cardId).filter(c -> c.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        return cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()));
     }
 
     @Transactional
     public CardEntity update(UUID cardId, UpdateInput input) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         CardEntity card = cardRepo.findById(cardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
 
         if (input.title() != null && !input.title().isBlank()) card.setTitle(input.title());
@@ -134,7 +137,7 @@ public class CardService {
      */
     @Transactional
     public List<CardEntity> reorder(UUID boardId, List<UUID> orderedCardIds) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         if (orderedCardIds == null || orderedCardIds.isEmpty()) {
             return List.of();
         }
@@ -144,6 +147,7 @@ public class CardService {
             int newPriority = (i + 1) * PRIORITY_STEP;
             cardRepo.findById(cardId)
                     .filter(c -> c.getDeletedAt() == null)
+                    .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                     .filter(c -> boardId == null || boardId.equals(c.getBoardId()))
                     .ifPresent(c -> {
                         c.setPriority(newPriority);
@@ -155,9 +159,10 @@ public class CardService {
 
     @Transactional
     public void archive(UUID cardId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         cardRepo.findById(cardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .filter(c -> c.getArchivedAt() == null)
                 .ifPresent(card -> {
                     card.setArchivedAt(OffsetDateTime.now());
@@ -167,9 +172,10 @@ public class CardService {
 
     @Transactional
     public void softDelete(UUID cardId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         cardRepo.findById(cardId)
                 .filter(c -> c.getDeletedAt() == null)
+                .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
                 .ifPresent(card -> {
                     card.setDeletedAt(OffsetDateTime.now());
                     cardRepo.save(card);

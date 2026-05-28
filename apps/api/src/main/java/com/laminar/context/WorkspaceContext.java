@@ -53,4 +53,24 @@ public record WorkspaceContext(
     public boolean canWrite() {
         return userRole == WorkspaceRole.OWNER || userRole == WorkspaceRole.MEMBER;
     }
+
+    /**
+     * Personal-First 엔티티(workspace_id + user_id) 소유권 검증.
+     * Hibernate @Filter는 findById(PK 로드)에 적용되지 않으므로 단건 접근 시 명시 호출.
+     * 컨텍스트가 PERSONAL이고 두 ID 모두 일치할 때만 true (fail-closed).
+     */
+    public boolean ownsPersonal(UUID entityWorkspaceId, UUID entityUserId) {
+        return workspaceId != null
+                && userId != null
+                && workspaceId.equals(entityWorkspaceId)
+                && userId.equals(entityUserId);
+    }
+
+    /**
+     * Workspace-Shared 엔티티(workspace_id) 소유권 검증.
+     * 컨텍스트 workspace와 엔티티 workspace 일치 시 true (fail-closed).
+     */
+    public boolean ownsShared(UUID entityWorkspaceId) {
+        return workspaceId != null && workspaceId.equals(entityWorkspaceId);
+    }
 }

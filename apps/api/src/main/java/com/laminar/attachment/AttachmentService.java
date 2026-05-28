@@ -70,9 +70,10 @@ public class AttachmentService {
      */
     @Transactional
     public AttachmentEntity finalizeUpload(UUID attachmentId, Long actualSizeBytes, String actualSha256) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         AttachmentEntity attachment = attachmentRepo.findById(attachmentId)
                 .filter(a -> a.getDeletedAt() == null)
+                .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("attachment not found"));
         if (actualSizeBytes != null && actualSizeBytes > MAX_SIZE_BYTES) {
             throw new IllegalArgumentException("uploaded size exceeds " + MAX_SIZE_BYTES);
@@ -85,21 +86,24 @@ public class AttachmentService {
 
     @Transactional(readOnly = true)
     public Optional<AttachmentEntity> findById(UUID attachmentId) {
-        WorkspaceContextHolder.require();
-        return attachmentRepo.findById(attachmentId).filter(a -> a.getDeletedAt() == null);
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        return attachmentRepo.findById(attachmentId)
+                .filter(a -> a.getDeletedAt() == null)
+                .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()));
     }
 
     @Transactional(readOnly = true)
     public List<AttachmentEntity> listByParent(AttachmentParentType parentType, UUID parentId) {
-        WorkspaceContextHolder.require();
+        WorkspaceContextHolder.requirePersonal();
         return attachmentRepo.findByParentTypeAndParentIdAndDeletedAtIsNull(parentType, parentId);
     }
 
     @Transactional
     public void softDelete(UUID attachmentId) {
-        requirePersonalWritable();
+        WorkspaceContext ctx = requirePersonalWritable();
         attachmentRepo.findById(attachmentId)
                 .filter(a -> a.getDeletedAt() == null)
+                .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()))
                 .ifPresent(a -> {
                     a.setDeletedAt(OffsetDateTime.now());
                     attachmentRepo.save(a);

@@ -59,7 +59,16 @@ public class R2StorageService {
     }
 
     public String createDownloadUrl(String storageKey) {
-        WorkspaceContextHolder.require();
+        WorkspaceContext ctx = WorkspaceContextHolder.require();
+        if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+            throw new IllegalStateException("PERSONAL scope required");
+        }
+        // M-5 방어심화: 호출자 소유 prefix의 키만 presign 허용 (엔티티 검증과 무관하게 fail-closed).
+        String requiredPrefix = String.format(
+                "workspaces/%s/users/%s/", ctx.workspaceId(), ctx.userId());
+        if (storageKey == null || !storageKey.startsWith(requiredPrefix)) {
+            throw new IllegalStateException("storage key not owned by current user");
+        }
         GetObjectRequest getRequest = GetObjectRequest.builder()
                 .bucket(bucket)
                 .key(storageKey)

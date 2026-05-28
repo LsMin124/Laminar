@@ -17,4 +17,6 @@ public interface BoardRepository extends JpaRepository<BoardEntity, UUID> {
     List<BoardEntity> findByDeletedAtIsNullOrderByPriorityAsc();
 
     Optional<BoardEntity> findBySlugAndDeletedAtIsNull(String slug);
+
+    Optional<BoardEntity> findFirstByDeletedAtIsNullOrderByPriorityDesc();
 }

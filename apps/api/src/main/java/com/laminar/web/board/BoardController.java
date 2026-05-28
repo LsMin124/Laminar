@@ -77,6 +77,14 @@ public class BoardController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/reorder")
+    public ResponseEntity<List<BoardDtos.BoardResponse>> reorder(
+            @Valid @RequestBody BoardDtos.ReorderRequest request) {
+        return ResponseEntity.ok(boardService.reorder(request.orderedIds()).stream()
+                .map(this::toResponse)
+                .toList());
+    }
+
     private BoardDtos.BoardResponse toResponse(BoardEntity board) {
         return new BoardDtos.BoardResponse(
                 board.getId(),

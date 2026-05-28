@@ -97,6 +97,30 @@ public class BoardService {
         return boardRepo.save(board);
     }
 
+    /**
+     * DnD reorder — 클라이언트가 보낸 ID 순서대로 priority = (index+1) * 100 배치 UPDATE.
+     * 누락된 보드는 priority 보존 (clientside가 전체 목록 전송 안 한 경우 안전).
+     */
+    @Transactional
+    public List<BoardEntity> reorder(List<UUID> orderedBoardIds) {
+        requirePersonalWritable();
+        if (orderedBoardIds == null || orderedBoardIds.isEmpty()) {
+            return List.of();
+        }
+        List<BoardEntity> result = new java.util.ArrayList<>(orderedBoardIds.size());
+        for (int i = 0; i < orderedBoardIds.size(); i++) {
+            UUID boardId = orderedBoardIds.get(i);
+            int newPriority = (i + 1) * PRIORITY_STEP;
+            boardRepo.findById(boardId)
+                    .filter(b -> b.getDeletedAt() == null)
+                    .ifPresent(b -> {
+                        b.setPriority(newPriority);
+                        result.add(boardRepo.save(b));
+                    });
+        }
+        return result;
+    }
+
     @Transactional
     public void softDelete(UUID boardId) {
         requirePersonalWritable();

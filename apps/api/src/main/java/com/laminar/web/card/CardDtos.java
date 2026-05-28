@@ -3,11 +3,13 @@ package com.laminar.web.card;
 import com.laminar.card.CardImportance;
 import com.laminar.card.CardOrigin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,6 +49,11 @@ public final class CardDtos {
             @Size(max = 500) String rrule,
             Boolean completed,
             Map<String, Object> attrs
+    ) {
+    }
+
+    public record ReorderRequest(
+            @NotEmpty List<UUID> orderedIds
     ) {
     }
 

@@ -100,6 +100,15 @@ public class CardController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/boards/{boardId}/cards/reorder")
+    public ResponseEntity<List<CardDtos.CardResponse>> reorder(
+            @PathVariable UUID boardId,
+            @Valid @RequestBody CardDtos.ReorderRequest request) {
+        return ResponseEntity.ok(cardService.reorder(boardId, request.orderedIds()).stream()
+                .map(this::toResponse)
+                .toList());
+    }
+
     private CardDtos.CardResponse toResponse(CardEntity c) {
         return new CardDtos.CardResponse(
                 c.getId(),

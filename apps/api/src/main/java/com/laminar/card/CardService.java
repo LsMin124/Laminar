@@ -113,6 +113,30 @@ public class CardService {
         return cardRepo.save(card);
     }
 
+    /**
+     * DnD reorder — boardId 일치 검증 + priority = (index+1) * 100 배치.
+     */
+    @Transactional
+    public List<CardEntity> reorder(UUID boardId, List<UUID> orderedCardIds) {
+        requirePersonalWritable();
+        if (orderedCardIds == null || orderedCardIds.isEmpty()) {
+            return List.of();
+        }
+        List<CardEntity> result = new java.util.ArrayList<>(orderedCardIds.size());
+        for (int i = 0; i < orderedCardIds.size(); i++) {
+            UUID cardId = orderedCardIds.get(i);
+            int newPriority = (i + 1) * PRIORITY_STEP;
+            cardRepo.findById(cardId)
+                    .filter(c -> c.getDeletedAt() == null)
+                    .filter(c -> boardId == null || boardId.equals(c.getBoardId()))
+                    .ifPresent(c -> {
+                        c.setPriority(newPriority);
+                        result.add(cardRepo.save(c));
+                    });
+        }
+        return result;
+    }
+
     @Transactional
     public void archive(UUID cardId) {
         requirePersonalWritable();

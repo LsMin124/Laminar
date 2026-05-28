@@ -1,0 +1,34 @@
+package com.laminar.web.datememo;
+
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+public final class DateMemoDtos {
+
+    private DateMemoDtos() {
+    }
+
+    public record UpsertRequest(
+            @NotNull UUID boardId,
+            @NotNull LocalDate date,
+            @Size(max = 10000) String bodyMd,
+            Map<String, Object> attrs
+    ) {
+    }
+
+    public record DateMemoResponse(
+            UUID boardId,
+            UUID userId,
+            LocalDate date,
+            String bodyMd,
+            Map<String, Object> attrs,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt
+    ) {
+    }
+}

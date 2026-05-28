@@ -40,4 +40,17 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID> {
             @Param("boardId") UUID boardId,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
+
+    /**
+     * RRULE 마스터 카드 — origin=MANUAL이면서 rrule 있는 활성 카드.
+     * SYSTEM scope에서 호출 시 모든 user의 마스터 조회 (cron worker용).
+     */
+    @Query("""
+            SELECT c FROM CardEntity c
+            WHERE c.deletedAt IS NULL
+              AND c.rrule IS NOT NULL
+              AND c.origin = com.laminar.card.CardOrigin.MANUAL
+              AND c.startDate IS NOT NULL
+            """)
+    List<CardEntity> findActiveRruleMasters();
 }

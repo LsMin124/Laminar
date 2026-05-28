@@ -24,9 +24,16 @@ public class GroupService {
     private static final int PRIORITY_STEP = 100;
 
     private final GroupRepository groupRepo;
+    private final GroupMemberRepository memberRepo;
+    private final com.laminar.card.CardRepository cardRepo;
 
-    public GroupService(GroupRepository groupRepo) {
+    public GroupService(
+            GroupRepository groupRepo,
+            GroupMemberRepository memberRepo,
+            com.laminar.card.CardRepository cardRepo) {
         this.groupRepo = groupRepo;
+        this.memberRepo = memberRepo;
+        this.cardRepo = cardRepo;
     }
 
     @Transactional
@@ -103,6 +110,58 @@ public class GroupService {
                     group.setDeletedAt(OffsetDateTime.now());
                     groupRepo.save(group);
                 });
+    }
+
+    /**
+     * 그룹 ↔ 카드 멤버십 추가. group/card는 현재 user의 자원이어야 (Personal-First 격리 자동).
+     */
+    @Transactional
+    public GroupMemberEntity addMember(UUID groupId, UUID cardId) {
+        WorkspaceContext ctx = requirePersonalWritable();
+        groupRepo.findById(groupId)
+                .filter(g -> g.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
+        cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+
+        GroupMemberEntity member = new GroupMemberEntity();
+        member.setId(new GroupMemberId(groupId, cardId));
+        member.setAddedBy(ctx.userId());
+        return memberRepo.save(member);
+    }
+
+    @Transactional
+    public void removeMember(UUID groupId, UUID cardId) {
+        requirePersonalWritable();
+        // group/card 격리 검증 후 삭제 — 다른 user 그룹은 findById가 빈 Optional 반환
+        groupRepo.findById(groupId)
+                .filter(g -> g.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
+        memberRepo.findById(new GroupMemberId(groupId, cardId))
+                .ifPresent(memberRepo::delete);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> listCardIdsInGroup(UUID groupId) {
+        WorkspaceContextHolder.require();
+        groupRepo.findById(groupId)
+                .filter(g -> g.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
+        return memberRepo.findByIdGroupId(groupId).stream()
+                .map(m -> m.getId().getCardId())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> listGroupIdsForCard(UUID cardId) {
+        WorkspaceContextHolder.require();
+        cardRepo.findById(cardId)
+                .filter(c -> c.getDeletedAt() == null)
+                .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+        return memberRepo.findByIdCardId(cardId).stream()
+                .map(m -> m.getId().getGroupId())
+                .toList();
     }
 
     private WorkspaceContext requirePersonalWritable() {

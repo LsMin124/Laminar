@@ -71,6 +71,28 @@ public class GroupController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/groups/{groupId}/cards/{cardId}")
+    public ResponseEntity<Void> addMember(@PathVariable UUID groupId, @PathVariable UUID cardId) {
+        groupService.addMember(groupId, cardId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/groups/{groupId}/cards/{cardId}")
+    public ResponseEntity<Void> removeMember(@PathVariable UUID groupId, @PathVariable UUID cardId) {
+        groupService.removeMember(groupId, cardId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/groups/{groupId}/cards")
+    public ResponseEntity<List<UUID>> listCardsInGroup(@PathVariable UUID groupId) {
+        return ResponseEntity.ok(groupService.listCardIdsInGroup(groupId));
+    }
+
+    @GetMapping("/cards/{cardId}/groups")
+    public ResponseEntity<List<UUID>> listGroupsForCard(@PathVariable UUID cardId) {
+        return ResponseEntity.ok(groupService.listGroupIdsForCard(cardId));
+    }
+
     private GroupDtos.GroupResponse toResponse(GroupEntity g) {
         return new GroupDtos.GroupResponse(
                 g.getId(),

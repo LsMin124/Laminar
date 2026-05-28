@@ -57,6 +57,12 @@ public final class CardDtos {
     ) {
     }
 
+    public record RenderedBodyResponse(
+            UUID cardId,
+            String html
+    ) {
+    }
+
     public record CardResponse(
             UUID id,
             UUID workspaceId,

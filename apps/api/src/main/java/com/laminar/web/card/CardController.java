@@ -2,6 +2,7 @@ package com.laminar.web.card;
 
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardService;
+import com.laminar.markdown.MarkdownService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +25,11 @@ import java.util.UUID;
 public class CardController {
 
     private final CardService cardService;
+    private final MarkdownService markdownService;
 
-    public CardController(CardService cardService) {
+    public CardController(CardService cardService, MarkdownService markdownService) {
         this.cardService = cardService;
+        this.markdownService = markdownService;
     }
 
     @PostMapping("/cards")
@@ -107,6 +110,15 @@ public class CardController {
         return ResponseEntity.ok(cardService.reorder(boardId, request.orderedIds()).stream()
                 .map(this::toResponse)
                 .toList());
+    }
+
+    @GetMapping("/cards/{cardId}/rendered")
+    public ResponseEntity<CardDtos.RenderedBodyResponse> rendered(@PathVariable UUID cardId) {
+        return cardService.findById(cardId)
+                .map(c -> new CardDtos.RenderedBodyResponse(
+                        cardId, markdownService.render(c.getBodyMd())))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private CardDtos.CardResponse toResponse(CardEntity c) {

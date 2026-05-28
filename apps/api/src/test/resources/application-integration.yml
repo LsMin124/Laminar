@@ -1,0 +1,30 @@
+# Testcontainers 통합 테스트 프로파일.
+# DataSource는 @ServiceConnection이 PostgreSQLContainer로부터 자동 주입.
+# Flyway는 V1~V12 마이그레이션을 컨테이너에 자동 적용.
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.springframework.test: INFO
+
+app:
+  cookie:
+    secure: false

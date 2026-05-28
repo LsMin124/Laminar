@@ -30,6 +30,7 @@ val bucket4jVersion = "8.10.1" // groupId 주의: com.bucket4j (구 io.github.bu
 val shedlockVersion = "7.7.0" // 5.x→7.x major bump (코드 없으니 마이그레이션 부담 없음)
 val sentryVersion = "8.41.0"
 val archunitVersion = "1.4.2"
+val testcontainersVersion = "1.21.0"
 
 dependencies {
     // ── Spring Boot starters (Initializr) ──
@@ -77,8 +78,12 @@ dependencies {
 
     // ── 테스트 ──
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
+    testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:junit-jupiter")
     testCompileOnly("org.projectlombok:lombok")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testAnnotationProcessor("org.projectlombok:lombok")

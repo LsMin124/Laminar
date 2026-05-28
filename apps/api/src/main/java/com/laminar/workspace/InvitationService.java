@@ -102,6 +102,15 @@ public class InvitationService {
         });
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<WorkspaceInvitationEntity> listPendingForCurrentWorkspace() {
+        UUID workspaceId = WorkspaceContextHolder.require().workspaceId();
+        if (workspaceId == null) {
+            throw new IllegalStateException("workspace context required");
+        }
+        return invitationRepo.findByWorkspaceIdAndAcceptedAtIsNullAndRevokedAtIsNull(workspaceId);
+    }
+
     private void enqueueInvitationEmail(String recipientEmail, String rawToken) {
         EmailOutboxEntity email = new EmailOutboxEntity();
         email.setToEmail(recipientEmail);

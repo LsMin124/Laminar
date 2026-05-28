@@ -1,0 +1,98 @@
+.board-graph {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.board-graph-empty {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px dashed var(--rule);
+  border-radius: 12px;
+}
+
+.board-graph-svg {
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.board-graph-svg .edge {
+  stroke: #4b5563;
+  stroke-width: 1.5;
+  opacity: 0.65;
+}
+
+.board-graph-svg .edge-card {
+  stroke: #6b7280;
+}
+
+.board-graph-svg .edge-group {
+  stroke: #9ca3af;
+  stroke-dasharray: 4 4;
+}
+
+.board-graph-svg .node {
+  cursor: default;
+}
+
+.board-graph-svg .node-card {
+  cursor: pointer;
+}
+
+.board-graph-svg .node-card:hover circle {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.board-graph-svg .node-label {
+  fill: var(--text);
+  font-size: 10px;
+  font-family: -apple-system, sans-serif;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.board-graph-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+
+.board-graph-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.board-graph-legend-spacer {
+  margin-left: auto;
+}
+
+.dot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+.dot-group {
+  background: #9ca3af;
+}
+
+.dot-card {
+  background: #6366f1;
+}

@@ -90,3 +90,31 @@
 .board-detail-create:hover {
   background: var(--accent-hover);
 }
+
+.board-detail-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.board-detail-tab {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: -1px;
+}
+
+.board-detail-tab:hover {
+  color: var(--text);
+}
+
+.board-detail-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}

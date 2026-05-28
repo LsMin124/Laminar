@@ -8,11 +8,15 @@ import type {
   AttachmentParentType,
   AttachmentResponse,
   AuthResponse,
+  BoardGraphResponse,
   BoardResponse,
   CalendarViewResponse,
   CardResponse,
+  MemberResponse,
+  PendingInvitationResponse,
   RenderedBodyResponse,
   WorkspaceResponse,
+  WorkspaceRole,
 } from "./types";
 
 export interface SignupInput {
@@ -270,6 +274,82 @@ export function useDeleteAttachment(
       qc.invalidateQueries({
         queryKey: attachmentKeys.byParent(parentType, parentId),
       });
+    },
+  });
+}
+
+export function useBoardGraph(boardId: string | null) {
+  return useQuery<BoardGraphResponse>({
+    queryKey: boardId ? ["boards", boardId, "graph"] : ["boards", "noop"],
+    queryFn: () =>
+      api.get<BoardGraphResponse>(`/api/boards/${boardId}/graph`),
+    enabled: Boolean(boardId),
+  });
+}
+
+export const memberKeys = {
+  list: ["members"] as const,
+  pending: ["invitations", "pending"] as const,
+};
+
+export function useMembers() {
+  return useQuery<MemberResponse[]>({
+    queryKey: memberKeys.list,
+    queryFn: () =>
+      api.get<MemberResponse[]>("/api/workspaces/current/members"),
+  });
+}
+
+export function useUpdateMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      role,
+    }: {
+      userId: string;
+      role: WorkspaceRole;
+    }) =>
+      api.patch<MemberResponse>(
+        `/api/workspaces/current/members/${userId}/role`,
+        { role },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: memberKeys.list });
+    },
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.delete<void>(`/api/workspaces/current/members/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: memberKeys.list });
+    },
+  });
+}
+
+export function usePendingInvitations() {
+  return useQuery<PendingInvitationResponse[]>({
+    queryKey: memberKeys.pending,
+    queryFn: () =>
+      api.get<PendingInvitationResponse[]>(
+        "/api/workspaces/current/invitations",
+      ),
+  });
+}
+
+export function useRevokeInvitation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (invitationId: string) =>
+      api.delete<void>(
+        `/api/workspaces/current/invitations/${invitationId}`,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: memberKeys.pending });
     },
   });
 }

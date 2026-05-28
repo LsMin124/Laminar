@@ -38,9 +38,18 @@ export function BoardsPage() {
           <h1>{workspace.data?.name ?? "워크스페이스"}</h1>
           <p className="workspace-slug">/{workspace.data?.slug}</p>
         </div>
-        <button type="button" onClick={() => logout.mutate()} className="logout-btn">
-          로그아웃
-        </button>
+        <div className="boards-header-actions">
+          <button
+            type="button"
+            onClick={() => navigate("/members")}
+            className="logout-btn"
+          >
+            멤버
+          </button>
+          <button type="button" onClick={() => logout.mutate()} className="logout-btn">
+            로그아웃
+          </button>
+        </div>
       </header>
 
       <section className="boards-section">

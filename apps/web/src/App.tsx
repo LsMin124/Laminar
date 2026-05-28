@@ -8,6 +8,7 @@ import { SignupPage } from "./pages/SignupPage";
 import { BoardsPage } from "./pages/BoardsPage";
 import { BoardDetailPage } from "./pages/BoardDetailPage";
 import { CardDetailPage } from "./pages/CardDetailPage";
+import { MembersPage } from "./pages/MembersPage";
 import type { WorkspaceResponse } from "./lib/types";
 import "./App.css";
 
@@ -61,6 +62,7 @@ function Shell() {
         path="/boards/:boardId/cards/:cardId"
         element={<CardDetailPage />}
       />
+      <Route path="/members" element={<MembersPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

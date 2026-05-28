@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { addMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { MonthGrid } from "../components/calendar/MonthGrid";
+import { BoardGraph } from "../components/graph/BoardGraph";
 import {
   CardForm,
   emptyCardForm,
@@ -11,20 +12,25 @@ import { CardDialog } from "../components/card/CardDialog";
 import {
   useBoard,
   useBoardCalendar,
+  useBoardGraph,
   useCreateCard,
 } from "../lib/queries";
 import "./BoardDetailPage.css";
+
+type ViewMode = "calendar" | "graph";
 
 export function BoardDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
   const boardId = params.boardId ?? "";
   const [anchor, setAnchor] = useState<Date>(() => startOfMonth(new Date()));
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [createInitialDate, setCreateInitialDate] = useState<string | null>(
     null,
   );
 
   const board = useBoard(boardId);
+  const graph = useBoardGraph(viewMode === "graph" ? boardId : null);
   const range = useMemo(() => {
     const from = startOfMonth(anchor);
     const to = endOfMonth(anchor);
@@ -77,41 +83,77 @@ export function BoardDetailPage() {
           + 카드 추가
         </button>
       </header>
-      <div className="board-detail-toolbar">
+      <div className="board-detail-tabs">
         <button
           type="button"
-          onClick={() => setAnchor((d) => addMonths(d, -1))}
+          className={`board-detail-tab${viewMode === "calendar" ? " active" : ""}`}
+          onClick={() => setViewMode("calendar")}
         >
-          ‹
-        </button>
-        <h2 className="board-detail-month">{format(anchor, "yyyy년 M월")}</h2>
-        <button
-          type="button"
-          onClick={() => setAnchor((d) => addMonths(d, 1))}
-        >
-          ›
+          캘린더
         </button>
         <button
           type="button"
-          className="board-detail-today"
-          onClick={() => setAnchor(startOfMonth(new Date()))}
+          className={`board-detail-tab${viewMode === "graph" ? " active" : ""}`}
+          onClick={() => setViewMode("graph")}
         >
-          오늘
+          그래프
         </button>
       </div>
-      {calendar.isLoading ? (
-        <p className="loading">캘린더 불러오는 중...</p>
-      ) : calendar.error ? (
-        <p className="auth-error">
-          캘린더 로드 실패: {String(calendar.error)}
-        </p>
+      {viewMode === "calendar" ? (
+        <>
+          <div className="board-detail-toolbar">
+            <button
+              type="button"
+              onClick={() => setAnchor((d) => addMonths(d, -1))}
+            >
+              ‹
+            </button>
+            <h2 className="board-detail-month">
+              {format(anchor, "yyyy년 M월")}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setAnchor((d) => addMonths(d, 1))}
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              className="board-detail-today"
+              onClick={() => setAnchor(startOfMonth(new Date()))}
+            >
+              오늘
+            </button>
+          </div>
+          {calendar.isLoading ? (
+            <p className="loading">캘린더 불러오는 중...</p>
+          ) : calendar.error ? (
+            <p className="auth-error">
+              캘린더 로드 실패: {String(calendar.error)}
+            </p>
+          ) : (
+            <MonthGrid
+              anchor={anchor}
+              cards={calendar.data?.cards ?? []}
+              dateMemos={calendar.data?.dateMemos ?? []}
+              onCardClick={(c) => navigate(`/boards/${boardId}/cards/${c.id}`)}
+              onCellClick={(iso) => setCreateInitialDate(iso)}
+            />
+          )}
+        </>
+      ) : graph.isLoading ? (
+        <p className="loading">그래프 불러오는 중...</p>
+      ) : graph.error ? (
+        <p className="auth-error">그래프 로드 실패: {String(graph.error)}</p>
       ) : (
-        <MonthGrid
-          anchor={anchor}
-          cards={calendar.data?.cards ?? []}
-          dateMemos={calendar.data?.dateMemos ?? []}
-          onCardClick={(c) => navigate(`/boards/${boardId}/cards/${c.id}`)}
-          onCellClick={(iso) => setCreateInitialDate(iso)}
+        <BoardGraph
+          cards={graph.data?.cards ?? []}
+          groups={graph.data?.groups ?? []}
+          cardRelations={graph.data?.cardRelations ?? []}
+          groupRelations={graph.data?.groupRelations ?? []}
+          onCardClick={(cardId) =>
+            navigate(`/boards/${boardId}/cards/${cardId}`)
+          }
         />
       )}
       <CardDialog

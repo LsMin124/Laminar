@@ -131,3 +131,74 @@ export interface PresignedUrlResponse {
   storageKey: string | null;
   expiresInSeconds: number;
 }
+
+export type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
+
+export interface MemberResponse {
+  workspaceId: Uuid;
+  userId: Uuid;
+  email: string | null;
+  displayName: string | null;
+  role: WorkspaceRole;
+  joinedAt: IsoDateTime;
+}
+
+export interface PendingInvitationResponse {
+  id: Uuid;
+  email: string;
+  role: WorkspaceRole;
+  invitedBy: Uuid;
+  expiresAt: IsoDateTime;
+  createdAt: IsoDateTime;
+}
+
+export interface GroupResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  name: string;
+  color: string | null;
+  priority: number;
+  attrs: Record<string, unknown>;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface CardRelationResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  fromCardId: Uuid;
+  toCardId: Uuid;
+  relationKind: string;
+  summary: string | null;
+  bodyMd: string | null;
+  attrs: Record<string, unknown>;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface GroupRelationResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  fromGroupId: Uuid;
+  toGroupId: Uuid;
+  relationKind: string;
+  summary: string | null;
+  bodyMd: string | null;
+  attrs: Record<string, unknown>;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface BoardGraphResponse {
+  boardId: Uuid;
+  cards: CardResponse[];
+  groups: GroupResponse[];
+  cardRelations: CardRelationResponse[];
+  groupRelations: GroupRelationResponse[];
+}

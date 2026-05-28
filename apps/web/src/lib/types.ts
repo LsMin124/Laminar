@@ -301,3 +301,46 @@ export interface EquipmentReservationResponse {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 }
+
+export interface AdminBoardSummaryResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  name: string;
+  slug: string;
+  priority: number;
+}
+
+export interface AdminCardMetadataResponse {
+  id?: Uuid;
+  cardId?: Uuid;
+  title?: string;
+  userId?: Uuid;
+  boardId?: Uuid;
+  importance?: string;
+  startDate?: IsoDate | null;
+  endDate?: IsoDate | null;
+  completed?: boolean;
+  createdAt?: IsoDateTime;
+  updatedAt?: IsoDateTime;
+  [key: string]: unknown;
+}
+
+export interface AdminCardBodyRevealResponse {
+  cardId: Uuid;
+  userId: Uuid;
+  title: string;
+  bodyMd: string | null;
+}
+
+export interface AuditLogResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  actorUserId: Uuid | null;
+  action: string;
+  targetType: string;
+  targetId: Uuid | null;
+  summary: string | null;
+  payload: Record<string, unknown>;
+  occurredAt: IsoDateTime;
+}

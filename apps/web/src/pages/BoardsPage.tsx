@@ -48,6 +48,13 @@ export function BoardsPage() {
           </button>
           <button
             type="button"
+            onClick={() => navigate("/admin")}
+            className="logout-btn"
+          >
+            운영
+          </button>
+          <button
+            type="button"
             onClick={() => navigate("/members")}
             className="logout-btn"
           >

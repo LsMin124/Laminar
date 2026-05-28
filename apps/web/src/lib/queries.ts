@@ -5,8 +5,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, setCurrentWorkspaceId } from "./api";
 import type {
+  AdminBoardSummaryResponse,
+  AdminCardBodyRevealResponse,
+  AdminCardMetadataResponse,
   AttachmentParentType,
   AttachmentResponse,
+  AuditLogResponse,
   AuthResponse,
   BoardGraphResponse,
   BoardResponse,
@@ -961,5 +965,51 @@ export function useCancelReservation(equipmentId: string) {
       qc.invalidateQueries({ queryKey: ["equipment", equipmentId] });
       qc.invalidateQueries({ queryKey: equipmentKeys.myReservations });
     },
+  });
+}
+
+export const adminKeys = {
+  allBoards: ["admin", "boards"] as const,
+  boardCards: (boardId: string) =>
+    ["admin", "boards", boardId, "cards"] as const,
+  auditLogs: ["audit-logs"] as const,
+};
+
+export function useAdminAllBoards() {
+  return useQuery<AdminBoardSummaryResponse[]>({
+    queryKey: adminKeys.allBoards,
+    queryFn: () =>
+      api.get<AdminBoardSummaryResponse[]>("/api/admin/boards"),
+  });
+}
+
+export function useAdminBoardCards(boardId: string | null) {
+  return useQuery<AdminCardMetadataResponse[]>({
+    queryKey: boardId
+      ? adminKeys.boardCards(boardId)
+      : ["admin", "boards", "noop"],
+    queryFn: () =>
+      api.get<AdminCardMetadataResponse[]>(
+        `/api/admin/boards/${boardId}/cards`,
+      ),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useRevealCardBody() {
+  return useMutation({
+    mutationFn: ({ cardId, reason }: { cardId: string; reason: string }) =>
+      api.post<AdminCardBodyRevealResponse>(
+        `/api/admin/cards/${cardId}/reveal-body`,
+        { reason },
+      ),
+  });
+}
+
+export function useAuditLogs(limit = 100) {
+  return useQuery<AuditLogResponse[]>({
+    queryKey: [...adminKeys.auditLogs, limit] as const,
+    queryFn: () =>
+      api.get<AuditLogResponse[]>(`/api/audit-logs?limit=${limit}`),
   });
 }

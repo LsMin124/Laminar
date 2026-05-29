@@ -65,6 +65,10 @@ public class BoardEntity {
     @Column(name = "priority", nullable = false)
     private int priority;
 
+    @jakarta.persistence.Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

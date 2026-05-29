@@ -3,6 +3,7 @@ package com.laminar.security;
 import com.laminar.system.SessionSystemRepository;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.user.SessionEntity;
+import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -50,6 +51,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             FilterChain chain) throws ServletException, IOException {
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             extractToken(request)
+                    .map(SessionService::hashToken)
                     .flatMap(sessionRepo::findBySessionToken)
                     .filter(s -> s.getExpiresAt().isAfter(OffsetDateTime.now()))
                     .ifPresent(this::authenticate);

@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -25,6 +26,20 @@ import java.util.UUID;
 public class R2StorageService {
 
     public static final int PRESIGN_TTL_SECONDS = 300;
+
+    /**
+     * 업로드 허용 MIME allowlist (M-4). 스크립트 실행형(html/svg/js)은 제외 — 저장형 XSS 차단.
+     * 미상(octet-stream)은 허용하되 다운로드 시 Content-Disposition: attachment로 강제 다운로드.
+     */
+    private static final Set<String> ALLOWED_MIME = Set.of(
+            "image/png", "image/jpeg", "image/gif", "image/webp",
+            "application/pdf", "text/plain", "text/csv", "text/markdown",
+            "application/json", "application/zip",
+            "application/msword", "application/vnd.ms-excel", "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/octet-stream");
 
     private final S3Presigner presigner;
     private final String bucket;
@@ -41,6 +56,12 @@ public class R2StorageService {
         if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
             throw new IllegalStateException("PERSONAL scope required");
         }
+        String contentType = (mime == null || mime.isBlank())
+                ? "application/octet-stream"
+                : mime.trim().toLowerCase();
+        if (!ALLOWED_MIME.contains(contentType)) {
+            throw new IllegalArgumentException("file type not allowed: " + contentType);
+        }
         String storageKey = String.format(
                 "workspaces/%s/users/%s/attachments/%s/%s",
                 ctx.workspaceId(), ctx.userId(), UUID.randomUUID(), safeFilename(filename));
@@ -48,7 +69,7 @@ public class R2StorageService {
         PutObjectRequest putRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(storageKey)
-                .contentType(mime == null || mime.isBlank() ? "application/octet-stream" : mime)
+                .contentType(contentType)
                 .build();
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofSeconds(PRESIGN_TTL_SECONDS))
@@ -72,6 +93,8 @@ public class R2StorageService {
         GetObjectRequest getRequest = GetObjectRequest.builder()
                 .bucket(bucket)
                 .key(storageKey)
+                // M-4: 인라인 렌더 대신 강제 다운로드 — 저장형 콘텐츠(html/svg) 실행 방지
+                .responseContentDisposition("attachment")
                 .build();
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofSeconds(PRESIGN_TTL_SECONDS))

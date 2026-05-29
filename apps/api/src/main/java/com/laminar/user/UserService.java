@@ -20,9 +20,13 @@ public class UserService {
     private final UserSystemRepository userRepo;
     private final PasswordEncoder passwordEncoder;
 
+    /** 미존재 사용자 로그인 시 동일한 BCrypt 비용을 치르기 위한 디코이 해시 (M-3 타이밍 enumeration 차단). */
+    private final String timingDecoyHash;
+
     public UserService(UserSystemRepository userRepo, PasswordEncoder passwordEncoder) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
+        this.timingDecoyHash = passwordEncoder.encode("laminar-timing-decoy");
     }
 
     /**
@@ -48,9 +52,17 @@ public class UserService {
     @Transactional(readOnly = true)
     public Optional<UserEntity> verifyCredentials(String email, String rawPassword) {
         String normalizedEmail = email.trim().toLowerCase();
-        return userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail)
-                .filter(u -> u.getPasswordHash() != null)
-                .filter(u -> passwordEncoder.matches(rawPassword, u.getPasswordHash()));
+        Optional<UserEntity> maybeUser = userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail);
+        if (maybeUser.isEmpty() || maybeUser.get().getPasswordHash() == null) {
+            // 미존재/해시없음도 동일한 BCrypt 비교 비용을 치러 타이밍 차이 제거 (M-3).
+            passwordEncoder.matches(rawPassword, timingDecoyHash);
+            return Optional.empty();
+        }
+        UserEntity user = maybeUser.get();
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            return Optional.empty();
+        }
+        return Optional.of(user);
     }
 
     @Transactional(readOnly = true)

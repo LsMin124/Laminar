@@ -58,6 +58,10 @@ public class PerpetualNoteEntity {
     @Column(name = "attrs", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> attrs = new HashMap<>();
 
+    @jakarta.persistence.Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

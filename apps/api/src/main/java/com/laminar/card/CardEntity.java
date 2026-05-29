@@ -90,6 +90,10 @@ public class CardEntity {
     @Column(name = "archived_at")
     private OffsetDateTime archivedAt;
 
+    @jakarta.persistence.Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

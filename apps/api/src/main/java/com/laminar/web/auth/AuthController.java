@@ -2,7 +2,6 @@ package com.laminar.web.auth;
 
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.security.SessionAuthenticationFilter;
-import com.laminar.user.SessionEntity;
 import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
 import com.laminar.user.UserService;
@@ -12,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -57,8 +58,8 @@ public class AuthController {
             HttpServletResponse response) {
         UserEntity user = userService.signup(request.email(), request.password(), request.displayName());
         workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
-        SessionEntity session = sessionService.issue(user.getId());
-        writeSessionCookie(response, session.getSessionToken());
+        String token = sessionService.issue(user.getId());
+        writeSessionCookie(response, token);
         return ResponseEntity.ok(toResponse(user));
     }
 
@@ -67,9 +68,9 @@ public class AuthController {
             @Valid @RequestBody AuthDtos.LoginRequest request,
             HttpServletResponse response) {
         UserEntity user = userService.verifyCredentials(request.email(), request.password())
-                .orElseThrow(() -> new IllegalArgumentException("invalid credentials"));
-        SessionEntity session = sessionService.issue(user.getId());
-        writeSessionCookie(response, session.getSessionToken());
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid credentials"));
+        String token = sessionService.issue(user.getId());
+        writeSessionCookie(response, token);
         return ResponseEntity.ok(toResponse(user));
     }
 

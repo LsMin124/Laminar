@@ -87,6 +87,18 @@ public class WorkspaceService {
                 WorkspaceContextHolder.require().workspaceId());
     }
 
+    /**
+     * 인증 사용자가 속한 모든 워크스페이스 — 가입 직후 SYSTEM scope에서 워크스페이스 발견용.
+     * 워크스페이스 헤더 없이 호출되며 principal.userId 기준으로만 조회(타인 노출 없음).
+     */
+    @Transactional(readOnly = true)
+    public List<WorkspaceEntity> listForUser(UUID userId) {
+        List<UUID> workspaceIds = memberRepo.findAllByIdUserIdAndRemovedAtIsNull(userId).stream()
+                .map(m -> m.getId().getWorkspaceId())
+                .toList();
+        return workspaceRepo.findAllById(workspaceIds);
+    }
+
     @Transactional
     public WorkspaceEntity updateCurrent(String name, String timezone, Map<String, Object> settings) {
         WorkspaceEntity workspace = requireCurrent();

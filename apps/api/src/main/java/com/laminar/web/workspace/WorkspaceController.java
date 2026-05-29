@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * /api/workspaces — 워크스페이스 CRUD.
  *
- * GET / POST는 워크스페이스 진입 전 (SYSTEM scope) 호출 가능.
+ * GET (목록) / POST는 워크스페이스 진입 전 (SYSTEM scope, 헤더 불필요) 호출 가능 — 가입 직후 발견용.
  * /current 시리즈는 X-Laminar-Workspace-Id 헤더로 PERSONAL scope 진입 후 호출.
  */
 @RestController
@@ -40,6 +42,14 @@ public class WorkspaceController {
                 request.slug(),
                 request.defaultTimezone());
         return ResponseEntity.ok(toResponse(workspace));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<WorkspaceDtos.WorkspaceResponse>> listMine(Authentication authentication) {
+        LaminarPrincipal principal = requirePrincipal(authentication);
+        return ResponseEntity.ok(workspaceService.listForUser(principal.userId()).stream()
+                .map(this::toResponse)
+                .toList());
     }
 
     @GetMapping("/current")

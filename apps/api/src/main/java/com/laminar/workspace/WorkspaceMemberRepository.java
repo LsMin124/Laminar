@@ -15,6 +15,9 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
 
     Optional<WorkspaceMemberEntity> findByIdUserIdAndRemovedAtIsNull(UUID userId);
 
+    /** 사용자의 모든 활성 워크스페이스 멤버십 — 워크스페이스 발견(가입 직후 진입)용. */
+    List<WorkspaceMemberEntity> findAllByIdUserIdAndRemovedAtIsNull(UUID userId);
+
     Optional<WorkspaceMemberEntity> findByIdWorkspaceIdAndIdUserIdAndRemovedAtIsNull(
             UUID workspaceId, UUID userId);
 

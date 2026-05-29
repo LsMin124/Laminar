@@ -37,10 +37,15 @@ function Shell() {
     }
     (async () => {
       try {
-        const ws = await api.get<WorkspaceResponse>("/api/workspaces/current");
-        setCurrentWorkspaceId(ws.id);
-        setWorkspaceReady(true);
+        // 가입 직후 발견: 워크스페이스 헤더가 없는 SYSTEM scope에서 내 워크스페이스 목록 조회.
+        // (/workspaces/current는 헤더가 있어야 하므로 부트스트랩엔 부적합)
+        const list = await api.get<WorkspaceResponse[]>("/api/workspaces");
+        if (list.length > 0) {
+          setCurrentWorkspaceId(list[0].id);
+        }
       } catch {
+        // 무시 — 워크스페이스 미설정 상태로 진행 (BoardsPage가 오류 표면화)
+      } finally {
         setWorkspaceReady(true);
       }
     })();

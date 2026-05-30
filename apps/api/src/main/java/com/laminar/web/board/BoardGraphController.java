@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,7 +40,8 @@ public class BoardGraphController {
                 graph.cards().stream().map(BoardGraphController::toCard).toList(),
                 graph.groups().stream().map(BoardGraphController::toGroup).toList(),
                 graph.cardRelations().stream().map(BoardGraphController::toCardRelation).toList(),
-                graph.groupRelations().stream().map(BoardGraphController::toGroupRelation).toList()));
+                graph.groupRelations().stream().map(BoardGraphController::toGroupRelation).toList(),
+                graph.groupMembers()));
     }
 
     public record BoardGraphResponse(
@@ -47,7 +49,8 @@ public class BoardGraphController {
             List<CardDtos.CardResponse> cards,
             List<GroupDtos.GroupResponse> groups,
             List<CardRelationDtos.CardRelationResponse> cardRelations,
-            List<GroupRelationDtos.GroupRelationResponse> groupRelations
+            List<GroupRelationDtos.GroupRelationResponse> groupRelations,
+            Map<UUID, List<UUID>> groupMembers
     ) {
     }
 

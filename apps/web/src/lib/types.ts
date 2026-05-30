@@ -201,6 +201,8 @@ export interface BoardGraphResponse {
   groups: GroupResponse[];
   cardRelations: CardRelationResponse[];
   groupRelations: GroupRelationResponse[];
+  /** P3b 자동그룹 — groupId → 멤버 cardId 목록. */
+  groupMembers: Record<string, string[]>;
 }
 
 export interface TabResponse {

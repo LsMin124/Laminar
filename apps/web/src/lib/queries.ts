@@ -254,6 +254,18 @@ export function useDeleteCard(cardId: string, boardId: string) {
   });
 }
 
+/** 화살표→자동그룹 (P3b) — 임의 그룹에 카드 추가. */
+export function useAddCardToGroup(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { groupId: string; cardId: string }) =>
+      api.post<void>(`/api/groups/${input.groupId}/cards/${input.cardId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
 /** 캔버스 노드 드래그 배치 (P3c) — 카드 attrs에 canvasX/canvasY 저장(마이그레이션 불필요). */
 export function useMoveCard(boardId: string) {
   const qc = useQueryClient();

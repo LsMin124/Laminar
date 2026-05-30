@@ -16,4 +16,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMemberEntity, 
     List<GroupMemberEntity> findByIdGroupId(UUID groupId);
 
     List<GroupMemberEntity> findByIdCardId(UUID cardId);
+
+    /** 보드 그래프용 — 여러 그룹의 멤버십 1회 조회 (P3b 자동그룹). */
+    List<GroupMemberEntity> findByIdGroupIdIn(List<UUID> groupIds);
 }

@@ -7,13 +7,18 @@ import com.laminar.card.CardService;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.group.GroupEntity;
+import com.laminar.group.GroupMemberEntity;
+import com.laminar.group.GroupMemberRepository;
 import com.laminar.group.GroupRelationEntity;
 import com.laminar.group.GroupRelationService;
 import com.laminar.group.GroupService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -28,16 +33,19 @@ public class BoardGraphService {
     private final GroupService groupService;
     private final CardRelationService cardRelationService;
     private final GroupRelationService groupRelationService;
+    private final GroupMemberRepository groupMemberRepository;
 
     public BoardGraphService(
             CardService cardService,
             GroupService groupService,
             CardRelationService cardRelationService,
-            GroupRelationService groupRelationService) {
+            GroupRelationService groupRelationService,
+            GroupMemberRepository groupMemberRepository) {
         this.cardService = cardService;
         this.groupService = groupService;
         this.cardRelationService = cardRelationService;
         this.groupRelationService = groupRelationService;
+        this.groupMemberRepository = groupMemberRepository;
     }
 
     @Transactional(readOnly = true)
@@ -50,7 +58,20 @@ public class BoardGraphService {
         List<GroupEntity> groups = groupService.listByBoard(boardId);
         List<CardRelationEntity> cardRels = cardRelationService.listByBoard(boardId);
         List<GroupRelationEntity> groupRels = groupRelationService.listByBoard(boardId);
-        return new BoardGraph(boardId, cards, groups, cardRels, groupRels);
+
+        // P3b 자동그룹용 — 보드 그룹들의 멤버십(groupId → cardIds). groupId는 위에서 이미
+        // Personal-First 필터된 사용자 그룹이라 멤버 조회도 사용자 자원에 한정(GroupMemberEntity는
+        // workspace 필터 미부착 — 부모 격리 의존).
+        List<UUID> groupIds = groups.stream().map(GroupEntity::getId).toList();
+        Map<UUID, List<UUID>> groupMembers = new HashMap<>();
+        if (!groupIds.isEmpty()) {
+            for (GroupMemberEntity m : groupMemberRepository.findByIdGroupIdIn(groupIds)) {
+                groupMembers
+                        .computeIfAbsent(m.getId().getGroupId(), k -> new ArrayList<>())
+                        .add(m.getId().getCardId());
+            }
+        }
+        return new BoardGraph(boardId, cards, groups, cardRels, groupRels, groupMembers);
     }
 
     public record BoardGraph(
@@ -58,7 +79,8 @@ public class BoardGraphService {
             List<CardEntity> cards,
             List<GroupEntity> groups,
             List<CardRelationEntity> cardRelations,
-            List<GroupRelationEntity> groupRelations
+            List<GroupRelationEntity> groupRelations,
+            Map<UUID, List<UUID>> groupMembers
     ) {
     }
 }

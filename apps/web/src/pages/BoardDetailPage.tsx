@@ -21,11 +21,13 @@ import {
 import { CardDialog } from "../components/card/CardDialog";
 import { CardInspector } from "../components/card/CardInspector";
 import {
+  useAddCardToGroup,
   useBoard,
   useBoardCalendar,
   useBoardGraph,
   useCreateCard,
   useCreateCardRelation,
+  useCreateGroup,
   useMoveCard,
   useRescheduleCard,
 } from "../lib/queries";
@@ -59,6 +61,27 @@ export function BoardDetailPage() {
   const reschedule = useRescheduleCard(boardId);
   const createRelation = useCreateCardRelation(boardId);
   const moveCard = useMoveCard(boardId);
+  const createGroup = useCreateGroup(boardId);
+  const addToGroup = useAddCardToGroup(boardId);
+
+  // P3b — 화살표 그리면 관계 생성 + 그룹 자동형성(§3.7). 둘 다 미그룹 → 새 그룹,
+  // 한쪽만 그룹 → 다른쪽 합류. 양쪽 다른 그룹/다중 그룹은 흡수 모달(후속)이라 지금은 관계만.
+  async function handleCreateRelation(fromCardId: string, toCardId: string) {
+    await createRelation.mutateAsync({ fromCardId, toCardId });
+    const gm = graph.data?.groupMembers ?? {};
+    const aGroups = Object.keys(gm).filter((g) => gm[g]?.includes(fromCardId));
+    const bGroups = Object.keys(gm).filter((g) => gm[g]?.includes(toCardId));
+    if (aGroups.some((g) => bGroups.includes(g))) return;
+    if (aGroups.length === 0 && bGroups.length === 0) {
+      const group = await createGroup.mutateAsync({ name: "새 그룹" });
+      await addToGroup.mutateAsync({ groupId: group.id, cardId: fromCardId });
+      await addToGroup.mutateAsync({ groupId: group.id, cardId: toCardId });
+    } else if (aGroups.length === 0 && bGroups.length === 1) {
+      await addToGroup.mutateAsync({ groupId: bGroups[0], cardId: fromCardId });
+    } else if (bGroups.length === 0 && aGroups.length === 1) {
+      await addToGroup.mutateAsync({ groupId: aGroups[0], cardId: toCardId });
+    }
+  }
 
   function handleMoveCard(cardId: string, x: number, y: number) {
     const card = graph.data?.cards.find((c) => c.id === cardId);
@@ -208,9 +231,7 @@ export function BoardDetailPage() {
             cardRelations={graph.data?.cardRelations ?? []}
             groupRelations={graph.data?.groupRelations ?? []}
             onCardClick={(cardId) => setSelectedCardId(cardId)}
-            onCreateRelation={(fromCardId, toCardId) =>
-              createRelation.mutate({ fromCardId, toCardId })
-            }
+            onCreateRelation={handleCreateRelation}
             onMoveCard={handleMoveCard}
           />
           <GroupManager

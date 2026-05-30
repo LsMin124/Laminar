@@ -9,13 +9,21 @@ interface Props {
 export function SignupPage({ onSwitchToLogin }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const signup = useSignup();
 
+  const passwordMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (password !== confirmPassword) {
+      setError("비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
+      return;
+    }
     try {
       await signup.mutateAsync({ email, password, displayName });
     } catch (err) {
@@ -64,8 +72,27 @@ export function SignupPage({ onSwitchToLogin }: Props) {
             autoComplete="new-password"
           />
         </label>
+        <label>
+          비밀번호 확인
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+            aria-invalid={passwordMismatch}
+          />
+        </label>
+        {passwordMismatch && (
+          <p className="auth-error">비밀번호가 일치하지 않습니다.</p>
+        )}
         {error && <p className="auth-error">{error}</p>}
-        <button type="submit" disabled={signup.isPending}>
+        <button
+          type="submit"
+          disabled={signup.isPending || passwordMismatch || !confirmPassword}
+        >
           {signup.isPending ? "가입 중..." : "가입하기"}
         </button>
       </form>

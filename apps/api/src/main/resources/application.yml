@@ -9,8 +9,6 @@ spring:
       # 호환 안 됨 → legacy AntPathMatcher 사용. Phase 5에서 SPA fallback을
       # PathPattern 호환 방식(필터·view controller)으로 재설계 시 제거.
       matching-strategy: ant_path_matcher
-  jackson:
-    property-naming-strategy: SNAKE_CASE
   jpa:
     hibernate:
       ddl-auto: validate  # 스키마 변경은 Flyway 단독 책임

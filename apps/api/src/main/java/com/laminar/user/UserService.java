@@ -6,6 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,6 +49,34 @@ public class UserService {
         user.setEmail(normalizedEmail);
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setDisplayName(displayName);
+        return userRepo.save(user);
+    }
+
+    /**
+     * OAuth(Google) 로그인/가입 — 이메일로 기존 계정 find-or-create.
+     *
+     * <p>OAuth 제공자가 검증한 이메일이므로 {@code emailVerifiedAt}을 설정한다. 신규 계정은
+     * {@code passwordHash=null}(비밀번호 로그인 불가, OAuth 전용)으로 생성하며, 같은 이메일의 기존
+     * 비밀번호 계정이 있으면 그 계정에 자동 연결(이메일 기준)한다.
+     */
+    @Transactional
+    public UserEntity findOrCreateOAuthUser(String email, String displayName) {
+        String normalizedEmail = email.trim().toLowerCase();
+        Optional<UserEntity> existing = userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail);
+        if (existing.isPresent()) {
+            UserEntity user = existing.get();
+            if (user.getEmailVerifiedAt() == null) {
+                user.setEmailVerifiedAt(OffsetDateTime.now());
+                return userRepo.save(user);
+            }
+            return user;
+        }
+        UserEntity user = new UserEntity();
+        user.setEmail(normalizedEmail);
+        user.setPasswordHash(null);
+        user.setDisplayName(
+                displayName == null || displayName.isBlank() ? normalizedEmail : displayName);
+        user.setEmailVerifiedAt(OffsetDateTime.now());
         return userRepo.save(user);
     }
 

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useSignup } from "../lib/queries";
 import { ApiError } from "../lib/api";
+import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
 
 interface Props {
   onSwitchToLogin: () => void;
@@ -96,6 +97,7 @@ export function SignupPage({ onSwitchToLogin }: Props) {
           {signup.isPending ? "가입 중..." : "가입하기"}
         </button>
       </form>
+      <GoogleSignInButton label="Google로 가입" />
       <p className="auth-switch">
         이미 계정이 있으신가요?{" "}
         <button type="button" onClick={onSwitchToLogin} className="link">

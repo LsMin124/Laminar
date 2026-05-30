@@ -14,6 +14,21 @@ spring:
         prepareThreshold: 0  # Neon pooler 호환 — Postgres prepared statement 비활성
   jpa:
     show-sql: false
+  # Google OAuth2 로그인 (Spring Security) — Fly secret AUTH_GOOGLE_ID/SECRET 사용.
+  # prod 프로파일에만 등록 → local/test는 미등록이라 oauth2Login이 conditional로 skip(부팅 안전).
+  # redirect-uri 기본값: https://laminar-prod.fly.dev/login/oauth2/code/google
+  #   → Google Cloud Console의 OAuth 클라이언트 '승인된 리디렉션 URI'에 등록 필요(인프라 작업).
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${AUTH_GOOGLE_ID}
+            client-secret: ${AUTH_GOOGLE_SECRET}
+            scope:
+              - openid
+              - email
+              - profile
 
 # Cron 전용 DataSource (Task 1.3.4) — direct 엔드포인트, 풀 크기 3
 app:

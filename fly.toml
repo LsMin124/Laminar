@@ -28,15 +28,17 @@ primary_region = "nrt"  # Tokyo — Neon ap-southeast-1과 가장 가까움 (~50
 
   [[http_service.checks]]
     interval = "30s"
-    timeout = "5s"
-    grace_period = "15s"
+    timeout = "10s"
+    # JVM cold start가 길어 health check 플래핑 → 재시작 루프를 막기 위해 grace 확대.
+    grace_period = "120s"
     method = "GET"
     path = "/actuator/health"
 
+# performance-1x(전용 CPU) + 2GB — shared-cpu-1x/512MB에서 부팅 89초·요청 타임아웃 발생하여 상향.
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
-  cpu_kind = "shared"
+  size = "performance-1x"
+  memory = "2048mb"
+  cpu_kind = "performance"
   cpus = 1
 
 [deploy]

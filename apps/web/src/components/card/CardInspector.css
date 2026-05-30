@@ -1,5 +1,5 @@
 .card-inspector {
-  width: 380px;
+  width: clamp(440px, 34vw, 600px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

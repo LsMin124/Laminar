@@ -14,6 +14,7 @@ interface MonthGridProps {
   dateMemos: { date: string; bodyMd: string }[];
   onCardClick?: (card: CardResponse) => void;
   onCellClick?: (iso: string) => void;
+  onCardReschedule?: (card: CardResponse, newStartIso: string) => void;
 }
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -34,6 +35,7 @@ export function MonthGrid({
   dateMemos,
   onCardClick,
   onCellClick,
+  onCardReschedule,
 }: MonthGridProps) {
   const grid = useMemo(() => buildMonthGrid(anchor), [anchor]);
   const { segments, maxLanesPerWeek } = useMemo(
@@ -69,6 +71,28 @@ export function MonthGrid({
               key={weekIndex}
               className="month-grid-week"
               style={{ "--lane-count": laneCount } as React.CSSProperties}
+              onDragOver={
+                onCardReschedule ? (e) => e.preventDefault() : undefined
+              }
+              onDrop={
+                onCardReschedule
+                  ? (e) => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData("text/plain");
+                      const dragged = cards.find((c) => c.id === id);
+                      if (!dragged) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const col = Math.min(
+                        6,
+                        Math.max(
+                          0,
+                          Math.floor(((e.clientX - rect.left) / rect.width) * 7),
+                        ),
+                      );
+                      onCardReschedule(dragged, week[col].iso);
+                    }
+                  : undefined
+              }
             >
               <div className="month-grid-cells">
                 {week.map((cell, dayIndex) => (
@@ -109,8 +133,18 @@ export function MonthGrid({
                       gridColumnEnd: seg.endCol + 2,
                       gridRow: seg.lane + 1,
                       background: IMPORTANCE_COLOR[seg.card.importance],
+                      cursor: onCardReschedule ? "grab" : "pointer",
                     }}
                     title={seg.card.title}
+                    draggable={!!onCardReschedule}
+                    onDragStart={
+                      onCardReschedule
+                        ? (e) => {
+                            e.dataTransfer.setData("text/plain", seg.card.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }
+                        : undefined
+                    }
                     onClick={(e) => {
                       e.stopPropagation();
                       onCardClick?.(seg.card);

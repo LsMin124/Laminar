@@ -254,6 +254,25 @@ export function useDeleteCard(cardId: string, boardId: string) {
   });
 }
 
+/** 캘린더 드래그로 카드 일정 이동 (P2) — 임의 카드의 시작/종료일 PATCH. */
+export function useRescheduleCard(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      cardId: string;
+      startDate: string;
+      endDate: string | null;
+    }) =>
+      api.patch<CardResponse>(`/api/cards/${input.cardId}`, {
+        startDate: input.startDate,
+        endDate: input.endDate,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
 export const attachmentKeys = {
   byParent: (parentType: AttachmentParentType, parentId: string) =>
     ["attachments", parentType, parentId] as const,

@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { addMonths, format, startOfMonth, endOfMonth } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  differenceInCalendarDays,
+  endOfMonth,
+  format,
+  parseISO,
+  startOfMonth,
+} from "date-fns";
+import type { CardResponse } from "../lib/types";
 import { MonthGrid } from "../components/calendar/MonthGrid";
 import { BoardGraph } from "../components/graph/BoardGraph";
 import { GroupManager } from "../components/group/GroupManager";
@@ -16,6 +25,7 @@ import {
   useBoardCalendar,
   useBoardGraph,
   useCreateCard,
+  useRescheduleCard,
 } from "../lib/queries";
 import "./BoardDetailPage.css";
 
@@ -44,6 +54,23 @@ export function BoardDetailPage() {
   }, [anchor]);
   const calendar = useBoardCalendar(boardId, range.from, range.to);
   const createCard = useCreateCard(boardId);
+  const reschedule = useRescheduleCard(boardId);
+
+  async function handleReschedule(card: CardResponse, newStartIso: string) {
+    // 드롭한 날짜를 새 시작일로, 기존 기간(일수)을 보존해 종료일 이동.
+    const durationDays =
+      card.startDate && card.endDate
+        ? differenceInCalendarDays(parseISO(card.endDate), parseISO(card.startDate))
+        : 0;
+    const newEnd = card.endDate
+      ? format(addDays(parseISO(newStartIso), durationDays), "yyyy-MM-dd")
+      : null;
+    await reschedule.mutateAsync({
+      cardId: card.id,
+      startDate: newStartIso,
+      endDate: newEnd,
+    });
+  }
 
   async function handleCreate(values: CardFormValues) {
     await createCard.mutateAsync({
@@ -151,6 +178,7 @@ export function BoardDetailPage() {
               dateMemos={calendar.data?.dateMemos ?? []}
               onCardClick={(c) => setSelectedCardId(c.id)}
               onCellClick={(iso) => setCreateInitialDate(iso)}
+              onCardReschedule={handleReschedule}
             />
           )}
         </>

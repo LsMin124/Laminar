@@ -20,6 +20,7 @@ import {
 } from "../components/card/CardForm";
 import { CardDialog } from "../components/card/CardDialog";
 import { CardInspector } from "../components/card/CardInspector";
+import { TabTreeSidebar } from "../components/tab/TabTreeSidebar";
 import {
   useAddCardToGroup,
   useBoard,
@@ -45,6 +46,7 @@ export function BoardDetailPage() {
     null,
   );
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 
   const board = useBoard(boardId);
   const graph = useBoardGraph(viewMode === "graph" ? boardId : null);
@@ -126,6 +128,11 @@ export function BoardDetailPage() {
 
   return (
     <div className="board-workspace">
+      <TabTreeSidebar
+        boardId={boardId}
+        selectedTabId={selectedTabId}
+        onSelectTab={setSelectedTabId}
+      />
       <div className="board-detail">
       <header className="board-detail-header">
         <button

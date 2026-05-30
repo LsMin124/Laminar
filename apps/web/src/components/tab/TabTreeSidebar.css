@@ -1,0 +1,139 @@
+.tab-tree-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.tab-tree-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab-tree-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.tab-tree-add-root {
+  padding: 0.2rem 0.5rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tab-tree-add-root:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.tab-tree-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.tab-tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tab-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 6px;
+}
+
+.tab-tree-item:hover,
+.tab-tree-item.selected {
+  background: var(--surface-2);
+}
+
+.tab-tree-all {
+  width: 100%;
+  margin-bottom: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab-tree-toggle,
+.tab-tree-toggle-spacer {
+  width: 1rem;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.tab-tree-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.25rem;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-tree-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tab-tree-add {
+  flex-shrink: 0;
+  padding: 0 0.4rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tab-tree-item:hover .tab-tree-add {
+  opacity: 1;
+}
+
+.tab-tree-add:hover {
+  color: var(--accent);
+}
+
+.tab-tree-empty,
+.tab-tree-loading {
+  padding: 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}

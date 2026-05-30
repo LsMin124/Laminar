@@ -18,8 +18,8 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
  *
  * 정책:
  *   - STATELESS (Spring HTTP session 미사용) — sessions 테이블이 SOR
- *   - CSRF 비활성화 (Cookie+token 검증을 SessionAuthenticationFilter가 직접)
- *     SPA 클라이언트의 fetch는 SameSite=Lax + custom header 패턴으로 CSRF 차단 — 추후 강화 가능
+ *   - Spring CSRF 토큰 비활성화 — 대신 CsrfHeaderFilter가 custom-header(X-Laminar-CSRF)를
+ *     쿠키 기반 상태변경 요청에 강제 (M-1). SameSite=Lax(쿠키)와 합쳐 다층 CSRF 방어.
  *   - OAuth2 login은 Phase 4.3 (Google) — 본 baseline은 미활성
  *   - 보안 헤더: HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP
  *
@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
+                .addFilterBefore(new CsrfHeaderFilter(), SessionAuthenticationFilter.class)
                 .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)

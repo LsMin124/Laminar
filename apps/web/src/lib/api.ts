@@ -43,6 +43,9 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    // M-1 CSRF: 백엔드 CsrfHeaderFilter가 쿠키 기반 상태변경 요청에 이 custom header를 강제.
+    // 교차출처 위조 요청은 CORS preflight 없이 커스텀 헤더를 달 수 없어 차단된다.
+    "X-Laminar-CSRF": "1",
   };
   const workspaceId = getCurrentWorkspaceId();
   if (workspaceId) {

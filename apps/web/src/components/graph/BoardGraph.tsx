@@ -13,8 +13,10 @@ interface BoardGraphProps {
   cardRelations: CardRelationResponse[];
   groupRelations: GroupRelationResponse[];
   onCardClick?: (cardId: string) => void;
-  /** 카드 노드에서 다른 카드로 드래그 시 관계 생성 (P3). 없으면 읽기전용 그래프. */
+  /** 카드 연결 핸들에서 다른 카드로 드래그 시 관계 생성 (P3a). */
   onCreateRelation?: (fromCardId: string, toCardId: string) => void;
+  /** 카드 노드 본체 드래그 배치 시 좌표 저장 (P3c, attrs.canvasX/Y). */
+  onMoveCard?: (cardId: string, x: number, y: number) => void;
 }
 
 interface NodePos {
@@ -25,6 +27,10 @@ interface NodePos {
   kind: "card" | "group";
   color: string;
 }
+
+type Drag =
+  | { kind: "move"; id: string; offX: number; offY: number; sx: number; sy: number; x: number; y: number }
+  | { kind: "connect"; fromId: string; sx: number; sy: number; px: number; py: number };
 
 const IMPORTANCE_COLORS: Record<string, string> = {
   NORMAL: "#4b5563",
@@ -42,12 +48,8 @@ const VIEW = 560;
 const HIT_RADIUS = 18;
 const CLICK_SLOP = 6;
 
-interface DrawState {
-  fromId: string;
-  sx: number;
-  sy: number;
-  px: number;
-  py: number;
+function num(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
 export function BoardGraph({
@@ -57,9 +59,14 @@ export function BoardGraph({
   groupRelations,
   onCardClick,
   onCreateRelation,
+  onMoveCard,
 }: BoardGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [draw, setDraw] = useState<DrawState | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  // 세션 내 드래그 배치 오버라이드 — PATCH→refetch 지연 중 스냅백 방지(attrs와 일관).
+  const [placed, setPlaced] = useState<Map<string, { x: number; y: number }>>(
+    new Map(),
+  );
 
   const positions = useMemo(() => {
     const map = new Map<string, NodePos>();
@@ -80,18 +87,21 @@ export function BoardGraph({
 
     cards.forEach((c, i) => {
       const angle = (i / Math.max(cards.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      const p = placed.get(c.id);
+      const ax = num(c.attrs?.canvasX);
+      const ay = num(c.attrs?.canvasY);
       map.set(c.id, {
         id: c.id,
         kind: "card",
         label: c.title,
         color: IMPORTANCE_COLORS[c.importance] ?? "#4b5563",
-        x: cx + Math.cos(angle) * RADIUS_CARD,
-        y: cy + Math.sin(angle) * RADIUS_CARD,
+        x: p?.x ?? ax ?? cx + Math.cos(angle) * RADIUS_CARD,
+        y: p?.y ?? ay ?? cy + Math.sin(angle) * RADIUS_CARD,
       });
     });
 
     return map;
-  }, [cards, groups]);
+  }, [cards, groups, placed]);
 
   function toSvg(clientX: number, clientY: number): { x: number; y: number } {
     const svg = svgRef.current;
@@ -102,6 +112,15 @@ export function BoardGraph({
     pt.y = clientY;
     const p = pt.matrixTransform(matrix.inverse());
     return { x: p.x, y: p.y };
+  }
+
+  /** 드래그 중인 노드는 라이브 좌표, 그 외엔 레이아웃 좌표. 간선도 이걸로 따라옴. */
+  function display(id: string): NodePos | undefined {
+    const base = positions.get(id);
+    if (base && drag?.kind === "move" && drag.id === id) {
+      return { ...base, x: drag.x, y: drag.y };
+    }
+    return base;
   }
 
   function cardAt(x: number, y: number, exclude: string): string | null {
@@ -128,21 +147,37 @@ export function BoardGraph({
         viewBox={`0 0 ${VIEW} ${VIEW}`}
         className="board-graph-svg"
         onPointerMove={(e) => {
-          if (!draw) return;
+          if (!drag) return;
           const p = toSvg(e.clientX, e.clientY);
-          setDraw((d) => (d ? { ...d, px: p.x, py: p.y } : d));
+          if (drag.kind === "move") {
+            setDrag({ ...drag, x: p.x - drag.offX, y: p.y - drag.offY });
+          } else {
+            setDrag({ ...drag, px: p.x, py: p.y });
+          }
         }}
         onPointerUp={(e) => {
-          if (!draw) return;
+          if (!drag) return;
           const p = toSvg(e.clientX, e.clientY);
-          const target = cardAt(p.x, p.y, draw.fromId);
-          const moved = Math.hypot(p.x - draw.sx, p.y - draw.sy);
-          if (target && onCreateRelation) {
-            onCreateRelation(draw.fromId, target);
-          } else if (moved < CLICK_SLOP) {
-            onCardClick?.(draw.fromId);
+          if (drag.kind === "move") {
+            const moved = Math.hypot(drag.x - drag.sx, drag.y - drag.sy);
+            if (moved >= CLICK_SLOP) {
+              const x = drag.x;
+              const y = drag.y;
+              setPlaced((m) => new Map(m).set(drag.id, { x, y }));
+              onMoveCard?.(drag.id, x, y);
+            } else {
+              onCardClick?.(drag.id);
+            }
+          } else {
+            const target = cardAt(p.x, p.y, drag.fromId);
+            const moved = Math.hypot(p.x - drag.sx, p.y - drag.sy);
+            if (target && onCreateRelation) {
+              onCreateRelation(drag.fromId, target);
+            } else if (moved < CLICK_SLOP) {
+              onCardClick?.(drag.fromId);
+            }
           }
-          setDraw(null);
+          setDrag(null);
         }}
       >
         <defs>
@@ -159,8 +194,8 @@ export function BoardGraph({
           </marker>
         </defs>
         {cardRelations.map((r) => {
-          const from = positions.get(r.fromCardId);
-          const to = positions.get(r.toCardId);
+          const from = display(r.fromCardId);
+          const to = display(r.toCardId);
           if (!from || !to) return null;
           return (
             <line
@@ -175,8 +210,8 @@ export function BoardGraph({
           );
         })}
         {groupRelations.map((r) => {
-          const from = positions.get(r.fromGroupId);
-          const to = positions.get(r.toGroupId);
+          const from = display(r.fromGroupId);
+          const to = display(r.toGroupId);
           if (!from || !to) return null;
           return (
             <line
@@ -190,12 +225,12 @@ export function BoardGraph({
             />
           );
         })}
-        {draw && (
+        {drag?.kind === "connect" && (
           <line
-            x1={draw.sx}
-            y1={draw.sy}
-            x2={draw.px}
-            y2={draw.py}
+            x1={drag.sx}
+            y1={drag.sy}
+            x2={drag.px}
+            y2={drag.py}
             className="edge edge-drawing"
             markerEnd="url(#arrow)"
             style={{
@@ -207,42 +242,76 @@ export function BoardGraph({
           />
         )}
         {Array.from(positions.values()).map((pos) => {
-          const drawable = pos.kind === "card" && !!onCreateRelation;
+          const d = display(pos.id) ?? pos;
+          const isCard = pos.kind === "card";
+          const r = isCard ? 12 : 18;
           return (
             <g
               key={pos.id}
-              className={`node node-${pos.kind}${drawable ? " node-draggable" : ""}`}
-              transform={`translate(${pos.x}, ${pos.y})`}
-              style={drawable ? { cursor: "crosshair" } : undefined}
-              onPointerDown={
-                drawable
-                  ? (e) => {
-                      e.preventDefault();
-                      svgRef.current?.setPointerCapture(e.pointerId);
-                      setDraw({
-                        fromId: pos.id,
-                        sx: pos.x,
-                        sy: pos.y,
-                        px: pos.x,
-                        py: pos.y,
-                      });
-                    }
-                  : undefined
-              }
-              onClick={
-                pos.kind === "card" && !onCreateRelation
-                  ? () => onCardClick?.(pos.id)
-                  : undefined
-              }
+              className={`node node-${pos.kind}`}
+              transform={`translate(${d.x}, ${d.y})`}
             >
               <circle
-                r={pos.kind === "group" ? 18 : 12}
+                r={r}
                 fill={pos.color}
                 stroke="var(--surface)"
                 strokeWidth="2"
+                style={{ cursor: isCard && onMoveCard ? "grab" : "pointer" }}
+                onPointerDown={
+                  isCard && onMoveCard
+                    ? (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        svgRef.current?.setPointerCapture(e.pointerId);
+                        const p = toSvg(e.clientX, e.clientY);
+                        setDrag({
+                          kind: "move",
+                          id: pos.id,
+                          offX: p.x - d.x,
+                          offY: p.y - d.y,
+                          sx: d.x,
+                          sy: d.y,
+                          x: d.x,
+                          y: d.y,
+                        });
+                      }
+                    : undefined
+                }
+                onClick={
+                  isCard && !onMoveCard
+                    ? () => onCardClick?.(pos.id)
+                    : undefined
+                }
               />
+              {isCard && onCreateRelation && (
+                <circle
+                  className="connect-handle"
+                  cx={r + 4}
+                  cy={-(r + 4)}
+                  r={5}
+                  fill="var(--surface)"
+                  stroke="var(--accent, #6366f1)"
+                  strokeWidth="2"
+                  style={{ cursor: "crosshair" }}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    svgRef.current?.setPointerCapture(e.pointerId);
+                    setDrag({
+                      kind: "connect",
+                      fromId: pos.id,
+                      sx: d.x,
+                      sy: d.y,
+                      px: d.x,
+                      py: d.y,
+                    });
+                  }}
+                >
+                  <title>드래그해 다른 카드와 화살표 연결</title>
+                </circle>
+              )}
               <text
-                y={pos.kind === "group" ? -22 : 22}
+                y={pos.kind === "group" ? -26 : 24}
                 textAnchor="middle"
                 className="node-label"
               >
@@ -263,7 +332,7 @@ export function BoardGraph({
         </li>
         <li className="board-graph-legend-spacer">
           관계: 카드 {cardRelations.length} · 그룹 {groupRelations.length}
-          {onCreateRelation ? " · 카드에서 드래그해 화살표 연결" : ""}
+          {onMoveCard ? " · 카드 드래그=이동, 모서리 점 드래그=화살표" : ""}
         </li>
       </ul>
     </div>

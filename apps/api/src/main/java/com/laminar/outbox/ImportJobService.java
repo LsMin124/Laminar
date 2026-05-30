@@ -2,6 +2,7 @@ package com.laminar.outbox;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.web.error.ConflictException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,7 +63,7 @@ public class ImportJobService {
                 .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() != ImportJobStatus.RUNNING) {
-            throw new IllegalStateException("progress update requires RUNNING status (got " + job.getStatus() + ")");
+            throw new ConflictException("progress update requires RUNNING status (got " + job.getStatus() + ")");
         }
         job.setProgress(progress == null ? new HashMap<>() : progress);
         return importRepo.save(job);
@@ -101,7 +102,7 @@ public class ImportJobService {
                 .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() == ImportJobStatus.COMPLETED || job.getStatus() == ImportJobStatus.FAILED) {
-            throw new IllegalStateException("cannot cancel terminal status: " + job.getStatus());
+            throw new ConflictException("cannot cancel terminal status: " + job.getStatus());
         }
         job.setStatus(ImportJobStatus.CANCELLED);
         job.setFinishedAt(OffsetDateTime.now());
@@ -128,7 +129,7 @@ public class ImportJobService {
                 .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() != ImportJobStatus.PENDING) {
-            throw new IllegalStateException("start requires PENDING status (got " + job.getStatus() + ")");
+            throw new ConflictException("start requires PENDING status (got " + job.getStatus() + ")");
         }
         return job;
     }
@@ -139,7 +140,7 @@ public class ImportJobService {
                 .filter(j -> WorkspaceContextHolder.require().ownsPersonal(j.getWorkspaceId(), j.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("import job not found"));
         if (job.getStatus() != ImportJobStatus.RUNNING) {
-            throw new IllegalStateException("complete requires RUNNING status (got " + job.getStatus() + ")");
+            throw new ConflictException("complete requires RUNNING status (got " + job.getStatus() + ")");
         }
         return job;
     }

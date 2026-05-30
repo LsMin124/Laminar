@@ -1,6 +1,7 @@
 package com.laminar.user;
 
 import com.laminar.system.UserSystemRepository;
+import com.laminar.web.error.ConflictException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +31,18 @@ public class UserService {
     }
 
     /**
-     * 이메일 가입 — 중복 시 IllegalStateException. BCrypt 12 round 해시.
+     * 이메일 가입 — 중복 시 ConflictException(409). BCrypt 12 round 해시.
      * emailVerifiedAt=null (검증 토큰은 Phase 4.5에서 email_outbox INSERT).
+     *
+     * <p>N-2: 중복을 409(전용 ConflictException)로 분리 — 이전 IllegalStateException은
+     * 블랭킷 403 + "email already registered" 노출로 가입 enumeration을 허용했다. 완전한
+     * anti-enumeration(존재 여부 무차별 동일 응답)은 메일 검증 파이프라인(M-9) 구축 후 가능.
      */
     @Transactional
     public UserEntity signup(String email, String rawPassword, String displayName) {
         String normalizedEmail = email.trim().toLowerCase();
         if (userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail).isPresent()) {
-            throw new IllegalStateException("email already registered");
+            throw new ConflictException("이미 가입된 이메일입니다.");
         }
         UserEntity user = new UserEntity();
         user.setEmail(normalizedEmail);

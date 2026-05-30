@@ -2,6 +2,7 @@ package com.laminar.equipment;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.web.error.ConflictException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +68,7 @@ public class EquipmentReservationService {
                     .filter(r -> r.getRrule() == null || r.getRrule().isBlank())
                     .toList();
             if (!overlapping.isEmpty()) {
-                throw new IllegalStateException("reservation overlaps with existing booking");
+                throw new ConflictException("reservation overlaps with existing booking");
             }
         }
 

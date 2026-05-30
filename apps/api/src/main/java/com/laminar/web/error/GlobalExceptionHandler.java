@@ -21,7 +21,9 @@ import java.time.OffsetDateTime;
  *
  * 본 코드베이스 관례상:
  *   - IllegalArgumentException = 잘못된 입력/도메인 invariant 위반 → 400
- *   - IllegalStateException    = scope/role/권한·상태 위반 (대부분 인가) → 403
+ *   - IllegalStateException    = scope/role/소유권 등 인가 위반 전용 → 403 (N-2 이후 도메인 충돌·
+ *                                내부 오류는 ConflictException/RuntimeException으로 분리됨)
+ *   - ConflictException        = 도메인 충돌(중복·상태전이) → 409 (안전 메시지 노출)
  *   - ResponseStatusException  = 컨트롤러가 명시한 상태 (예: 로그인 실패 401) → passthrough
  *   - 검증(@Valid)             → 400
  *   - DataIntegrityViolation   → 409 (DB unique 등)
@@ -67,13 +69,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalState(
             IllegalStateException ex, HttpServletRequest req) {
-        return build(HttpStatus.FORBIDDEN, safe(ex.getMessage(), "forbidden"), req);
+        // N-2: 인가 위반 전용 → 403. 원본 메시지를 노출하지 않고 일반화한다(화이트리스트: 메시지를
+        // 그대로 내보내는 것은 ConflictException뿐). 도메인 충돌/내부 오류가 IllegalStateException으로
+        // 새어 들어와도(예: SHA-256 불가, slug 소진) 내부 메시지 누출을 차단. 실제 사유는 서버 로그.
+        log.debug("authorization denied at {} {}: {}", req.getMethod(), req.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, "요청을 수행할 권한이 없습니다", req);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest req) {
         return build(HttpStatus.FORBIDDEN, "access denied", req);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleDomainConflict(
+            ConflictException ex, HttpServletRequest req) {
+        // N-2: 도메인 충돌(중복·상태전이) → 409. 메시지는 큐레이트된 안전 도메인 사실만 노출.
+        return build(HttpStatus.CONFLICT, safe(ex.getMessage(), "resource conflict"), req);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

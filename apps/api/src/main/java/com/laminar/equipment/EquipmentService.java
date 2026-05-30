@@ -2,6 +2,7 @@ package com.laminar.equipment;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.web.error.ConflictException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +35,7 @@ public class EquipmentService {
             List<Map<String, Object>> defaultLogColumns) {
         WorkspaceContext ctx = requireWorkspaceWritable();
         if (equipmentRepo.findByNameAndDeletedAtIsNull(name).isPresent()) {
-            throw new IllegalStateException("equipment name already exists: " + name);
+            throw new ConflictException("equipment name already exists: " + name);
         }
 
         EquipmentEntity equipment = new EquipmentEntity();

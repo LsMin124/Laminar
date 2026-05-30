@@ -3,6 +3,7 @@ package com.laminar.equipment;
 import com.laminar.board.BoardDefaultView;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.web.error.ConflictException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ public class SharedCalendarService {
         WorkspaceContext ctx = requireWorkspaceWritable();
         if (equipmentId != null
                 && calendarRepo.findByEquipmentIdAndDeletedAtIsNull(equipmentId).isPresent()) {
-            throw new IllegalStateException("equipment already has a shared calendar");
+            throw new ConflictException("equipment already has a shared calendar");
         }
 
         SharedCalendarEntity cal = new SharedCalendarEntity();

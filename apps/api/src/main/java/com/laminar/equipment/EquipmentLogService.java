@@ -2,6 +2,7 @@ package com.laminar.equipment;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.web.error.ConflictException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +52,7 @@ public class EquipmentLogService {
                 .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
         if (columnRepo.findByEquipmentIdAndColumnKeyAndDeletedAtIsNull(equipmentId, columnKey).isPresent()) {
-            throw new IllegalStateException("column key already exists: " + columnKey);
+            throw new ConflictException("column key already exists: " + columnKey);
         }
         if (columnType == EquipmentLogColumnType.ENUM && (enumValues == null || enumValues.isEmpty())) {
             throw new IllegalArgumentException("enum column requires enum_values");

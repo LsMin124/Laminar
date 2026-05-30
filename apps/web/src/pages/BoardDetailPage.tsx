@@ -25,6 +25,7 @@ import {
   useBoardCalendar,
   useBoardGraph,
   useCreateCard,
+  useCreateCardRelation,
   useRescheduleCard,
 } from "../lib/queries";
 import "./BoardDetailPage.css";
@@ -55,6 +56,7 @@ export function BoardDetailPage() {
   const calendar = useBoardCalendar(boardId, range.from, range.to);
   const createCard = useCreateCard(boardId);
   const reschedule = useRescheduleCard(boardId);
+  const createRelation = useCreateCardRelation(boardId);
 
   async function handleReschedule(card: CardResponse, newStartIso: string) {
     // 드롭한 날짜를 새 시작일로, 기존 기간(일수)을 보존해 종료일 이동.
@@ -194,6 +196,9 @@ export function BoardDetailPage() {
             cardRelations={graph.data?.cardRelations ?? []}
             groupRelations={graph.data?.groupRelations ?? []}
             onCardClick={(cardId) => setSelectedCardId(cardId)}
+            onCreateRelation={(fromCardId, toCardId) =>
+              createRelation.mutate({ fromCardId, toCardId })
+            }
           />
           <GroupManager
             boardId={boardId}

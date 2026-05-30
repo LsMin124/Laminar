@@ -135,7 +135,7 @@ public class R2StorageService {
                     HeadObjectRequest.builder().bucket(bucket).key(storageKey).build());
             actualSize = head.contentLength() == null ? 0L : head.contentLength();
         } catch (NoSuchKeyException e) {
-            throw new IllegalArgumentException("uploaded object not found");
+            throw new IllegalArgumentException("업로드된 객체를 찾을 수 없습니다");
         }
         if (actualSize > maxBytes) {
             // 한도 초과 → 즉시 삭제(스토리지 보존 차단). 삭제 실패는 무시(베스트에포트 — cleanup cron 후속).
@@ -145,7 +145,7 @@ public class R2StorageService {
             } catch (RuntimeException ignored) {
                 // 삭제 실패해도 거부는 유지
             }
-            throw new IllegalArgumentException("uploaded file exceeds size limit");
+            throw new IllegalArgumentException("업로드 파일이 크기 제한을 초과했습니다");
         }
         return actualSize;
     }

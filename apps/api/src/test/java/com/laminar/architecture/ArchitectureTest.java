@@ -136,4 +136,26 @@ public class ArchitectureTest {
           .dependOnClassesThat()
           .areAssignableTo(SystemRepository.class)
           .allowEmptyShould(true);
+
+  /**
+   * N-3 — web 레이어(컨트롤러)는 Repository에 직접 의존 금지.
+   *
+   * <p>모든 데이터 접근은 @Transactional 서비스를 경유해야 한다. WorkspaceFilterAspect는 서비스
+   * 트랜잭션 경계 안에서만 격리 필터를 활성화하므로(활성 트랜잭션 없으면 skip), 비-트랜잭션
+   * 컨텍스트(컨트롤러가 리포지토리를 직접 호출)의 list/derived 쿼리는 필터가 적용되지 않아 교차
+   * 테넌트 누출 위험이 있다. 본 룰로 그 회귀 벡터를 차단한다. (리포지토리 호출자 전반의 트랜잭션
+   * 보장은 PostgreSQL RLS를 최종 방어선으로 — 별도 과제.)
+   *
+   * <p>system 패키지 리포지토리는 보안 필터가 트랜잭션 밖에서 호출(글로벌 자원, 워크스페이스 필터
+   * 불필요)하므로 본 룰 대상이 아니다(web은 어차피 SystemRepository 직접 접근도 위 룰로 금지).
+   */
+  @ArchTest
+  static final ArchRule web_must_not_access_repositories_directly =
+      noClasses()
+          .that()
+          .resideInAPackage("com.laminar.web..")
+          .should()
+          .dependOnClassesThat()
+          .haveSimpleNameEndingWith("Repository")
+          .allowEmptyShould(true);
 }

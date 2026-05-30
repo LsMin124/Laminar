@@ -40,13 +40,13 @@ public class GlobalExceptionHandler {
         String msg = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(f -> f.getField() + ": " + f.getDefaultMessage())
-                .orElse("validation failed");
+                .orElse("입력값이 유효하지 않습니다");
         return build(HttpStatus.BAD_REQUEST, msg, req);
     }
 
     @ExceptionHandler({ConstraintViolationException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ApiErrorResponse> handleBadInput(Exception ex, HttpServletRequest req) {
-        return build(HttpStatus.BAD_REQUEST, "invalid request body", req);
+        return build(HttpStatus.BAD_REQUEST, "요청 본문이 올바르지 않습니다", req);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(
             IllegalArgumentException ex, HttpServletRequest req) {
-        return build(HttpStatus.BAD_REQUEST, safe(ex.getMessage(), "bad request"), req);
+        return build(HttpStatus.BAD_REQUEST, safe(ex.getMessage(), "잘못된 요청입니다"), req);
     }
 
     @ExceptionHandler(IllegalStateException.class)
@@ -79,33 +79,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest req) {
-        return build(HttpStatus.FORBIDDEN, "access denied", req);
+        return build(HttpStatus.FORBIDDEN, "접근이 거부되었습니다", req);
     }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleDomainConflict(
             ConflictException ex, HttpServletRequest req) {
         // N-2: 도메인 충돌(중복·상태전이) → 409. 메시지는 큐레이트된 안전 도메인 사실만 노출.
-        return build(HttpStatus.CONFLICT, safe(ex.getMessage(), "resource conflict"), req);
+        return build(HttpStatus.CONFLICT, safe(ex.getMessage(), "리소스 충돌이 발생했습니다"), req);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(
             DataIntegrityViolationException ex, HttpServletRequest req) {
-        return build(HttpStatus.CONFLICT, "resource conflict", req);
+        return build(HttpStatus.CONFLICT, "리소스 충돌이 발생했습니다", req);
     }
 
     @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
     public ResponseEntity<ApiErrorResponse> handleOptimisticLock(
             org.springframework.dao.OptimisticLockingFailureException ex, HttpServletRequest req) {
         // M-8: 동시 편집 충돌 → 409. 클라이언트는 최신 상태 재조회 후 재시도.
-        return build(HttpStatus.CONFLICT, "resource was modified concurrently — reload and retry", req);
+        return build(HttpStatus.CONFLICT, "다른 곳에서 먼저 수정되었습니다. 새로고침 후 다시 시도해 주세요", req);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex, HttpServletRequest req) {
         log.error("unhandled exception at {} {}", req.getMethod(), req.getRequestURI(), ex);
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "internal server error", req);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다", req);
     }
 
     private static String safe(String message, String fallback) {

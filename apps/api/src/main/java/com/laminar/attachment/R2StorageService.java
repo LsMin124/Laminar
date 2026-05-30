@@ -4,7 +4,12 @@ import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -42,12 +47,15 @@ public class R2StorageService {
             "application/octet-stream");
 
     private final S3Presigner presigner;
+    private final S3Client s3Client;
     private final String bucket;
 
     public R2StorageService(
             S3Presigner r2S3Presigner,
+            S3Client r2S3Client,
             @Value("${app.r2.bucket:laminar-attachments}") String bucket) {
         this.presigner = r2S3Presigner;
+        this.s3Client = r2S3Client;
         this.bucket = bucket;
     }
 
@@ -102,6 +110,44 @@ public class R2StorageService {
                 .build();
         PresignedGetObjectRequest presigned = presigner.presignGetObject(presignRequest);
         return presigned.url().toString();
+    }
+
+    /**
+     * 업로드된 R2 객체의 실제 크기를 서버측에서 검증 (N-4).
+     *
+     * <p>클라이언트가 보고하는 size는 위조 가능하다(AWS SDK presigned PUT은 content-length-range를
+     * 적용하지 못함). finalize 시점에 R2에 HEAD하여 실제 저장 바이트를 확인하고, 한도 초과 시 객체를
+     * 즉시 삭제 후 거부 — 무제한 업로드로 인한 스토리지 고갈을 차단한다. 소유 prefix도 fail-closed
+     * 검증(M-5와 동일). HEAD/DELETE는 R2Config의 S3Client(서버측 직접 호출) 사용.
+     *
+     * @return 검증된 실제 바이트 수 (한도 이내)
+     */
+    public long verifyUploadedSize(String storageKey, long maxBytes) {
+        WorkspaceContext ctx = WorkspaceContextHolder.require();
+        String requiredPrefix = String.format(
+                "workspaces/%s/users/%s/", ctx.workspaceId(), ctx.userId());
+        if (storageKey == null || !storageKey.startsWith(requiredPrefix)) {
+            throw new IllegalStateException("storage key not owned by current user");
+        }
+        long actualSize;
+        try {
+            HeadObjectResponse head = s3Client.headObject(
+                    HeadObjectRequest.builder().bucket(bucket).key(storageKey).build());
+            actualSize = head.contentLength() == null ? 0L : head.contentLength();
+        } catch (NoSuchKeyException e) {
+            throw new IllegalArgumentException("uploaded object not found");
+        }
+        if (actualSize > maxBytes) {
+            // 한도 초과 → 즉시 삭제(스토리지 보존 차단). 삭제 실패는 무시(베스트에포트 — cleanup cron 후속).
+            try {
+                s3Client.deleteObject(
+                        DeleteObjectRequest.builder().bucket(bucket).key(storageKey).build());
+            } catch (RuntimeException ignored) {
+                // 삭제 실패해도 거부는 유지
+            }
+            throw new IllegalArgumentException("uploaded file exceeds size limit");
+        }
+        return actualSize;
     }
 
     private static String safeFilename(String filename) {

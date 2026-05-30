@@ -22,9 +22,11 @@ public class AttachmentService {
     static final long MAX_SIZE_BYTES = 20L * 1024 * 1024;
 
     private final AttachmentRepository attachmentRepo;
+    private final R2StorageService r2Storage;
 
-    public AttachmentService(AttachmentRepository attachmentRepo) {
+    public AttachmentService(AttachmentRepository attachmentRepo, R2StorageService r2Storage) {
         this.attachmentRepo = attachmentRepo;
+        this.r2Storage = r2Storage;
     }
 
     @Transactional
@@ -75,10 +77,10 @@ public class AttachmentService {
                 .filter(a -> a.getDeletedAt() == null)
                 .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("attachment not found"));
-        if (actualSizeBytes != null && actualSizeBytes > MAX_SIZE_BYTES) {
-            throw new IllegalArgumentException("uploaded size exceeds " + MAX_SIZE_BYTES);
-        }
-        attachment.setSizeBytes(actualSizeBytes);
+        // N-4: 클라이언트 자칭 크기(actualSizeBytes)는 위조 가능 → R2의 실제 객체 크기를 HEAD로
+        // 검증한다. 한도 초과 시 R2StorageService가 객체를 삭제하고 거부(스토리지 고갈 차단).
+        long verifiedSize = r2Storage.verifyUploadedSize(attachment.getStorageKey(), MAX_SIZE_BYTES);
+        attachment.setSizeBytes(verifiedSize);
         attachment.setSha256(actualSha256);
         attachment.setAccessCheckRequired(false);
         return attachmentRepo.save(attachment);

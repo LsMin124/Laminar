@@ -10,6 +10,7 @@ import {
   type CardFormValues,
 } from "../components/card/CardForm";
 import { CardDialog } from "../components/card/CardDialog";
+import { CardInspector } from "../components/card/CardInspector";
 import {
   useBoard,
   useBoardCalendar,
@@ -29,6 +30,7 @@ export function BoardDetailPage() {
   const [createInitialDate, setCreateInitialDate] = useState<string | null>(
     null,
   );
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const board = useBoard(boardId);
   const graph = useBoardGraph(viewMode === "graph" ? boardId : null);
@@ -59,7 +61,8 @@ export function BoardDetailPage() {
   }
 
   return (
-    <div className="board-detail">
+    <div className="board-workspace">
+      <div className="board-detail">
       <header className="board-detail-header">
         <button
           type="button"
@@ -146,7 +149,7 @@ export function BoardDetailPage() {
               anchor={anchor}
               cards={calendar.data?.cards ?? []}
               dateMemos={calendar.data?.dateMemos ?? []}
-              onCardClick={(c) => navigate(`/boards/${boardId}/cards/${c.id}`)}
+              onCardClick={(c) => setSelectedCardId(c.id)}
               onCellClick={(iso) => setCreateInitialDate(iso)}
             />
           )}
@@ -162,9 +165,7 @@ export function BoardDetailPage() {
             groups={graph.data?.groups ?? []}
             cardRelations={graph.data?.cardRelations ?? []}
             groupRelations={graph.data?.groupRelations ?? []}
-            onCardClick={(cardId) =>
-              navigate(`/boards/${boardId}/cards/${cardId}`)
-            }
+            onCardClick={(cardId) => setSelectedCardId(cardId)}
           />
           <GroupManager
             boardId={boardId}
@@ -187,6 +188,14 @@ export function BoardDetailPage() {
           />
         )}
       </CardDialog>
+      </div>
+      {selectedCardId && (
+        <CardInspector
+          cardId={selectedCardId}
+          boardId={boardId}
+          onClose={() => setSelectedCardId(null)}
+        />
+      )}
     </div>
   );
 }

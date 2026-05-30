@@ -53,7 +53,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(new CsrfHeaderFilter(), SessionAuthenticationFilter.class)
+                // CsrfHeaderFilter·sessionAuthFilter 모두 빌트인 UsernamePasswordAuthenticationFilter
+                // 앞에 배치 — addFilterBefore의 참조는 order가 등록된 빌트인 필터여야 함(커스텀 필터
+                // 참조 시 "does not have a registered order"로 부팅 실패). 추가 순서상 CSRF가 먼저 실행.
+                .addFilterBefore(new CsrfHeaderFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)

@@ -293,41 +293,6 @@ export function useRemoveGroupFromTab(boardId: string) {
   });
 }
 
-/** 캔버스 노드 드래그 배치 (P3c) — 카드 attrs에 canvasX/canvasY 저장(마이그레이션 불필요). */
-export function useMoveCard(boardId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      cardId: string;
-      attrs: Record<string, unknown>;
-    }) => api.patch<CardResponse>(`/api/cards/${input.cardId}`, {
-      attrs: input.attrs,
-    }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
-    },
-  });
-}
-
-/** 캘린더 드래그로 카드 일정 이동 (P2) — 임의 카드의 시작/종료일 PATCH. */
-export function useRescheduleCard(boardId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      cardId: string;
-      startDate: string;
-      endDate: string | null;
-    }) =>
-      api.patch<CardResponse>(`/api/cards/${input.cardId}`, {
-        startDate: input.startDate,
-        endDate: input.endDate,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
-    },
-  });
-}
-
 export const attachmentKeys = {
   byParent: (parentType: AttachmentParentType, parentId: string) =>
     ["attachments", parentType, parentId] as const,

@@ -181,6 +181,20 @@
   color: var(--text-dim);
 }
 
+.tab-scope-new {
+  padding: 0.25rem 0.6rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--accent-bright);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tab-scope-new:hover {
+  border-color: var(--accent-bright);
+}
+
 .board-detail-header-actions {
   margin-left: auto;
   display: flex;

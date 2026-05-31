@@ -30,6 +30,9 @@ import type {
   PerpetualVersionResponse,
   RenderedBodyResponse,
   TabResponse,
+  WhiteboardEdgeResponse,
+  WhiteboardNodeResponse,
+  WhiteboardResponse,
   WorkspaceResponse,
   WorkspaceRole,
 } from "./types";
@@ -1103,5 +1106,100 @@ export function useAuditLogs(limit = 100) {
     queryKey: [...adminKeys.auditLogs, limit] as const,
     queryFn: () =>
       api.get<AuditLogResponse[]>(`/api/audit-logs?limit=${limit}`),
+  });
+}
+
+// ── 독립 화이트보드 (그래프 뷰) — 타임라인/캘린더와 무관 ──
+export function useWhiteboard(boardId: string) {
+  return useQuery<WhiteboardResponse>({
+    queryKey: ["boards", boardId, "whiteboard"],
+    queryFn: () =>
+      api.get<WhiteboardResponse>(`/api/boards/${boardId}/whiteboard`),
+    enabled: Boolean(boardId),
+  });
+}
+
+export function useCreateWhiteboardNode(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      text?: string;
+      x: number;
+      y: number;
+      width?: number;
+      height?: number;
+      color?: string | null;
+    }) =>
+      api.post<WhiteboardNodeResponse>(
+        `/api/boards/${boardId}/whiteboard/nodes`,
+        input,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "whiteboard"] });
+    },
+  });
+}
+
+export function useUpdateWhiteboardNode(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      nodeId: string;
+      text?: string;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+      color?: string | null;
+    }) => {
+      const { nodeId, ...patch } = input;
+      return api.patch<WhiteboardNodeResponse>(
+        `/api/whiteboard/nodes/${nodeId}`,
+        patch,
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "whiteboard"] });
+    },
+  });
+}
+
+export function useDeleteWhiteboardNode(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (nodeId: string) =>
+      api.delete<void>(`/api/whiteboard/nodes/${nodeId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "whiteboard"] });
+    },
+  });
+}
+
+export function useCreateWhiteboardEdge(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      fromNodeId: string;
+      toNodeId: string;
+      label?: string;
+    }) =>
+      api.post<WhiteboardEdgeResponse>(
+        `/api/boards/${boardId}/whiteboard/edges`,
+        input,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "whiteboard"] });
+    },
+  });
+}
+
+export function useDeleteWhiteboardEdge(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (edgeId: string) =>
+      api.delete<void>(`/api/whiteboard/edges/${edgeId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "whiteboard"] });
+    },
   });
 }

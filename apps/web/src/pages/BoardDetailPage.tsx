@@ -10,9 +10,8 @@ import {
 } from "date-fns";
 import type { CardResponse, TabResponse } from "../lib/types";
 import { MonthGrid } from "../components/calendar/MonthGrid";
-import { BoardGraph } from "../components/graph/BoardGraph";
 import { SwimlaneTimeline } from "../components/timeline/SwimlaneTimeline";
-import { GroupManager } from "../components/group/GroupManager";
+import { WhiteboardCanvas } from "../components/whiteboard/WhiteboardCanvas";
 import {
   CardForm,
   emptyCardForm,
@@ -34,7 +33,6 @@ import {
   useCreateCard,
   useCreateCardRelation,
   useCreateGroup,
-  useMoveCard,
   useRemoveGroupFromTab,
 } from "../lib/queries";
 import "./BoardDetailPage.css";
@@ -70,7 +68,6 @@ export function BoardDetailPage() {
   const dialogs = useDialogs();
   const createCard = useCreateCard(boardId);
   const createRelation = useCreateCardRelation(boardId);
-  const moveCard = useMoveCard(boardId);
   const createGroup = useCreateGroup(boardId);
   const addToGroup = useAddCardToGroup(boardId);
   const tabs = useBoardTabs(boardId);
@@ -116,35 +113,6 @@ export function BoardDetailPage() {
   const tabGroupIds =
     selectedTabId && graph.data ? (graph.data.tabGroups[selectedTabId] ?? []) : [];
   const boardGroups = graph.data?.groups ?? [];
-
-  // P3b — 화살표 그리면 관계 생성 + 그룹 자동형성(§3.7). 둘 다 미그룹 → 새 그룹,
-  // 한쪽만 그룹 → 다른쪽 합류. 양쪽 다른 그룹/다중 그룹은 흡수 모달(후속)이라 지금은 관계만.
-  async function handleCreateRelation(fromCardId: string, toCardId: string) {
-    await createRelation.mutateAsync({ fromCardId, toCardId });
-    const gm = graph.data?.groupMembers ?? {};
-    const aGroups = Object.keys(gm).filter((g) => gm[g]?.includes(fromCardId));
-    const bGroups = Object.keys(gm).filter((g) => gm[g]?.includes(toCardId));
-    if (aGroups.some((g) => bGroups.includes(g))) return;
-    if (aGroups.length === 0 && bGroups.length === 0) {
-      const group = await createGroup.mutateAsync({ name: "새 그룹" });
-      await addToGroup.mutateAsync({ groupId: group.id, cardId: fromCardId });
-      await addToGroup.mutateAsync({ groupId: group.id, cardId: toCardId });
-    } else if (aGroups.length === 0 && bGroups.length === 1) {
-      await addToGroup.mutateAsync({ groupId: bGroups[0], cardId: fromCardId });
-    } else if (bGroups.length === 0 && aGroups.length === 1) {
-      await addToGroup.mutateAsync({ groupId: aGroups[0], cardId: toCardId });
-    }
-  }
-
-  function handleMoveCard(cardId: string, x: number, y: number) {
-    const card = graph.data?.cards.find((c) => c.id === cardId);
-    const attrs = {
-      ...(card?.attrs ?? {}),
-      canvasX: Math.round(x),
-      canvasY: Math.round(y),
-    };
-    moveCard.mutate({ cardId, attrs });
-  }
 
   async function handleCreate(values: CardFormValues) {
     await createCard.mutateAsync({
@@ -330,6 +298,21 @@ export function BoardDetailPage() {
           </select>
           <button
             type="button"
+            className="tab-scope-new"
+            onClick={async () => {
+              const name = await dialogs.prompt({
+                title: "새 그룹",
+                placeholder: "그룹 이름",
+              });
+              if (!name?.trim()) return;
+              const group = await createGroup.mutateAsync({ name: name.trim() });
+              addGroupToTab.mutate({ tabId: selectedTabId, groupId: group.id });
+            }}
+          >
+            + 새 그룹
+          </button>
+          <button
+            type="button"
             className="tab-scope-clear"
             onClick={() => setSelectedTabId(null)}
           >
@@ -407,27 +390,8 @@ export function BoardDetailPage() {
             />
           )}
         </>
-      ) : graph.isLoading ? (
-        <p className="loading">그래프 불러오는 중...</p>
-      ) : graph.error ? (
-        <p className="auth-error">그래프 로드 실패: {String(graph.error)}</p>
       ) : (
-        <div className="board-detail-graph-wrap">
-          <BoardGraph
-            cards={graph.data?.cards ?? []}
-            groups={graph.data?.groups ?? []}
-            cardRelations={graph.data?.cardRelations ?? []}
-            groupRelations={graph.data?.groupRelations ?? []}
-            onCardClick={(cardId) => setSelectedCardId(cardId)}
-            onCreateRelation={handleCreateRelation}
-            onMoveCard={handleMoveCard}
-            scopedCardIds={scopedCardIds}
-          />
-          <GroupManager
-            boardId={boardId}
-            cards={graph.data?.cards ?? []}
-          />
-        </div>
+        <WhiteboardCanvas boardId={boardId} />
       )}
       <CardDialog
         open={createInitialDate !== null}

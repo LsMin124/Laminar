@@ -207,6 +207,40 @@ export interface BoardGraphResponse {
   tabGroups: Record<string, string[]>;
 }
 
+// 독립 화이트보드 (그래프 뷰) — 타임라인/캘린더와 무관한 자체 엔티티.
+export interface WhiteboardNodeResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string | null;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface WhiteboardEdgeResponse {
+  id: Uuid;
+  workspaceId: Uuid;
+  userId: Uuid;
+  boardId: Uuid;
+  fromNodeId: Uuid;
+  toNodeId: Uuid;
+  label: string | null;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+}
+
+export interface WhiteboardResponse {
+  boardId: Uuid;
+  nodes: WhiteboardNodeResponse[];
+  edges: WhiteboardEdgeResponse[];
+}
+
 export interface TabResponse {
   id: Uuid;
   workspaceId: Uuid;

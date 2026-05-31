@@ -1,0 +1,179 @@
+.swimlane {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.swimlane-scroll {
+  height: 100%;
+  overflow: auto;
+  padding-bottom: 2rem;
+}
+
+/* 날짜 헤더 */
+.swimlane-header {
+  display: grid;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+
+.swimlane-day {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  border-left: 1px solid var(--rule);
+  font-size: 0.85rem;
+}
+
+.swimlane-day.today {
+  background: rgba(99, 102, 241, 0.13);
+}
+
+.swimlane-day-date {
+  font-weight: 600;
+}
+
+.swimlane-day-wd {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.swimlane-day.sunday .swimlane-day-date {
+  color: #f87171;
+}
+
+.swimlane-day.saturday .swimlane-day-date {
+  color: #60a5fa;
+}
+
+/* 탭 섹션 */
+.swimlane-section {
+  border-bottom: 1px solid var(--rule);
+}
+
+.swimlane-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.swimlane-section-name {
+  position: sticky;
+  left: 0.75rem;
+}
+
+.swimlane-section-count {
+  padding: 0.05rem 0.45rem;
+  background: var(--surface-2);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.swimlane-empty,
+.swimlane-section-empty {
+  position: sticky;
+  left: 0;
+  padding: 0.6rem 0.75rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+/* 그룹 점선 밴드 */
+.swimlane-group {
+  margin: 0.5rem 0.5rem 0.75rem;
+}
+
+.swimlane-group-label {
+  position: sticky;
+  left: 0.5rem;
+  display: inline-block;
+  margin-bottom: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  background: var(--bg);
+  border: 1px dashed var(--rule);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.swimlane-grid {
+  display: grid;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.swimlane-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 56px;
+  padding: 0.4rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.swimlane-cell:first-child {
+  border-left: none;
+}
+
+/* 카드 */
+.swimlane-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid #6b7280;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+
+.swimlane-card:hover {
+  background: var(--surface-2);
+}
+
+.swimlane-card.completed {
+  opacity: 0.6;
+}
+
+.swimlane-card.completed .swimlane-card-title {
+  text-decoration: line-through;
+}
+
+.swimlane-card-title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swimlane-card-date {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+}
+
+.swimlane-card-summary {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

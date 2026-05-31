@@ -12,6 +12,7 @@ import {
 import type { CardResponse, TabResponse } from "../lib/types";
 import { MonthGrid } from "../components/calendar/MonthGrid";
 import { BoardGraph } from "../components/graph/BoardGraph";
+import { SwimlaneTimeline } from "../components/timeline/SwimlaneTimeline";
 import { GroupManager } from "../components/group/GroupManager";
 import {
   CardForm,
@@ -37,14 +38,18 @@ import {
 } from "../lib/queries";
 import "./BoardDetailPage.css";
 
-type ViewMode = "calendar" | "graph";
+type ViewMode = "timeline" | "calendar" | "graph";
+const TIMELINE_DAYS = 14;
 
 export function BoardDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
   const boardId = params.boardId ?? "";
   const [anchor, setAnchor] = useState<Date>(() => startOfMonth(new Date()));
-  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
+  const [timelineStart, setTimelineStart] = useState<Date>(() =>
+    addDays(new Date(), -2),
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [createInitialDate, setCreateInitialDate] = useState<string | null>(
     null,
   );
@@ -217,6 +222,13 @@ export function BoardDetailPage() {
       <div className="board-detail-tabs">
         <button
           type="button"
+          className={`board-detail-tab${viewMode === "timeline" ? " active" : ""}`}
+          onClick={() => setViewMode("timeline")}
+        >
+          타임라인
+        </button>
+        <button
+          type="button"
           className={`board-detail-tab${viewMode === "calendar" ? " active" : ""}`}
           onClick={() => setViewMode("calendar")}
         >
@@ -288,7 +300,49 @@ export function BoardDetailPage() {
           </button>
         </div>
       )}
-      {viewMode === "calendar" ? (
+      {viewMode === "timeline" ? (
+        <>
+          <div className="board-detail-toolbar">
+            <button
+              type="button"
+              onClick={() => setTimelineStart((d) => addDays(d, -7))}
+            >
+              ‹
+            </button>
+            <h2 className="board-detail-month">
+              {format(timelineStart, "MM-dd")} ~{" "}
+              {format(addDays(timelineStart, TIMELINE_DAYS - 1), "MM-dd")}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setTimelineStart((d) => addDays(d, 7))}
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              className="board-detail-today"
+              onClick={() => setTimelineStart(addDays(new Date(), -2))}
+            >
+              오늘
+            </button>
+          </div>
+          {graph.isLoading ? (
+            <p className="loading">불러오는 중...</p>
+          ) : (
+            <SwimlaneTimeline
+              anchor={timelineStart}
+              dayCount={TIMELINE_DAYS}
+              tabs={tabs.data ?? []}
+              groups={graph.data?.groups ?? []}
+              tabGroups={graph.data?.tabGroups ?? {}}
+              groupMembers={graph.data?.groupMembers ?? {}}
+              cards={graph.data?.cards ?? []}
+              onCardClick={(cardId) => setSelectedCardId(cardId)}
+            />
+          )}
+        </>
+      ) : viewMode === "calendar" ? (
         <>
           <div className="board-detail-toolbar">
             <button

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useBoardTabs, useCreateTab } from "../../lib/queries";
+import { useBoardTabs, useCreateTab, useUpdateTab } from "../../lib/queries";
 import type { TabResponse } from "../../lib/types";
 import "./TabTreeSidebar.css";
 
@@ -37,6 +37,7 @@ interface Props {
 export function TabTreeSidebar({ boardId, selectedTabId, onSelectTab }: Props) {
   const tabs = useBoardTabs(boardId);
   const createTab = useCreateTab(boardId);
+  const updateTab = useUpdateTab(boardId);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const tree = buildTree(tabs.data ?? []);
@@ -66,7 +67,7 @@ export function TabTreeSidebar({ boardId, selectedTabId, onSelectTab }: Props) {
           return (
             <li key={node.tab.id}>
               <div
-                className={`tab-tree-item${selectedTabId === node.tab.id ? " selected" : ""}`}
+                className={`tab-tree-item${selectedTabId === node.tab.id ? " selected" : ""}${node.tab.visible ? "" : " off"}`}
                 style={{ paddingLeft: `${0.4 + depth * 0.85}rem` }}
               >
                 {hasChildren ? (
@@ -94,6 +95,22 @@ export function TabTreeSidebar({ boardId, selectedTabId, onSelectTab }: Props) {
                     />
                   )}
                   {node.tab.name}
+                </button>
+                <button
+                  type="button"
+                  className={`tab-tree-vis${node.tab.visible ? " on" : ""}`}
+                  onClick={() =>
+                    updateTab.mutate({
+                      tabId: node.tab.id,
+                      visible: !node.tab.visible,
+                    })
+                  }
+                  title={
+                    node.tab.visible ? "타임라인에서 숨김" : "타임라인에 표시"
+                  }
+                  aria-pressed={node.tab.visible}
+                >
+                  {node.tab.visible ? "ON" : "OFF"}
                 </button>
                 <button
                   type="button"

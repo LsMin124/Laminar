@@ -483,6 +483,27 @@ export function useCreateTab(boardId: string) {
   });
 }
 
+export function useUpdateTab(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      tabId: string;
+      name?: string;
+      visible?: boolean;
+      collapsed?: boolean;
+      showLabel?: boolean;
+      labelColor?: string | null;
+      parentTabId?: string | null;
+    }) => {
+      const { tabId, ...patch } = input;
+      return api.patch<TabResponse>(`/api/tabs/${tabId}`, patch);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: perpetualKeys.boardTabs(boardId) });
+    },
+  });
+}
+
 export function useDeleteTab(boardId: string) {
   const qc = useQueryClient();
   return useMutation({

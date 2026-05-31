@@ -131,6 +131,30 @@
   color: var(--accent);
 }
 
+/* 타임라인 표시 토글 (ON/OFF) — tab.visible 제어 */
+.tab-tree-vis {
+  flex-shrink: 0;
+  padding: 0.05rem 0.4rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.tab-tree-vis.on {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.tab-tree-item.off .tab-tree-label {
+  opacity: 0.42;
+}
+
 .tab-tree-empty,
 .tab-tree-loading {
   padding: 0.5rem;

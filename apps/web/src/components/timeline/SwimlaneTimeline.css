@@ -209,3 +209,35 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 카드 메타 아이콘 행 */
+.swimlane-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  color: var(--text-dim);
+  font-size: 0.68rem;
+}
+
+.swimlane-card-badge {
+  font-variant-numeric: tabular-nums;
+}
+
+.swimlane-card-perp,
+.swimlane-card-done {
+  color: #059669;
+}
+
+.swimlane-card-gcal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 700;
+}

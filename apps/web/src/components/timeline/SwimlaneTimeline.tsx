@@ -81,6 +81,14 @@ export function SwimlaneTimeline({
     [anchor, dayCount],
   );
   const cardsById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
+  const relCountById = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of cardRelations) {
+      m.set(r.fromCardId, (m.get(r.fromCardId) ?? 0) + 1);
+      m.set(r.toCardId, (m.get(r.toCardId) ?? 0) + 1);
+    }
+    return m;
+  }, [cardRelations]);
   const groupsById = useMemo(
     () => new Map(groups.map((g) => [g.id, g])),
     [groups],
@@ -265,38 +273,89 @@ export function SwimlaneTimeline({
                           <div className="swimlane-grid" style={gridStyle}>
                             {days.map((_, i) => (
                               <div key={i} className="swimlane-cell">
-                                {(byDay.get(i) ?? []).map((card) => (
-                                  <button
-                                    key={card.id}
-                                    ref={registerCard(card.id)}
-                                    type="button"
-                                    className={`swimlane-card${card.completed ? " completed" : ""}`}
-                                    style={{
-                                      borderLeftColor:
-                                        IMPORTANCE_COLOR[card.importance] ??
-                                        "#6b7280",
-                                    }}
-                                    onClick={() => onCardClick(card.id)}
-                                    title={card.title}
-                                  >
-                                    <span className="swimlane-card-title">
-                                      {card.title}
-                                    </span>
-                                    <span className="swimlane-card-date">
-                                      {card.startDate}
-                                      {card.endDate &&
-                                      card.endDate !== card.startDate
-                                        ? ` ~ ${card.endDate}`
-                                        : ""}
-                                      {card.startTime ? ` ${card.startTime}` : ""}
-                                    </span>
-                                    {card.bodyMd && (
-                                      <span className="swimlane-card-summary">
-                                        {card.bodyMd.slice(0, 48)}
+                                {(byDay.get(i) ?? []).map((card) => {
+                                  const relCount = relCountById.get(card.id) ?? 0;
+                                  const isGcal = card.origin === "GCAL_PULL";
+                                  const hasMeta =
+                                    relCount > 0 ||
+                                    Boolean(card.rrule) ||
+                                    Boolean(card.linkedPerpetualId) ||
+                                    isGcal ||
+                                    card.completed;
+                                  return (
+                                    <button
+                                      key={card.id}
+                                      ref={registerCard(card.id)}
+                                      type="button"
+                                      className={`swimlane-card${card.completed ? " completed" : ""}`}
+                                      style={{
+                                        borderLeftColor:
+                                          IMPORTANCE_COLOR[card.importance] ??
+                                          "#6b7280",
+                                      }}
+                                      onClick={() => onCardClick(card.id)}
+                                      title={card.title}
+                                    >
+                                      <span className="swimlane-card-title">
+                                        {card.title}
                                       </span>
-                                    )}
-                                  </button>
-                                ))}
+                                      <span className="swimlane-card-date">
+                                        {card.startDate}
+                                        {card.endDate &&
+                                        card.endDate !== card.startDate
+                                          ? ` ~ ${card.endDate}`
+                                          : ""}
+                                        {card.startTime
+                                          ? ` ${card.startTime}`
+                                          : ""}
+                                      </span>
+                                      {card.bodyMd && (
+                                        <span className="swimlane-card-summary">
+                                          {card.bodyMd.slice(0, 48)}
+                                        </span>
+                                      )}
+                                      {hasMeta && (
+                                        <span className="swimlane-card-meta">
+                                          {relCount > 0 && (
+                                            <span
+                                              className="swimlane-card-badge"
+                                              title="관계"
+                                            >
+                                              ↔{relCount}
+                                            </span>
+                                          )}
+                                          {card.rrule && (
+                                            <span title="반복">⟳</span>
+                                          )}
+                                          {card.linkedPerpetualId && (
+                                            <span
+                                              className="swimlane-card-perp"
+                                              title="영구노트 연결"
+                                            >
+                                              ◆
+                                            </span>
+                                          )}
+                                          {isGcal && (
+                                            <span
+                                              className="swimlane-card-gcal"
+                                              title="Google 캘린더"
+                                            >
+                                              G
+                                            </span>
+                                          )}
+                                          {card.completed && (
+                                            <span
+                                              className="swimlane-card-done"
+                                              title="완료"
+                                            >
+                                              ✓
+                                            </span>
+                                          )}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             ))}
                           </div>

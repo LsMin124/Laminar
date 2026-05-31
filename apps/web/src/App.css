@@ -41,7 +41,7 @@ body {
   padding: 2rem;
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 12px;
+  border-radius: 3px;
 }
 
 .auth-container h1 {
@@ -67,13 +67,13 @@ body {
   padding: 0.6rem 0.8rem;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--text);
   font-size: 1rem;
 }
 
 .auth-form input:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-bright);
   outline-offset: -1px;
 }
 
@@ -83,7 +83,7 @@ body {
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 2px;
   font-size: 1rem;
   cursor: pointer;
 }
@@ -102,7 +102,7 @@ body {
   padding: 0.6rem;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid var(--danger);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--danger);
   font-size: 0.875rem;
 }
@@ -139,7 +139,7 @@ body {
   padding: 0.7rem;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 500;
@@ -198,7 +198,7 @@ body {
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
 }
 
@@ -209,7 +209,7 @@ body {
 .boards-section {
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 12px;
+  border-radius: 3px;
   padding: 1.5rem;
 }
 
@@ -230,7 +230,7 @@ body {
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
 }
 
@@ -241,14 +241,14 @@ body {
   margin-bottom: 1.5rem;
   padding: 1rem;
   background: var(--surface-2);
-  border-radius: 8px;
+  border-radius: 2px;
 }
 
 .board-create-form input {
   padding: 0.6rem;
   background: var(--bg);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--text);
 }
 
@@ -257,7 +257,7 @@ body {
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
 }
 
@@ -280,7 +280,7 @@ body {
   padding: 1rem;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: 2px;
   cursor: pointer;
   transition: border-color 0.15s;
 }

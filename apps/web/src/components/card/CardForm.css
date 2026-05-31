@@ -25,7 +25,7 @@
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   font-size: 0.95rem;
   font-family: inherit;
 }
@@ -34,7 +34,7 @@
 .card-form-row select:focus,
 .card-form-grid input:focus,
 .card-form-grid select:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-bright);
   outline-offset: -1px;
 }
 
@@ -81,7 +81,7 @@
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 0.9rem;
 }
@@ -93,7 +93,8 @@
 .card-form-actions button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: #04212a;
+  font-weight: 600;
 }
 
 .card-form-actions button.primary:hover:not(:disabled) {

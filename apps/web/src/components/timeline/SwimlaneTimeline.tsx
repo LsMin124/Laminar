@@ -45,6 +45,7 @@ interface Props {
   onCardClick: (cardId: string) => void;
   onCreateCard: (groupId: string, dateIso: string) => void;
   onAddNextStep: (groupId: string, fromCard: CardResponse) => void;
+  onConnect: (fromCardId: string, toCardId: string) => void;
 }
 
 interface Arrow {
@@ -93,6 +94,7 @@ export function SwimlaneTimeline({
   onCardClick,
   onCreateCard,
   onAddNextStep,
+  onConnect,
 }: Props) {
   const days = useMemo(
     () => Array.from({ length: dayCount }, (_, i) => addDays(anchor, i)),
@@ -154,6 +156,19 @@ export function SwimlaneTimeline({
   const cardRefs = useRef(new Map<string, HTMLElement>());
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [dims, setDims] = useState({ w: 0, h: 0 });
+  // 연결 모드 — 카드 A의 "연결 ⇢" 후 다른 카드 B 클릭 시 A→B 순차(SEQUENCE) 화살표.
+  const [linkSource, setLinkSource] = useState<string | null>(null);
+
+  function activateCard(cardId: string) {
+    if (linkSource && linkSource !== cardId) {
+      onConnect(linkSource, cardId);
+      setLinkSource(null);
+    } else if (linkSource === cardId) {
+      setLinkSource(null);
+    } else {
+      onCardClick(cardId);
+    }
+  }
 
   // 렌더된 카드 DOM을 측정해 보이는 카드끼리만 화살표 좌표 계산.
   useLayoutEffect(() => {
@@ -231,7 +246,18 @@ export function SwimlaneTimeline({
   }
 
   return (
-    <div className="swimlane">
+    <div className={`swimlane${linkSource ? " linking" : ""}`}>
+      {linkSource && (
+        <div className="swimlane-link-banner">
+          <span>
+            <strong>{cardsById.get(linkSource)?.title ?? "카드"}</strong> 다음으로
+            이을 카드를 클릭하세요 (같은 날/다른 날 무관)
+          </span>
+          <button type="button" onClick={() => setLinkSource(null)}>
+            취소
+          </button>
+        </div>
+      )}
       <div className="swimlane-scroll">
         <div className="swimlane-content" ref={contentRef}>
           <svg
@@ -397,17 +423,17 @@ export function SwimlaneTimeline({
                                       ref={registerCard(card.id)}
                                       role="button"
                                       tabIndex={0}
-                                      className={`swimlane-card${card.completed ? " completed" : ""}`}
+                                      className={`swimlane-card${card.completed ? " completed" : ""}${linkSource === card.id ? " linking-source" : ""}`}
                                       style={{
                                         borderLeftColor:
                                           IMPORTANCE_COLOR[card.importance] ??
                                           "#6b7280",
                                       }}
-                                      onClick={() => onCardClick(card.id)}
+                                      onClick={() => activateCard(card.id)}
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter" || e.key === " ") {
                                           e.preventDefault();
-                                          onCardClick(card.id);
+                                          activateCard(card.id);
                                         }
                                       }}
                                       title={card.title}
@@ -476,18 +502,32 @@ export function SwimlaneTimeline({
                                           )}
                                         </span>
                                       )}
-                                      <button
-                                        type="button"
-                                        className="swimlane-card-next"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onAddNextStep(gid, card);
-                                        }}
-                                        title="다음 단계 카드 (다음날·같은 그룹·순차 연결)"
-                                        aria-label="다음 단계 카드 추가"
-                                      >
-                                        다음 단계 →
-                                      </button>
+                                      <span className="swimlane-card-actions">
+                                        <button
+                                          type="button"
+                                          className="swimlane-card-next"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onAddNextStep(gid, card);
+                                          }}
+                                          title="다음 단계 카드 (다음날·같은 그룹·순차 연결)"
+                                          aria-label="다음 단계 카드 추가"
+                                        >
+                                          다음 단계 →
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="swimlane-card-link"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLinkSource(card.id);
+                                          }}
+                                          title="이 카드를 다른 카드와 순차 연결 (같은 날/다른 날 무관)"
+                                          aria-label="순차 연결 시작"
+                                        >
+                                          연결 ⇢
+                                        </button>
+                                      </span>
                                     </div>
                                   );
                                 })}

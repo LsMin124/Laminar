@@ -222,6 +222,10 @@ export function BoardDetailPage() {
     });
   }
 
+  function handleConnectCards(fromCardId: string, toCardId: string) {
+    createRelation.mutate({ fromCardId, toCardId, relationKind: "SEQUENCE" });
+  }
+
   return (
     <div className="board-workspace">
       <div className="board-sidebar">
@@ -397,6 +401,7 @@ export function BoardDetailPage() {
               onCardClick={(cardId) => setSelectedCardId(cardId)}
               onCreateCard={handleCreateCardInCell}
               onAddNextStep={handleAddNextStep}
+              onConnect={handleConnectCards}
             />
           )}
         </>

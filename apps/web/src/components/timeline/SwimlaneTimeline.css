@@ -286,6 +286,83 @@
   text-decoration: underline;
 }
 
+.swimlane-card-actions {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.1rem;
+}
+
+.swimlane-card-link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms,
+    color 120ms;
+}
+
+.swimlane-card:hover .swimlane-card-link {
+  opacity: 0.8;
+}
+
+.swimlane-card-link:hover {
+  opacity: 1;
+  color: var(--accent-bright);
+  text-decoration: underline;
+}
+
+/* 연결 모드 — 소스 카드 강조 + 나머지 카드는 클릭 대상(crosshair) */
+.swimlane-card.linking-source {
+  outline: 1px dashed var(--accent-bright);
+  outline-offset: 1px;
+}
+
+.swimlane.linking .swimlane-card {
+  cursor: crosshair;
+}
+
+.swimlane.linking .swimlane-card:hover {
+  border-color: var(--accent-bright);
+}
+
+.swimlane-link-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  background: color-mix(in oklab, var(--accent-bright) 12%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent-bright) 40%, var(--rule));
+  border-radius: 2px;
+  font-size: 0.82rem;
+}
+
+.swimlane-link-banner strong {
+  color: var(--accent-bright);
+}
+
+.swimlane-link-banner button {
+  flex-shrink: 0;
+  padding: 0.2rem 0.6rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.swimlane-link-banner button:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
 .swimlane-card.completed .swimlane-card-title {
   text-decoration: line-through;
 }

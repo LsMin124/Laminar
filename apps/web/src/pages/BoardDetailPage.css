@@ -4,6 +4,18 @@
   overflow: hidden;
 }
 
+/* 좌측 사이드바 컬럼 — 영구노트 패널(상단) + 탭 트리(하단) */
+.board-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--rule);
+  background: var(--surface);
+}
+
 .tab-scope-bar {
   display: flex;
   align-items: center;

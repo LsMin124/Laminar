@@ -1,11 +1,10 @@
 .tab-tree-sidebar {
-  width: 240px;
-  flex-shrink: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
-  border-right: 1px solid var(--rule);
   background: var(--surface);
 }
 

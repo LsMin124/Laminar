@@ -22,6 +22,8 @@ import {
 import { CardDialog } from "../components/card/CardDialog";
 import { CardInspector } from "../components/card/CardInspector";
 import { TabTreeSidebar } from "../components/tab/TabTreeSidebar";
+import { PerpetualPanel } from "../components/perpetual/PerpetualPanel";
+import { PerpetualNoteInspector } from "../components/perpetual/PerpetualNoteInspector";
 import {
   useAddCardToGroup,
   useAddGroupToTab,
@@ -54,6 +56,7 @@ export function BoardDetailPage() {
     null,
   );
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 
   const board = useBoard(boardId);
@@ -180,11 +183,22 @@ export function BoardDetailPage() {
 
   return (
     <div className="board-workspace">
-      <TabTreeSidebar
-        boardId={boardId}
-        selectedTabId={selectedTabId}
-        onSelectTab={setSelectedTabId}
-      />
+      <div className="board-sidebar">
+        <PerpetualPanel
+          boardId={boardId}
+          selectedTabId={selectedTabId}
+          selectedNoteId={selectedNoteId}
+          onSelectNote={(id) => {
+            setSelectedNoteId(id);
+            setSelectedCardId(null);
+          }}
+        />
+        <TabTreeSidebar
+          boardId={boardId}
+          selectedTabId={selectedTabId}
+          onSelectTab={setSelectedTabId}
+        />
+      </div>
       <div className="board-detail">
       <header className="board-detail-header">
         <button
@@ -430,13 +444,19 @@ export function BoardDetailPage() {
         )}
       </CardDialog>
       </div>
-      {selectedCardId && (
+      {selectedCardId ? (
         <CardInspector
           cardId={selectedCardId}
           boardId={boardId}
           onClose={() => setSelectedCardId(null)}
         />
-      )}
+      ) : selectedNoteId ? (
+        <PerpetualNoteInspector
+          boardId={boardId}
+          noteId={selectedNoteId}
+          onClose={() => setSelectedNoteId(null)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router";
 import {
   addDays,
   addMonths,
-  differenceInCalendarDays,
   endOfMonth,
   format,
   parseISO,
@@ -37,7 +36,6 @@ import {
   useCreateGroup,
   useMoveCard,
   useRemoveGroupFromTab,
-  useRescheduleCard,
 } from "../lib/queries";
 import "./BoardDetailPage.css";
 
@@ -74,7 +72,6 @@ export function BoardDetailPage() {
   const calendar = useBoardCalendar(boardId, range.from, range.to);
   const dialogs = useDialogs();
   const createCard = useCreateCard(boardId);
-  const reschedule = useRescheduleCard(boardId);
   const createRelation = useCreateCardRelation(boardId);
   const moveCard = useMoveCard(boardId);
   const createGroup = useCreateGroup(boardId);
@@ -150,22 +147,6 @@ export function BoardDetailPage() {
       canvasY: Math.round(y),
     };
     moveCard.mutate({ cardId, attrs });
-  }
-
-  async function handleReschedule(card: CardResponse, newStartIso: string) {
-    // 드롭한 날짜를 새 시작일로, 기존 기간(일수)을 보존해 종료일 이동.
-    const durationDays =
-      card.startDate && card.endDate
-        ? differenceInCalendarDays(parseISO(card.endDate), parseISO(card.startDate))
-        : 0;
-    const newEnd = card.endDate
-      ? format(addDays(parseISO(newStartIso), durationDays), "yyyy-MM-dd")
-      : null;
-    await reschedule.mutateAsync({
-      cardId: card.id,
-      startDate: newStartIso,
-      endDate: newEnd,
-    });
   }
 
   async function handleCreate(values: CardFormValues) {
@@ -430,6 +411,9 @@ export function BoardDetailPage() {
             >
               오늘
             </button>
+            <span className="board-detail-readonly">
+              읽기 전용 · 추가/편집은 타임라인에서
+            </span>
           </div>
           {calendar.isLoading ? (
             <p className="loading">캘린더 불러오는 중...</p>
@@ -449,8 +433,6 @@ export function BoardDetailPage() {
               }
               dateMemos={calendar.data?.dateMemos ?? []}
               onCardClick={(c) => setSelectedCardId(c.id)}
-              onCellClick={(iso) => setCreateInitialDate(iso)}
-              onCardReschedule={handleReschedule}
             />
           )}
         </>

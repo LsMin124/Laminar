@@ -9,7 +9,7 @@ import {
   parseISO,
   startOfMonth,
 } from "date-fns";
-import type { CardResponse } from "../lib/types";
+import type { CardResponse, TabResponse } from "../lib/types";
 import { MonthGrid } from "../components/calendar/MonthGrid";
 import { BoardGraph } from "../components/graph/BoardGraph";
 import { GroupManager } from "../components/group/GroupManager";
@@ -73,15 +73,40 @@ export function BoardDetailPage() {
   const addGroupToTab = useAddGroupToTab(boardId);
   const removeGroupFromTab = useRemoveGroupFromTab(boardId);
 
-  // P4b — 선택 탭 → 멤버 그룹(tabGroups) → 그 그룹들의 카드(groupMembers) = 스코프 카드 집합.
+  // P4b — 선택 탭 → (§3.4 visible 흡수 줌) 흡수 탭들의 멤버 그룹(tabGroups) →
+  // 그 그룹들의 카드(groupMembers) = 스코프 카드 집합.
+  // visible 부모는 후손 탭을 흡수(서브트리 포함), hidden 부모는 자기 그룹만(후손 미흡수).
   const scopedCardIds = useMemo(() => {
     if (!selectedTabId || !graph.data) return null;
+    const childrenByParent = new Map<string | null, string[]>();
+    const tabsById = new Map<string, TabResponse>();
+    (tabs.data ?? []).forEach((t) => {
+      tabsById.set(t.id, t);
+      const arr = childrenByParent.get(t.parentTabId) ?? [];
+      arr.push(t.id);
+      childrenByParent.set(t.parentTabId, arr);
+    });
+    const inScopeTabs = new Set<string>([selectedTabId]);
+    const stack = [selectedTabId];
+    while (stack.length > 0) {
+      const tid = stack.pop()!;
+      if (tabsById.get(tid)?.visible) {
+        (childrenByParent.get(tid) ?? []).forEach((c) => {
+          if (!inScopeTabs.has(c)) {
+            inScopeTabs.add(c);
+            stack.push(c);
+          }
+        });
+      }
+    }
     const ids = new Set<string>();
-    (graph.data.tabGroups[selectedTabId] ?? []).forEach((gid) => {
-      (graph.data!.groupMembers[gid] ?? []).forEach((cid) => ids.add(cid));
+    inScopeTabs.forEach((tid) => {
+      (graph.data!.tabGroups[tid] ?? []).forEach((gid) => {
+        (graph.data!.groupMembers[gid] ?? []).forEach((cid) => ids.add(cid));
+      });
     });
     return ids;
-  }, [selectedTabId, graph.data]);
+  }, [selectedTabId, graph.data, tabs.data]);
   const selectedTabName =
     tabs.data?.find((t) => t.id === selectedTabId)?.name ?? "";
   const tabGroupIds =

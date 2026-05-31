@@ -31,14 +31,20 @@ public class TabService {
     private final TabRepository tabRepo;
     private final TabMemberRepository memberRepo;
     private final com.laminar.card.CardRepository cardRepo;
+    private final com.laminar.group.GroupRepository groupRepo;
+    private final TabGroupMemberRepository tabGroupRepo;
 
     public TabService(
             TabRepository tabRepo,
             TabMemberRepository memberRepo,
-            com.laminar.card.CardRepository cardRepo) {
+            com.laminar.card.CardRepository cardRepo,
+            com.laminar.group.GroupRepository groupRepo,
+            TabGroupMemberRepository tabGroupRepo) {
         this.tabRepo = tabRepo;
         this.memberRepo = memberRepo;
         this.cardRepo = cardRepo;
+        this.groupRepo = groupRepo;
+        this.tabGroupRepo = tabGroupRepo;
     }
 
     @Transactional
@@ -201,6 +207,47 @@ public class TabService {
                 .orElseThrow(() -> new IllegalArgumentException("tab not found"));
         memberRepo.findById(new TabMemberId(tabId, cardId))
                 .ifPresent(memberRepo::delete);
+    }
+
+    /** 탭 ↔ 그룹 멤버십 추가 (탭 멤버 = 그룹, 구상안 §3.3). 탭·그룹 모두 사용자 자원 검증. */
+    @Transactional
+    public TabGroupMemberEntity addGroup(UUID tabId, UUID groupId) {
+        WorkspaceContext ctx = requirePersonalWritable();
+        tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
+                .orElseThrow(() -> new IllegalArgumentException("tab not found"));
+        groupRepo.findById(groupId)
+                .filter(g -> g.getDeletedAt() == null)
+                .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+                .orElseThrow(() -> new IllegalArgumentException("group not found"));
+        TabGroupMemberEntity member = new TabGroupMemberEntity();
+        member.setId(new TabGroupMemberId(tabId, groupId));
+        member.setAddedBy(ctx.userId());
+        return tabGroupRepo.save(member);
+    }
+
+    @Transactional
+    public void removeGroup(UUID tabId, UUID groupId) {
+        WorkspaceContext ctx = requirePersonalWritable();
+        tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
+                .orElseThrow(() -> new IllegalArgumentException("tab not found"));
+        tabGroupRepo.findById(new TabGroupMemberId(tabId, groupId))
+                .ifPresent(tabGroupRepo::delete);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> listGroupIdsInTab(UUID tabId) {
+        WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+        tabRepo.findById(tabId)
+                .filter(t -> t.getDeletedAt() == null)
+                .filter(t -> ctx.ownsPersonal(t.getWorkspaceId(), t.getUserId()))
+                .orElseThrow(() -> new IllegalArgumentException("tab not found"));
+        return tabGroupRepo.findByIdTabId(tabId).stream()
+                .map(m -> m.getId().getGroupId())
+                .toList();
     }
 
     @Transactional(readOnly = true)

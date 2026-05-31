@@ -99,6 +99,23 @@ public class TabController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/tabs/{tabId}/groups/{groupId}")
+    public ResponseEntity<Void> addGroup(@PathVariable UUID tabId, @PathVariable UUID groupId) {
+        tabService.addGroup(tabId, groupId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/tabs/{tabId}/groups/{groupId}")
+    public ResponseEntity<Void> removeGroup(@PathVariable UUID tabId, @PathVariable UUID groupId) {
+        tabService.removeGroup(tabId, groupId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/tabs/{tabId}/groups")
+    public ResponseEntity<List<UUID>> listGroupsInTab(@PathVariable UUID tabId) {
+        return ResponseEntity.ok(tabService.listGroupIdsInTab(tabId));
+    }
+
     @GetMapping("/tabs/{tabId}/cards")
     public ResponseEntity<List<UUID>> listCardsInTab(@PathVariable UUID tabId) {
         return ResponseEntity.ok(tabService.listCardIdsInTab(tabId));

@@ -25,7 +25,7 @@
   padding: 0.5rem 0.75rem;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: 2px;
   font-size: 0.85rem;
 }
 
@@ -45,7 +45,7 @@
   padding: 0.2rem 0.5rem;
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: 2px;
 }
 
 .tab-scope-chip button {
@@ -65,7 +65,7 @@
   padding: 0.25rem 0.4rem;
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--text);
   font-size: 0.85rem;
   cursor: pointer;
@@ -76,7 +76,7 @@
   padding: 0.25rem 0.6rem;
   background: none;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--text-dim);
   font-size: 0.8rem;
   cursor: pointer;
@@ -111,7 +111,7 @@
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   padding: 0.4rem 0.8rem;
   cursor: pointer;
   font-size: 0.85rem;

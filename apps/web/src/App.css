@@ -1,13 +1,16 @@
 :root {
-  --bg: #0b0b0f;
-  --surface: #14141b;
-  --surface-2: #1c1c25;
-  --rule: #2a2a36;
-  --text: #e8e8f0;
-  --text-dim: #9090a0;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --danger: #ef4444;
+  /* 차갑고 건조한 사이버네틱 다크 팔레트 (blue-tinted black + electric cyan) */
+  --bg: #06090e;
+  --surface: #0c121b;
+  --surface-2: #141c28;
+  --rule: #223044;
+  --text: #dce6f2;
+  --text-dim: #74869c;
+  --accent: #0b8aa6;
+  --accent-hover: #15b3d4;
+  --accent-bright: #2ee6ff;
+  --danger: #f43f5e;
+  --grid-line: rgba(110, 160, 210, 0.025);
 }
 
 * {
@@ -16,7 +19,11 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 38px 38px;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Geist", "Roboto",
     "Noto Sans KR", sans-serif;

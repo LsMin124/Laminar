@@ -149,7 +149,7 @@
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
   font-size: 1rem;
@@ -157,13 +157,16 @@
 }
 
 .board-detail-toolbar button:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-bright);
 }
 
 .board-detail-month {
   margin: 0;
-  font-size: 1.15rem;
-  min-width: 8rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  min-width: 9rem;
   text-align: center;
 }
 
@@ -182,7 +185,7 @@
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
@@ -197,13 +200,13 @@
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 0.9rem;
 }
 
 .board-detail-perpetual:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-bright);
 }
 
 .board-detail-graph-wrap {
@@ -235,6 +238,7 @@
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
+  letter-spacing: 0.03em;
   margin-bottom: -1px;
 }
 
@@ -243,6 +247,7 @@
 }
 
 .board-detail-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: var(--accent-bright);
+  border-bottom-color: var(--accent-bright);
+  text-shadow: 0 0 12px rgba(46, 230, 255, 0.4);
 }

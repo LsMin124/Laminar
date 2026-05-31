@@ -27,10 +27,19 @@
   pointer-events: none;
 }
 
-.swimlane-arrow-line {
+/* 순차(SEQUENCE) = 태스크 흐름: 실선 액센트 강조 */
+.swimlane-arrow-line.seq {
+  stroke: var(--accent);
+  stroke-width: 1.75;
+  opacity: 0.9;
+}
+
+/* 일반 관계: 흐린 점선 (보조) */
+.swimlane-arrow-line.rel {
   stroke: var(--text-dim);
-  stroke-width: 1.5;
-  opacity: 0.5;
+  stroke-width: 1.25;
+  opacity: 0.4;
+  stroke-dasharray: 4 3;
 }
 
 .swimlane-arrow-label {

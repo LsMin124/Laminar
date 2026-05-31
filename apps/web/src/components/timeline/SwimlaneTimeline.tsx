@@ -42,6 +42,7 @@ interface Arrow {
   x2: number;
   y2: number;
   label: string;
+  kind: string;
 }
 
 /** 사각형 중심에서 (tx,ty) 방향으로 테두리와 만나는 점. */
@@ -130,8 +131,9 @@ export function SwimlaneTimeline({
         const tcy = tr.top - base.top + tr.height / 2;
         const [x1, y1] = edgePoint(fcx, fcy, fr.width / 2, fr.height / 2, tcx, tcy);
         const [x2, y2] = edgePoint(tcx, tcy, tr.width / 2, tr.height / 2, fcx, fcy);
-        const label = rel.summary?.trim() || rel.relationKind;
-        next.push({ id: rel.id, x1, y1, x2, y2, label });
+        const isSeq = rel.relationKind === "SEQUENCE";
+        const label = isSeq ? "" : rel.summary?.trim() || rel.relationKind;
+        next.push({ id: rel.id, x1, y1, x2, y2, label, kind: rel.relationKind });
       }
       setArrows(next);
     }
@@ -176,12 +178,23 @@ export function SwimlaneTimeline({
           >
             <defs>
               <marker
-                id="swimlane-arrowhead"
+                id="swimlane-arrowhead-seq"
                 viewBox="0 0 10 10"
                 refX="9"
                 refY="5"
                 markerWidth="7"
                 markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" />
+              </marker>
+              <marker
+                id="swimlane-arrowhead-rel"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
                 orient="auto-start-reverse"
               >
                 <path d="M0,0 L10,5 L0,10 z" fill="var(--text-dim)" />
@@ -197,8 +210,8 @@ export function SwimlaneTimeline({
                     y1={a.y1}
                     x2={a.x2}
                     y2={a.y2}
-                    className="swimlane-arrow-line"
-                    markerEnd="url(#swimlane-arrowhead)"
+                    className={`swimlane-arrow-line ${a.kind === "SEQUENCE" ? "seq" : "rel"}`}
+                    markerEnd={`url(#swimlane-arrowhead-${a.kind === "SEQUENCE" ? "seq" : "rel"})`}
                   />
                   {a.label && (
                     <text

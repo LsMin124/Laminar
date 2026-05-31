@@ -40,16 +40,13 @@ import {
 import "./BoardDetailPage.css";
 
 type ViewMode = "timeline" | "calendar" | "graph";
-const TIMELINE_DAYS = 14;
 
 export function BoardDetailPage() {
   const params = useParams();
   const navigate = useNavigate();
   const boardId = params.boardId ?? "";
   const [anchor, setAnchor] = useState<Date>(() => startOfMonth(new Date()));
-  const [timelineStart, setTimelineStart] = useState<Date>(() =>
-    addDays(new Date(), -2),
-  );
+  const timelineStart = useMemo(() => addDays(new Date(), -21), []);
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const [createInitialDate, setCreateInitialDate] = useState<string | null>(
     null,
@@ -342,37 +339,11 @@ export function BoardDetailPage() {
       )}
       {viewMode === "timeline" ? (
         <>
-          <div className="board-detail-toolbar">
-            <button
-              type="button"
-              onClick={() => setTimelineStart((d) => addDays(d, -7))}
-            >
-              ‹
-            </button>
-            <h2 className="board-detail-month">
-              {format(timelineStart, "MM-dd")} ~{" "}
-              {format(addDays(timelineStart, TIMELINE_DAYS - 1), "MM-dd")}
-            </h2>
-            <button
-              type="button"
-              onClick={() => setTimelineStart((d) => addDays(d, 7))}
-            >
-              ›
-            </button>
-            <button
-              type="button"
-              className="board-detail-today"
-              onClick={() => setTimelineStart(addDays(new Date(), -2))}
-            >
-              오늘
-            </button>
-          </div>
           {graph.isLoading ? (
             <p className="loading">불러오는 중...</p>
           ) : (
             <SwimlaneTimeline
               anchor={timelineStart}
-              dayCount={TIMELINE_DAYS}
               tabs={tabs.data ?? []}
               groups={graph.data?.groups ?? []}
               tabGroups={graph.data?.tabGroups ?? {}}

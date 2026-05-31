@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { addDays, format, isSameDay, isToday, parseISO } from "date-fns";
+import { addDays, differenceInCalendarDays, format, isToday, parseISO } from "date-fns";
 import type {
   CardRelationResponse,
   CardResponse,
@@ -9,6 +9,8 @@ import type {
 import "./SwimlaneTimeline.css";
 
 const COL_W = 170;
+const LANE_H = 66;
+const GAP = 5;
 const WD = ["일", "월", "화", "수", "목", "금", "토"];
 
 const IMPORTANCE_COLOR: Record<string, string> = {
@@ -35,7 +37,6 @@ const CHAIN_PALETTE = [
 
 interface Props {
   anchor: Date;
-  dayCount: number;
   tabs: TabResponse[];
   groups: GroupResponse[];
   tabGroups: Record<string, string[]>;
@@ -46,6 +47,13 @@ interface Props {
   onCreateCard: (groupId: string, dateIso: string) => void;
   onAddNextStep: (groupId: string, fromCard: CardResponse) => void;
   onConnect: (fromCardId: string, toCardId: string) => void;
+}
+
+interface Placed {
+  card: CardResponse;
+  startIdx: number;
+  endIdx: number;
+  lane: number;
 }
 
 interface Arrow {
@@ -78,13 +86,50 @@ function edgePoint(
 }
 
 /**
- * 스윔레인 타임라인 (재정렬 — 원본 Laminar 뷰) — 가로축 = 날짜 열, 세로축 = 탭 섹션 행.
- * 각 탭 섹션 안에 그룹(점선 밴드)별로 카드를 날짜 위치에 배치, 카드 간 관계는 SVG 화살표로 오버레이.
- * (멀티데이 스팬·인라인 생성은 후속.)
+ * 멤버 카드를 기간 막대로 배치 + 레인 패킹(겹침 회피). 범위 밖은 제외, 경계는 클램프.
+ */
+function placeCards(
+  cards: CardResponse[],
+  anchor: Date,
+  dayCount: number,
+): { items: Placed[]; laneCount: number } {
+  const spans: Omit<Placed, "lane">[] = [];
+  for (const card of cards) {
+    if (!card.startDate) continue;
+    const ds = differenceInCalendarDays(parseISO(card.startDate), anchor);
+    const de = card.endDate
+      ? differenceInCalendarDays(parseISO(card.endDate), anchor)
+      : ds;
+    if (de < 0 || ds > dayCount - 1) continue; // 범위 밖
+    spans.push({
+      card,
+      startIdx: Math.max(0, ds),
+      endIdx: Math.min(dayCount - 1, Math.max(ds, de)),
+    });
+  }
+  spans.sort((a, b) => a.startIdx - b.startIdx || a.endIdx - b.endIdx);
+  const laneEnds: number[] = [];
+  const items: Placed[] = [];
+  for (const s of spans) {
+    let lane = laneEnds.findIndex((end) => end < s.startIdx);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(s.endIdx);
+    } else {
+      laneEnds[lane] = s.endIdx;
+    }
+    items.push({ ...s, lane });
+  }
+  return { items, laneCount: laneEnds.length };
+}
+
+/**
+ * 스윔레인 타임라인 (메인 오버뷰) — 가로축 = 연속 날짜(무한 스크롤), 세로축 = 탭 섹션.
+ * 섹션 안 그룹(점선 밴드)별로 카드를 기간 막대로 배치(멀티데이=하나의 사각형, 레인 패킹).
+ * 카드 간 관계는 SVG 화살표 오버레이(순차=실선 사슬색).
  */
 export function SwimlaneTimeline({
   anchor,
-  dayCount,
   tabs,
   groups,
   tabGroups,
@@ -96,6 +141,7 @@ export function SwimlaneTimeline({
   onAddNextStep,
   onConnect,
 }: Props) {
+  const [dayCount, setDayCount] = useState(60);
   const days = useMemo(
     () => Array.from({ length: dayCount }, (_, i) => addDays(anchor, i)),
     [anchor, dayCount],
@@ -152,12 +198,36 @@ export function SwimlaneTimeline({
     [tabs],
   );
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef(new Map<string, HTMLElement>());
+  const didInitScroll = useRef(false);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [dims, setDims] = useState({ w: 0, h: 0 });
   // 연결 모드 — 카드 A의 "연결 ⇢" 후 다른 카드 B 클릭 시 A→B 순차(SEQUENCE) 화살표.
   const [linkSource, setLinkSource] = useState<string | null>(null);
+
+  const todayIdx = differenceInCalendarDays(new Date(), anchor);
+
+  // 마운트 시 오늘 열로 스크롤.
+  useLayoutEffect(() => {
+    if (didInitScroll.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    if (todayIdx >= 0) {
+      el.scrollLeft = Math.max(0, todayIdx * COL_W - COL_W * 2);
+    }
+    didInitScroll.current = true;
+  }, [todayIdx]);
+
+  // 오른쪽 끝 근처 스크롤 시 날짜 범위 확장(연속/무한 스크롤).
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 800) {
+      setDayCount((d) => d + 30);
+    }
+  }
 
   function activateCard(cardId: string) {
     if (linkSource && linkSource !== cardId) {
@@ -168,6 +238,16 @@ export function SwimlaneTimeline({
     } else {
       onCardClick(cardId);
     }
+  }
+
+  function trackCreate(e: React.MouseEvent<HTMLDivElement>, gid: string) {
+    if (e.target !== e.currentTarget) return; // 막대가 아닌 빈 트랙에서만
+    const rect = e.currentTarget.getBoundingClientRect();
+    const idx = Math.max(
+      0,
+      Math.min(dayCount - 1, Math.floor((e.clientX - rect.left) / COL_W)),
+    );
+    onCreateCard(gid, format(addDays(anchor, idx), "yyyy-MM-dd"));
   }
 
   // 렌더된 카드 DOM을 측정해 보이는 카드끼리만 화살표 좌표 계산.
@@ -220,23 +300,13 @@ export function SwimlaneTimeline({
   }, [
     cardRelations,
     chainColorByCard,
-    days,
+    dayCount,
+    anchor,
     sections,
     tabGroups,
     groupMembers,
     cards,
   ]);
-
-  function dayIndexOf(iso: string | null): number {
-    if (!iso) return -1;
-    const d = parseISO(iso);
-    return days.findIndex((day) => isSameDay(day, d));
-  }
-
-  const gridStyle = {
-    gridTemplateColumns: `repeat(${dayCount}, ${COL_W}px)`,
-    width: `${dayCount * COL_W}px`,
-  } as React.CSSProperties;
 
   function registerCard(id: string) {
     return (el: HTMLElement | null) => {
@@ -244,6 +314,18 @@ export function SwimlaneTimeline({
       else cardRefs.current.delete(id);
     };
   }
+
+  const rowWidth = dayCount * COL_W;
+  const headerStyle = {
+    gridTemplateColumns: `repeat(${dayCount}, ${COL_W}px)`,
+    width: `${rowWidth}px`,
+  } as React.CSSProperties;
+  const trackBg: React.CSSProperties = {
+    width: `${rowWidth}px`,
+    backgroundImage:
+      "linear-gradient(to right, rgba(110,160,210,0.06) 0 1px, transparent 1px)",
+    backgroundSize: `${COL_W}px 100%`,
+  };
 
   return (
     <div className={`swimlane${linkSource ? " linking" : ""}`}>
@@ -258,8 +340,15 @@ export function SwimlaneTimeline({
           </button>
         </div>
       )}
-      <div className="swimlane-scroll">
+      <div className="swimlane-scroll" ref={scrollRef} onScroll={handleScroll}>
         <div className="swimlane-content" ref={contentRef}>
+          {todayIdx >= 0 && todayIdx < dayCount && (
+            <div
+              className="swimlane-today-line"
+              style={{ left: `${todayIdx * COL_W}px`, width: `${COL_W}px` }}
+              aria-hidden="true"
+            />
+          )}
           <svg
             className="swimlane-arrows"
             width={dims.w}
@@ -301,9 +390,7 @@ export function SwimlaneTimeline({
                     x2={a.x2}
                     y2={a.y2}
                     className={`swimlane-arrow-line ${a.kind === "SEQUENCE" ? "seq" : "rel"}`}
-                    style={
-                      a.chainColor ? { stroke: a.chainColor } : undefined
-                    }
+                    style={a.chainColor ? { stroke: a.chainColor } : undefined}
                     markerEnd={`url(#swimlane-arrowhead-${a.kind === "SEQUENCE" ? "seq" : "rel"})`}
                   />
                   {a.label && (
@@ -322,7 +409,7 @@ export function SwimlaneTimeline({
             })}
           </svg>
 
-          <div className="swimlane-header" style={gridStyle}>
+          <div className="swimlane-header" style={headerStyle}>
             {days.map((d) => (
               <div
                 key={d.toISOString()}
@@ -355,25 +442,23 @@ export function SwimlaneTimeline({
                   </div>
                   {groupIds.length === 0 ? (
                     <p className="swimlane-section-empty">
-                      그룹 없음 — 그래프 뷰의 스코프 바에서 그룹을 이 탭에 추가하세요.
+                      그룹 없음 — 좌측에서 이 탭에 그룹을 추가하세요.
                     </p>
                   ) : (
                     groupIds.map((gid) => {
                       const group = groupsById.get(gid);
-                      const byDay = new Map<number, CardResponse[]>();
-                      (groupMembers[gid] ?? []).forEach((cid) => {
-                        const card = cardsById.get(cid);
-                        if (!card) return;
-                        const idx = dayIndexOf(card.startDate);
-                        if (idx < 0) return;
-                        byDay.set(idx, [...(byDay.get(idx) ?? []), card]);
-                      });
                       const memberCards = (groupMembers[gid] ?? [])
                         .map((cid) => cardsById.get(cid))
                         .filter((c): c is CardResponse => Boolean(c));
                       const total = memberCards.length;
                       const done = memberCards.filter((c) => c.completed).length;
                       const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                      const { items, laneCount } = placeCards(
+                        memberCards,
+                        anchor,
+                        dayCount,
+                      );
+                      const bandHeight = Math.max(1, laneCount) * LANE_H + GAP;
                       return (
                         <div key={gid} className="swimlane-group">
                           <div className="swimlane-group-head">
@@ -404,149 +489,133 @@ export function SwimlaneTimeline({
                               </span>
                             )}
                           </div>
-                          <div className="swimlane-grid" style={gridStyle}>
-                            {days.map((_, i) => (
-                              <div key={i} className="swimlane-cell">
-                                {(byDay.get(i) ?? []).map((card) => {
-                                  const relCount = relCountById.get(card.id) ?? 0;
-                                  const chainColor = chainColorByCard.get(card.id);
-                                  const isGcal = card.origin === "GCAL_PULL";
-                                  const hasMeta =
-                                    relCount > 0 ||
-                                    Boolean(card.rrule) ||
-                                    Boolean(card.linkedPerpetualId) ||
-                                    isGcal ||
-                                    card.completed;
-                                  return (
-                                    <div
-                                      key={card.id}
-                                      ref={registerCard(card.id)}
-                                      role="button"
-                                      tabIndex={0}
-                                      className={`swimlane-card${card.completed ? " completed" : ""}${linkSource === card.id ? " linking-source" : ""}`}
-                                      style={{
-                                        borderLeftColor:
-                                          IMPORTANCE_COLOR[card.importance] ??
-                                          "#6b7280",
-                                      }}
-                                      onClick={() => activateCard(card.id)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                          e.preventDefault();
-                                          activateCard(card.id);
-                                        }
-                                      }}
-                                      title={card.title}
-                                    >
-                                      <span className="swimlane-card-title">
-                                        {chainColor && (
-                                          <span
-                                            className="swimlane-card-chain"
-                                            style={{ background: chainColor }}
-                                            title="태스크 사슬"
-                                          />
-                                        )}
-                                        {card.title}
-                                      </span>
-                                      <span className="swimlane-card-date">
-                                        {card.startDate}
-                                        {card.endDate &&
-                                        card.endDate !== card.startDate
-                                          ? ` ~ ${card.endDate}`
-                                          : ""}
-                                        {card.startTime
-                                          ? ` ${card.startTime}`
-                                          : ""}
-                                      </span>
-                                      {card.bodyMd && (
-                                        <span className="swimlane-card-summary">
-                                          {card.bodyMd.slice(0, 48)}
-                                        </span>
-                                      )}
-                                      {hasMeta && (
-                                        <span className="swimlane-card-meta">
-                                          {relCount > 0 && (
-                                            <span
-                                              className="swimlane-card-badge"
-                                              title="관계"
-                                            >
-                                              ↔{relCount}
-                                            </span>
-                                          )}
-                                          {card.rrule && (
-                                            <span title="반복">⟳</span>
-                                          )}
-                                          {card.linkedPerpetualId && (
-                                            <span
-                                              className="swimlane-card-perp"
-                                              title="영구노트 연결"
-                                            >
-                                              ◆
-                                            </span>
-                                          )}
-                                          {isGcal && (
-                                            <span
-                                              className="swimlane-card-gcal"
-                                              title="Google 캘린더"
-                                            >
-                                              G
-                                            </span>
-                                          )}
-                                          {card.completed && (
-                                            <span
-                                              className="swimlane-card-done"
-                                              title="완료"
-                                            >
-                                              ✓
-                                            </span>
-                                          )}
-                                        </span>
-                                      )}
-                                      <span className="swimlane-card-actions">
-                                        <button
-                                          type="button"
-                                          className="swimlane-card-next"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onAddNextStep(gid, card);
-                                          }}
-                                          title="다음 단계 카드 (다음날·같은 그룹·순차 연결)"
-                                          aria-label="다음 단계 카드 추가"
-                                        >
-                                          다음 단계 →
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="swimlane-card-link"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setLinkSource(card.id);
-                                          }}
-                                          title="이 카드를 다른 카드와 순차 연결 (같은 날/다른 날 무관)"
-                                          aria-label="순차 연결 시작"
-                                        >
-                                          연결 ⇢
-                                        </button>
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                                <button
-                                  type="button"
-                                  className="swimlane-cell-add"
-                                  onClick={() =>
-                                    onCreateCard(
-                                      gid,
-                                      format(days[i], "yyyy-MM-dd"),
-                                    )
-                                  }
-                                  title="이 날짜에 카드 추가"
-                                  aria-label="카드 추가"
+                          <div
+                            className="swimlane-track"
+                            style={{ ...trackBg, height: `${bandHeight}px` }}
+                            onDoubleClick={(e) => trackCreate(e, gid)}
+                            title="빈 곳 더블클릭 → 그 날짜에 카드 추가"
+                          >
+                            {items.map(({ card, startIdx, endIdx, lane }) => {
+                              const relCount = relCountById.get(card.id) ?? 0;
+                              const chainColor = chainColorByCard.get(card.id);
+                              const isGcal = card.origin === "GCAL_PULL";
+                              const multi = endIdx > startIdx;
+                              const hasMeta =
+                                relCount > 0 ||
+                                Boolean(card.rrule) ||
+                                Boolean(card.linkedPerpetualId) ||
+                                isGcal ||
+                                card.completed;
+                              return (
+                                <div
+                                  key={card.id}
+                                  ref={registerCard(card.id)}
+                                  role="button"
+                                  tabIndex={0}
+                                  className={`swimlane-bar${card.completed ? " completed" : ""}${linkSource === card.id ? " linking-source" : ""}`}
+                                  style={{
+                                    left: `${startIdx * COL_W + GAP}px`,
+                                    top: `${lane * LANE_H + GAP}px`,
+                                    width: `${(endIdx - startIdx + 1) * COL_W - 2 * GAP}px`,
+                                    height: `${LANE_H - 2 * GAP}px`,
+                                    borderLeftColor:
+                                      IMPORTANCE_COLOR[card.importance] ?? "#6b7280",
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    activateCard(card.id);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      activateCard(card.id);
+                                    }
+                                  }}
+                                  title={card.title}
                                 >
-                                  +
-                                </button>
-                              </div>
-                            ))}
+                                  <span className="swimlane-card-title">
+                                    {chainColor && (
+                                      <span
+                                        className="swimlane-card-chain"
+                                        style={{ background: chainColor }}
+                                        title="태스크 사슬"
+                                      />
+                                    )}
+                                    {card.title}
+                                  </span>
+                                  <span className="swimlane-card-date">
+                                    {card.startDate}
+                                    {multi && card.endDate
+                                      ? ` ~ ${card.endDate}`
+                                      : ""}
+                                    {card.startTime ? ` ${card.startTime}` : ""}
+                                  </span>
+                                  {hasMeta && (
+                                    <span className="swimlane-card-meta">
+                                      {relCount > 0 && (
+                                        <span
+                                          className="swimlane-card-badge"
+                                          title="관계"
+                                        >
+                                          ↔{relCount}
+                                        </span>
+                                      )}
+                                      {card.rrule && <span title="반복">⟳</span>}
+                                      {card.linkedPerpetualId && (
+                                        <span
+                                          className="swimlane-card-perp"
+                                          title="영구노트 연결"
+                                        >
+                                          ◆
+                                        </span>
+                                      )}
+                                      {isGcal && (
+                                        <span
+                                          className="swimlane-card-gcal"
+                                          title="Google 캘린더"
+                                        >
+                                          G
+                                        </span>
+                                      )}
+                                      {card.completed && (
+                                        <span
+                                          className="swimlane-card-done"
+                                          title="완료"
+                                        >
+                                          ✓
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  <span className="swimlane-card-actions">
+                                    <button
+                                      type="button"
+                                      className="swimlane-card-next"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onAddNextStep(gid, card);
+                                      }}
+                                      title="다음 단계 카드 (다음날·같은 그룹·순차 연결)"
+                                      aria-label="다음 단계 카드 추가"
+                                    >
+                                      다음 →
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="swimlane-card-link"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLinkSource(card.id);
+                                      }}
+                                      title="이 카드를 다른 카드와 순차 연결 (같은 날/다른 날 무관)"
+                                      aria-label="순차 연결 시작"
+                                    >
+                                      연결 ⇢
+                                    </button>
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );

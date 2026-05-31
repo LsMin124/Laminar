@@ -23,13 +23,16 @@ import { CardInspector } from "../components/card/CardInspector";
 import { TabTreeSidebar } from "../components/tab/TabTreeSidebar";
 import {
   useAddCardToGroup,
+  useAddGroupToTab,
   useBoard,
   useBoardCalendar,
   useBoardGraph,
+  useBoardTabs,
   useCreateCard,
   useCreateCardRelation,
   useCreateGroup,
   useMoveCard,
+  useRemoveGroupFromTab,
   useRescheduleCard,
 } from "../lib/queries";
 import "./BoardDetailPage.css";
@@ -49,7 +52,8 @@ export function BoardDetailPage() {
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 
   const board = useBoard(boardId);
-  const graph = useBoardGraph(viewMode === "graph" ? boardId : null);
+  // P4b 탭 스코프가 양 렌즈(캘린더·캔버스)에 필요하므로 그래프(멤버십 포함)를 상시 로드.
+  const graph = useBoardGraph(boardId);
   const range = useMemo(() => {
     const from = startOfMonth(anchor);
     const to = endOfMonth(anchor);
@@ -65,6 +69,24 @@ export function BoardDetailPage() {
   const moveCard = useMoveCard(boardId);
   const createGroup = useCreateGroup(boardId);
   const addToGroup = useAddCardToGroup(boardId);
+  const tabs = useBoardTabs(boardId);
+  const addGroupToTab = useAddGroupToTab(boardId);
+  const removeGroupFromTab = useRemoveGroupFromTab(boardId);
+
+  // P4b — 선택 탭 → 멤버 그룹(tabGroups) → 그 그룹들의 카드(groupMembers) = 스코프 카드 집합.
+  const scopedCardIds = useMemo(() => {
+    if (!selectedTabId || !graph.data) return null;
+    const ids = new Set<string>();
+    (graph.data.tabGroups[selectedTabId] ?? []).forEach((gid) => {
+      (graph.data!.groupMembers[gid] ?? []).forEach((cid) => ids.add(cid));
+    });
+    return ids;
+  }, [selectedTabId, graph.data]);
+  const selectedTabName =
+    tabs.data?.find((t) => t.id === selectedTabId)?.name ?? "";
+  const tabGroupIds =
+    selectedTabId && graph.data ? (graph.data.tabGroups[selectedTabId] ?? []) : [];
+  const boardGroups = graph.data?.groups ?? [];
 
   // P3b — 화살표 그리면 관계 생성 + 그룹 자동형성(§3.7). 둘 다 미그룹 → 새 그룹,
   // 한쪽만 그룹 → 다른쪽 합류. 양쪽 다른 그룹/다중 그룹은 흡수 모달(후속)이라 지금은 관계만.
@@ -183,6 +205,64 @@ export function BoardDetailPage() {
           그래프
         </button>
       </div>
+      {selectedTabId && (
+        <div className="tab-scope-bar">
+          <span className="tab-scope-label">
+            범위: <strong>{selectedTabName || "탭"}</strong>
+          </span>
+          {boardGroups
+            .filter((g) => tabGroupIds.includes(g.id))
+            .map((g) => (
+              <span key={g.id} className="tab-scope-chip">
+                {g.name}
+                <button
+                  type="button"
+                  onClick={() =>
+                    removeGroupFromTab.mutate({
+                      tabId: selectedTabId,
+                      groupId: g.id,
+                    })
+                  }
+                  aria-label="범위에서 제거"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          {tabGroupIds.length === 0 && (
+            <span className="tab-scope-empty">
+              그룹을 추가하면 그 그룹의 카드만 표시됩니다
+            </span>
+          )}
+          <select
+            className="tab-scope-add"
+            value=""
+            onChange={(e) => {
+              if (e.target.value)
+                addGroupToTab.mutate({
+                  tabId: selectedTabId,
+                  groupId: e.target.value,
+                });
+            }}
+          >
+            <option value="">+ 그룹</option>
+            {boardGroups
+              .filter((g) => !tabGroupIds.includes(g.id))
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+          </select>
+          <button
+            type="button"
+            className="tab-scope-clear"
+            onClick={() => setSelectedTabId(null)}
+          >
+            전체 보기
+          </button>
+        </div>
+      )}
       {viewMode === "calendar" ? (
         <>
           <div className="board-detail-toolbar">
@@ -218,7 +298,13 @@ export function BoardDetailPage() {
           ) : (
             <MonthGrid
               anchor={anchor}
-              cards={calendar.data?.cards ?? []}
+              cards={
+                scopedCardIds
+                  ? (calendar.data?.cards ?? []).filter((c) =>
+                      scopedCardIds.has(c.id),
+                    )
+                  : (calendar.data?.cards ?? [])
+              }
               dateMemos={calendar.data?.dateMemos ?? []}
               onCardClick={(c) => setSelectedCardId(c.id)}
               onCellClick={(iso) => setCreateInitialDate(iso)}
@@ -240,6 +326,7 @@ export function BoardDetailPage() {
             onCardClick={(cardId) => setSelectedCardId(cardId)}
             onCreateRelation={handleCreateRelation}
             onMoveCard={handleMoveCard}
+            scopedCardIds={scopedCardIds}
           />
           <GroupManager
             boardId={boardId}

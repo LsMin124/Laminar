@@ -17,6 +17,8 @@ interface BoardGraphProps {
   onCreateRelation?: (fromCardId: string, toCardId: string) => void;
   /** 카드 노드 본체 드래그 배치 시 좌표 저장 (P3c, attrs.canvasX/Y). */
   onMoveCard?: (cardId: string, x: number, y: number) => void;
+  /** P4b 탭 스코프 — 이 집합에 없는 카드는 흐리게(범위 밖). null이면 전체. */
+  scopedCardIds?: Set<string> | null;
 }
 
 interface NodePos {
@@ -60,6 +62,7 @@ export function BoardGraph({
   onCardClick,
   onCreateRelation,
   onMoveCard,
+  scopedCardIds,
 }: BoardGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -245,11 +248,14 @@ export function BoardGraph({
           const d = display(pos.id) ?? pos;
           const isCard = pos.kind === "card";
           const r = isCard ? 12 : 18;
+          const dimmed =
+            !!scopedCardIds && isCard && !scopedCardIds.has(pos.id);
           return (
             <g
               key={pos.id}
               className={`node node-${pos.kind}`}
               transform={`translate(${d.x}, ${d.y})`}
+              style={dimmed ? { opacity: 0.18 } : undefined}
             >
               <circle
                 r={r}

@@ -203,6 +203,8 @@ export interface BoardGraphResponse {
   groupRelations: GroupRelationResponse[];
   /** P3b 자동그룹 — groupId → 멤버 cardId 목록. */
   groupMembers: Record<string, string[]>;
+  /** P4b 탭 스코프 — tabId → 멤버 groupId 목록 (탭=그룹, 구상안 §3.3). */
+  tabGroups: Record<string, string[]>;
 }
 
 export interface TabResponse {

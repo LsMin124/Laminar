@@ -266,6 +266,30 @@ export function useAddCardToGroup(boardId: string) {
   });
 }
 
+/** P4b — 탭에 그룹 추가(탭 멤버=그룹). */
+export function useAddGroupToTab(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tabId: string; groupId: string }) =>
+      api.post<void>(`/api/tabs/${input.tabId}/groups/${input.groupId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
+/** P4b — 탭에서 그룹 제거. */
+export function useRemoveGroupFromTab(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tabId: string; groupId: string }) =>
+      api.delete<void>(`/api/tabs/${input.tabId}/groups/${input.groupId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    },
+  });
+}
+
 /** 캔버스 노드 드래그 배치 (P3c) — 카드 attrs에 canvasX/canvasY 저장(마이그레이션 불필요). */
 export function useMoveCard(boardId: string) {
   const qc = useQueryClient();

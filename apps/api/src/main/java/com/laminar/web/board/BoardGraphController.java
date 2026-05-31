@@ -41,7 +41,8 @@ public class BoardGraphController {
                 graph.groups().stream().map(BoardGraphController::toGroup).toList(),
                 graph.cardRelations().stream().map(BoardGraphController::toCardRelation).toList(),
                 graph.groupRelations().stream().map(BoardGraphController::toGroupRelation).toList(),
-                graph.groupMembers()));
+                graph.groupMembers(),
+                graph.tabGroups()));
     }
 
     public record BoardGraphResponse(
@@ -50,7 +51,8 @@ public class BoardGraphController {
             List<GroupDtos.GroupResponse> groups,
             List<CardRelationDtos.CardRelationResponse> cardRelations,
             List<GroupRelationDtos.GroupRelationResponse> groupRelations,
-            Map<UUID, List<UUID>> groupMembers
+            Map<UUID, List<UUID>> groupMembers,
+            Map<UUID, List<UUID>> tabGroups
     ) {
     }
 

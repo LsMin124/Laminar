@@ -12,6 +12,10 @@ import com.laminar.group.GroupMemberRepository;
 import com.laminar.group.GroupRelationEntity;
 import com.laminar.group.GroupRelationService;
 import com.laminar.group.GroupService;
+import com.laminar.tab.TabEntity;
+import com.laminar.tab.TabGroupMemberEntity;
+import com.laminar.tab.TabGroupMemberRepository;
+import com.laminar.tab.TabRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,18 +38,24 @@ public class BoardGraphService {
     private final CardRelationService cardRelationService;
     private final GroupRelationService groupRelationService;
     private final GroupMemberRepository groupMemberRepository;
+    private final TabRepository tabRepository;
+    private final TabGroupMemberRepository tabGroupMemberRepository;
 
     public BoardGraphService(
             CardService cardService,
             GroupService groupService,
             CardRelationService cardRelationService,
             GroupRelationService groupRelationService,
-            GroupMemberRepository groupMemberRepository) {
+            GroupMemberRepository groupMemberRepository,
+            TabRepository tabRepository,
+            TabGroupMemberRepository tabGroupMemberRepository) {
         this.cardService = cardService;
         this.groupService = groupService;
         this.cardRelationService = cardRelationService;
         this.groupRelationService = groupRelationService;
         this.groupMemberRepository = groupMemberRepository;
+        this.tabRepository = tabRepository;
+        this.tabGroupMemberRepository = tabGroupMemberRepository;
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +81,22 @@ public class BoardGraphService {
                         .add(m.getId().getCardId());
             }
         }
-        return new BoardGraph(boardId, cards, groups, cardRels, groupRels, groupMembers);
+        // P4b 탭 스코프용 — 보드 탭들의 그룹 멤버십(tabId → groupIds). 탭은 Personal-First
+        // 필터된 사용자 자원이라 멤버 그룹도 사용자 한정(TabGroupMemberEntity는 부모 격리 의존).
+        List<UUID> tabIds = tabRepository
+                .findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId).stream()
+                .map(TabEntity::getId)
+                .toList();
+        Map<UUID, List<UUID>> tabGroups = new HashMap<>();
+        if (!tabIds.isEmpty()) {
+            for (TabGroupMemberEntity m : tabGroupMemberRepository.findByIdTabIdIn(tabIds)) {
+                tabGroups
+                        .computeIfAbsent(m.getId().getTabId(), k -> new ArrayList<>())
+                        .add(m.getId().getGroupId());
+            }
+        }
+        return new BoardGraph(
+                boardId, cards, groups, cardRels, groupRels, groupMembers, tabGroups);
     }
 
     public record BoardGraph(
@@ -80,7 +105,8 @@ public class BoardGraphService {
             List<GroupEntity> groups,
             List<CardRelationEntity> cardRelations,
             List<GroupRelationEntity> groupRelations,
-            Map<UUID, List<UUID>> groupMembers
+            Map<UUID, List<UUID>> groupMembers,
+            Map<UUID, List<UUID>> tabGroups
     ) {
     }
 }

@@ -254,6 +254,16 @@
   white-space: nowrap;
 }
 
+/* 태스크 사슬 표식 — 같은 색 = 같은 사슬 */
+.swimlane-card-chain {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
 .swimlane-card-date {
   color: var(--text-dim);
   font-size: 0.7rem;

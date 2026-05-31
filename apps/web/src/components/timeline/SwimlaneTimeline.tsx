@@ -21,6 +21,18 @@ const IMPORTANCE_COLOR: Record<string, string> = {
   PROCESS: "#0891b2",
 };
 
+// 태스크 사슬(연결 SEQUENCE 묶음)별 색 — 한 사슬을 시각적으로 추적.
+const CHAIN_PALETTE = [
+  "#22d3ee",
+  "#a78bfa",
+  "#34d399",
+  "#f59e0b",
+  "#f472b6",
+  "#60a5fa",
+  "#fb7185",
+  "#4ade80",
+];
+
 interface Props {
   anchor: Date;
   dayCount: number;
@@ -43,6 +55,7 @@ interface Arrow {
   y2: number;
   label: string;
   kind: string;
+  chainColor?: string;
 }
 
 /** 사각형 중심에서 (tx,ty) 방향으로 테두리와 만나는 점. */
@@ -94,6 +107,40 @@ export function SwimlaneTimeline({
     }
     return m;
   }, [cardRelations]);
+  // SEQUENCE 관계의 연결요소(=태스크 사슬)마다 색 1개. 멤버 2개 이상만 색 부여.
+  const chainColorByCard = useMemo(() => {
+    const parent = new Map<string, string>();
+    const find = (x: string): string => {
+      let r = x;
+      while (parent.get(r) !== r) r = parent.get(r)!;
+      return r;
+    };
+    const union = (a: string, b: string) => {
+      if (!parent.has(a)) parent.set(a, a);
+      if (!parent.has(b)) parent.set(b, b);
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent.set(ra, rb);
+    };
+    for (const r of cardRelations) {
+      if (r.relationKind === "SEQUENCE") union(r.fromCardId, r.toCardId);
+    }
+    const members = new Map<string, string[]>();
+    for (const id of parent.keys()) {
+      const root = find(id);
+      if (!members.has(root)) members.set(root, []);
+      members.get(root)!.push(id);
+    }
+    const roots = [...members.keys()]
+      .filter((r) => members.get(r)!.length >= 2)
+      .sort();
+    const color = new Map<string, string>();
+    roots.forEach((root, i) => {
+      const c = CHAIN_PALETTE[i % CHAIN_PALETTE.length];
+      members.get(root)!.forEach((id) => color.set(id, c));
+    });
+    return color;
+  }, [cardRelations]);
   const groupsById = useMemo(
     () => new Map(groups.map((g) => [g.id, g])),
     [groups],
@@ -133,7 +180,16 @@ export function SwimlaneTimeline({
         const [x2, y2] = edgePoint(tcx, tcy, tr.width / 2, tr.height / 2, fcx, fcy);
         const isSeq = rel.relationKind === "SEQUENCE";
         const label = isSeq ? "" : rel.summary?.trim() || rel.relationKind;
-        next.push({ id: rel.id, x1, y1, x2, y2, label, kind: rel.relationKind });
+        next.push({
+          id: rel.id,
+          x1,
+          y1,
+          x2,
+          y2,
+          label,
+          kind: rel.relationKind,
+          chainColor: isSeq ? chainColorByCard.get(rel.fromCardId) : undefined,
+        });
       }
       setArrows(next);
     }
@@ -146,7 +202,15 @@ export function SwimlaneTimeline({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [cardRelations, days, sections, tabGroups, groupMembers, cards]);
+  }, [
+    cardRelations,
+    chainColorByCard,
+    days,
+    sections,
+    tabGroups,
+    groupMembers,
+    cards,
+  ]);
 
   function dayIndexOf(iso: string | null): number {
     if (!iso) return -1;
@@ -186,7 +250,7 @@ export function SwimlaneTimeline({
                 markerHeight="7"
                 orient="auto-start-reverse"
               >
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" />
+                <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
               </marker>
               <marker
                 id="swimlane-arrowhead-rel"
@@ -211,6 +275,9 @@ export function SwimlaneTimeline({
                     x2={a.x2}
                     y2={a.y2}
                     className={`swimlane-arrow-line ${a.kind === "SEQUENCE" ? "seq" : "rel"}`}
+                    style={
+                      a.chainColor ? { stroke: a.chainColor } : undefined
+                    }
                     markerEnd={`url(#swimlane-arrowhead-${a.kind === "SEQUENCE" ? "seq" : "rel"})`}
                   />
                   {a.label && (
@@ -292,6 +359,7 @@ export function SwimlaneTimeline({
                               <div key={i} className="swimlane-cell">
                                 {(byDay.get(i) ?? []).map((card) => {
                                   const relCount = relCountById.get(card.id) ?? 0;
+                                  const chainColor = chainColorByCard.get(card.id);
                                   const isGcal = card.origin === "GCAL_PULL";
                                   const hasMeta =
                                     relCount > 0 ||
@@ -321,6 +389,13 @@ export function SwimlaneTimeline({
                                       title={card.title}
                                     >
                                       <span className="swimlane-card-title">
+                                        {chainColor && (
+                                          <span
+                                            className="swimlane-card-chain"
+                                            style={{ background: chainColor }}
+                                            title="태스크 사슬"
+                                          />
+                                        )}
                                         {card.title}
                                       </span>
                                       <span className="swimlane-card-date">

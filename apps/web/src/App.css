@@ -29,6 +29,18 @@ body {
     "Noto Sans KR", sans-serif;
 }
 
+/* 스크롤바 UI 숨김 — 스크롤 기능은 유지 (사용자 요청) */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구 Edge/IE */
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome·Safari·신 Edge */
+}
+
 .loading {
   padding: 2rem;
   text-align: center;

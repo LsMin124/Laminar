@@ -334,12 +334,14 @@
 }
 
 .swimlane-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   color: var(--text);
   font-size: 0.82rem;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
 }
 
 /* 태스크 사슬 표식 — 같은 색 = 같은 사슬 */
@@ -360,11 +362,13 @@
 }
 
 .swimlane-card-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   color: var(--text-dim);
   font-size: 0.72rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
 }
 
 /* 카드 메타 아이콘 행 */

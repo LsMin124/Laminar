@@ -9,7 +9,7 @@ import type {
 import "./SwimlaneTimeline.css";
 
 const COL_W = 170;
-const LANE_H = 66;
+const LANE_H = 104;
 const GAP = 5;
 const WD = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -550,6 +550,11 @@ export function SwimlaneTimeline({
                                       : ""}
                                     {card.startTime ? ` ${card.startTime}` : ""}
                                   </span>
+                                  {card.bodyMd && (
+                                    <span className="swimlane-card-summary">
+                                      {card.bodyMd.slice(0, 160)}
+                                    </span>
+                                  )}
                                   {hasMeta && (
                                     <span className="swimlane-card-meta">
                                       {relCount > 0 && (

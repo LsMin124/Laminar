@@ -31,6 +31,7 @@ interface Props {
   cards: CardResponse[];
   cardRelations: CardRelationResponse[];
   onCardClick: (cardId: string) => void;
+  onCreateCard: (groupId: string, dateIso: string) => void;
 }
 
 interface Arrow {
@@ -75,6 +76,7 @@ export function SwimlaneTimeline({
   cards,
   cardRelations,
   onCardClick,
+  onCreateCard,
 }: Props) {
   const days = useMemo(
     () => Array.from({ length: dayCount }, (_, i) => addDays(anchor, i)),
@@ -356,6 +358,20 @@ export function SwimlaneTimeline({
                                     </button>
                                   );
                                 })}
+                                <button
+                                  type="button"
+                                  className="swimlane-cell-add"
+                                  onClick={() =>
+                                    onCreateCard(
+                                      gid,
+                                      format(days[i], "yyyy-MM-dd"),
+                                    )
+                                  }
+                                  title="이 날짜에 카드 추가"
+                                  aria-label="카드 추가"
+                                >
+                                  +
+                                </button>
                               </div>
                             ))}
                           </div>

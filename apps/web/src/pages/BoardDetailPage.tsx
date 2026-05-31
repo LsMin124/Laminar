@@ -181,6 +181,17 @@ export function BoardDetailPage() {
     setCreateInitialDate(null);
   }
 
+  async function handleCreateCardInCell(groupId: string, dateIso: string) {
+    const title = window.prompt("카드 제목");
+    if (!title?.trim()) return;
+    const card = await createCard.mutateAsync({
+      boardId,
+      title: title.trim(),
+      startDate: dateIso,
+    });
+    addToGroup.mutate({ groupId, cardId: card.id });
+  }
+
   return (
     <div className="board-workspace">
       <div className="board-sidebar">
@@ -354,6 +365,7 @@ export function BoardDetailPage() {
               cards={graph.data?.cards ?? []}
               cardRelations={graph.data?.cardRelations ?? []}
               onCardClick={(cardId) => setSelectedCardId(cardId)}
+              onCreateCard={handleCreateCardInCell}
             />
           )}
         </>

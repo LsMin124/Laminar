@@ -342,18 +342,42 @@ export function SwimlaneTimeline({
                         if (idx < 0) return;
                         byDay.set(idx, [...(byDay.get(idx) ?? []), card]);
                       });
+                      const memberCards = (groupMembers[gid] ?? [])
+                        .map((cid) => cardsById.get(cid))
+                        .filter((c): c is CardResponse => Boolean(c));
+                      const total = memberCards.length;
+                      const done = memberCards.filter((c) => c.completed).length;
+                      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
                       return (
                         <div key={gid} className="swimlane-group">
-                          <span
-                            className="swimlane-group-label"
-                            style={
-                              group?.color
-                                ? { borderColor: group.color, color: group.color }
-                                : undefined
-                            }
-                          >
-                            {group?.name ?? "그룹"}
-                          </span>
+                          <div className="swimlane-group-head">
+                            <span
+                              className="swimlane-group-label"
+                              style={
+                                group?.color
+                                  ? {
+                                      borderColor: group.color,
+                                      color: group.color,
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {group?.name ?? "그룹"}
+                            </span>
+                            {total > 0 && (
+                              <span
+                                className="swimlane-group-progress"
+                                title={`${done}/${total} 완료 (${pct}%)`}
+                              >
+                                <span className="swimlane-group-progress-bar">
+                                  <span style={{ width: `${pct}%` }} />
+                                </span>
+                                <span className="swimlane-group-progress-num">
+                                  {done}/{total}
+                                </span>
+                              </span>
+                            )}
+                          </div>
                           <div className="swimlane-grid" style={gridStyle}>
                             {days.map((_, i) => (
                               <div key={i} className="swimlane-cell">

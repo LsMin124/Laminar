@@ -135,17 +135,49 @@
   margin: 0.5rem 0.5rem 0.75rem;
 }
 
-.swimlane-group-label {
+.swimlane-group-head {
   position: sticky;
   left: 0.5rem;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.25rem;
+}
+
+.swimlane-group-label {
+  display: inline-block;
   padding: 0.1rem 0.5rem;
   background: var(--bg);
   border: 1px dashed var(--rule);
   border-radius: 6px;
   color: var(--text-dim);
   font-size: 0.72rem;
+}
+
+/* 그룹=목표 진행도 */
+.swimlane-group-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.swimlane-group-progress-bar {
+  width: 52px;
+  height: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.swimlane-group-progress-bar > span {
+  display: block;
+  height: 100%;
+  background: #34d399;
+}
+
+.swimlane-group-progress-num {
+  color: var(--text-dim);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .swimlane-grid {

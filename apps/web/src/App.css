@@ -29,16 +29,35 @@ body {
     "Noto Sans KR", sans-serif;
 }
 
-/* 스크롤바 UI 숨김 — 스크롤 기능은 유지 (사용자 요청) */
+/* 얇은 사이버 스크롤바 — 평소 저채도(거의 안 보임), hover 시 시안. 스크롤 힌트 유지 */
 * {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* 구 Edge/IE */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(110, 160, 210, 0.22) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none; /* Chrome·Safari·신 Edge */
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(110, 160, 210, 0.22);
+  background-clip: padding-box;
+  border: 3px solid transparent; /* 보이는 막대를 ~3px로 얇게 */
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-bright);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .loading {

@@ -1,0 +1,98 @@
+.app-dialog {
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+.app-dialog::backdrop {
+  background: rgba(3, 6, 10, 0.66);
+  backdrop-filter: blur(2px);
+}
+
+.app-dialog-inner {
+  width: min(92vw, 400px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px rgba(46, 230, 255, 0.06),
+    0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.app-dialog-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.app-dialog-msg {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.app-dialog-input {
+  padding: 0.55rem 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.app-dialog-input:focus {
+  outline: none;
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 1px rgba(46, 230, 255, 0.25);
+}
+
+.app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.app-dialog-btn {
+  padding: 0.45rem 0.95rem;
+  border-radius: 2px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.app-dialog-btn.cancel {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--text-dim);
+}
+
+.app-dialog-btn.cancel:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.app-dialog-btn.confirm {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #04212a;
+  font-weight: 600;
+}
+
+.app-dialog-btn.confirm:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.app-dialog-btn.confirm.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #2a0510;
+}

@@ -1,4 +1,5 @@
 import { useBoardPerpetualNotes, useCreatePerpetualNote } from "../../lib/queries";
+import { useDialogs } from "../ui/DialogProvider";
 import type { PerpetualNoteResponse } from "../../lib/types";
 import "./PerpetualPanel.css";
 
@@ -42,14 +43,22 @@ export function PerpetualPanel({
 }: Props) {
   const notes = useBoardPerpetualNotes(boardId);
   const createNote = useCreatePerpetualNote(boardId);
+  const dialogs = useDialogs();
   const tree = buildTree(notes.data ?? []);
 
-  function addNote() {
+  async function addNote() {
     if (!selectedTabId) {
-      window.alert("먼저 좌측 탭을 선택하세요 — 영구노트는 탭에 속합니다.");
+      await dialogs.alert({
+        title: "탭을 먼저 선택하세요",
+        message:
+          "영구노트는 탭에 속합니다. 좌측 탭 패널에서 탭을 선택한 뒤 추가하세요.",
+      });
       return;
     }
-    const title = window.prompt("영구노트 제목");
+    const title = await dialogs.prompt({
+      title: "영구노트 추가",
+      placeholder: "노트 제목",
+    });
     if (title?.trim()) {
       createNote.mutate({ tabId: selectedTabId, title: title.trim() });
     }

@@ -24,6 +24,7 @@ import { CardInspector } from "../components/card/CardInspector";
 import { TabTreeSidebar } from "../components/tab/TabTreeSidebar";
 import { PerpetualPanel } from "../components/perpetual/PerpetualPanel";
 import { PerpetualNoteInspector } from "../components/perpetual/PerpetualNoteInspector";
+import { useDialogs } from "../components/ui/DialogProvider";
 import {
   useAddCardToGroup,
   useAddGroupToTab,
@@ -71,6 +72,7 @@ export function BoardDetailPage() {
     };
   }, [anchor]);
   const calendar = useBoardCalendar(boardId, range.from, range.to);
+  const dialogs = useDialogs();
   const createCard = useCreateCard(boardId);
   const reschedule = useRescheduleCard(boardId);
   const createRelation = useCreateCardRelation(boardId);
@@ -182,7 +184,10 @@ export function BoardDetailPage() {
   }
 
   async function handleCreateCardInCell(groupId: string, dateIso: string) {
-    const title = window.prompt("카드 제목");
+    const title = await dialogs.prompt({
+      title: "새 카드",
+      placeholder: "카드 제목",
+    });
     if (!title?.trim()) return;
     const card = await createCard.mutateAsync({
       boardId,
@@ -193,7 +198,11 @@ export function BoardDetailPage() {
   }
 
   async function handleAddNextStep(groupId: string, fromCard: CardResponse) {
-    const title = window.prompt("다음 단계 카드 제목");
+    const title = await dialogs.prompt({
+      title: "다음 단계 카드",
+      placeholder: "카드 제목",
+      message: `"${fromCard.title}" 다음 단계`,
+    });
     if (!title?.trim()) return;
     const nextDate = fromCard.startDate
       ? format(addDays(parseISO(fromCard.startDate), 1), "yyyy-MM-dd")

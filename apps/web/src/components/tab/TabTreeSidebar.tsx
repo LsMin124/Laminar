@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useBoardTabs, useCreateTab, useUpdateTab } from "../../lib/queries";
+import { useDialogs } from "../ui/DialogProvider";
 import type { TabResponse } from "../../lib/types";
 import "./TabTreeSidebar.css";
 
@@ -38,12 +39,16 @@ export function TabTreeSidebar({ boardId, selectedTabId, onSelectTab }: Props) {
   const tabs = useBoardTabs(boardId);
   const createTab = useCreateTab(boardId);
   const updateTab = useUpdateTab(boardId);
+  const dialogs = useDialogs();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const tree = buildTree(tabs.data ?? []);
 
-  function addTab(parentId: string | null) {
-    const name = window.prompt(parentId ? "하위 탭 이름" : "탭 이름");
+  async function addTab(parentId: string | null) {
+    const name = await dialogs.prompt({
+      title: parentId ? "하위 탭 추가" : "탭 추가",
+      placeholder: "탭 이름",
+    });
     if (name?.trim()) {
       createTab.mutate({ name: name.trim(), parentTabId: parentId ?? undefined });
     }

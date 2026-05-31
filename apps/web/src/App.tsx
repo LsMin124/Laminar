@@ -13,6 +13,7 @@ import { PerpetualPage } from "./pages/PerpetualPage";
 import { EquipmentPage } from "./pages/EquipmentPage";
 import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
 import { AdminPage } from "./pages/AdminPage";
+import { DialogProvider } from "./components/ui/DialogProvider";
 import type { WorkspaceResponse } from "./lib/types";
 import "./App.css";
 
@@ -84,9 +85,11 @@ function Shell() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Shell />
-      </BrowserRouter>
+      <DialogProvider>
+        <BrowserRouter>
+          <Shell />
+        </BrowserRouter>
+      </DialogProvider>
     </QueryClientProvider>
   );
 }

@@ -32,6 +32,7 @@ interface Props {
   cardRelations: CardRelationResponse[];
   onCardClick: (cardId: string) => void;
   onCreateCard: (groupId: string, dateIso: string) => void;
+  onAddNextStep: (groupId: string, fromCard: CardResponse) => void;
 }
 
 interface Arrow {
@@ -77,6 +78,7 @@ export function SwimlaneTimeline({
   cardRelations,
   onCardClick,
   onCreateCard,
+  onAddNextStep,
 }: Props) {
   const days = useMemo(
     () => Array.from({ length: dayCount }, (_, i) => addDays(anchor, i)),
@@ -156,7 +158,7 @@ export function SwimlaneTimeline({
   } as React.CSSProperties;
 
   function registerCard(id: string) {
-    return (el: HTMLButtonElement | null) => {
+    return (el: HTMLElement | null) => {
       if (el) cardRefs.current.set(id, el);
       else cardRefs.current.delete(id);
     };
@@ -285,10 +287,11 @@ export function SwimlaneTimeline({
                                     isGcal ||
                                     card.completed;
                                   return (
-                                    <button
+                                    <div
                                       key={card.id}
                                       ref={registerCard(card.id)}
-                                      type="button"
+                                      role="button"
+                                      tabIndex={0}
                                       className={`swimlane-card${card.completed ? " completed" : ""}`}
                                       style={{
                                         borderLeftColor:
@@ -296,6 +299,12 @@ export function SwimlaneTimeline({
                                           "#6b7280",
                                       }}
                                       onClick={() => onCardClick(card.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          onCardClick(card.id);
+                                        }
+                                      }}
                                       title={card.title}
                                     >
                                       <span className="swimlane-card-title">
@@ -355,7 +364,19 @@ export function SwimlaneTimeline({
                                           )}
                                         </span>
                                       )}
-                                    </button>
+                                      <button
+                                        type="button"
+                                        className="swimlane-card-next"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onAddNextStep(gid, card);
+                                        }}
+                                        title="다음 단계 카드 (다음날·같은 그룹·순차 연결)"
+                                        aria-label="다음 단계 카드 추가"
+                                      >
+                                        다음 단계 →
+                                      </button>
+                                    </div>
                                   );
                                 })}
                                 <button

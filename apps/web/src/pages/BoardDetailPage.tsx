@@ -192,6 +192,27 @@ export function BoardDetailPage() {
     addToGroup.mutate({ groupId, cardId: card.id });
   }
 
+  async function handleAddNextStep(groupId: string, fromCard: CardResponse) {
+    const title = window.prompt("다음 단계 카드 제목");
+    if (!title?.trim()) return;
+    const nextDate = fromCard.startDate
+      ? format(addDays(parseISO(fromCard.startDate), 1), "yyyy-MM-dd")
+      : null;
+    const card = await createCard.mutateAsync({
+      boardId,
+      title: title.trim(),
+      startDate: nextDate,
+      importance: fromCard.importance,
+    });
+    await addToGroup.mutateAsync({ groupId, cardId: card.id });
+    await createRelation.mutateAsync({
+      fromCardId: fromCard.id,
+      toCardId: card.id,
+      relationKind: "SEQUENCE",
+      summary: "다음 단계",
+    });
+  }
+
   return (
     <div className="board-workspace">
       <div className="board-sidebar">
@@ -366,6 +387,7 @@ export function BoardDetailPage() {
               cardRelations={graph.data?.cardRelations ?? []}
               onCardClick={(cardId) => setSelectedCardId(cardId)}
               onCreateCard={handleCreateCardInCell}
+              onAddNextStep={handleAddNextStep}
             />
           )}
         </>

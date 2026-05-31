@@ -6,6 +6,7 @@ import {
   useEquipment,
   useEquipmentReservations,
 } from "../lib/queries";
+import { useDialogs } from "../components/ui/DialogProvider";
 import "./EquipmentDetailPage.css";
 
 function toIsoLocal(date: Date): string {
@@ -43,6 +44,7 @@ export function EquipmentDetailPage() {
   );
   const createReservation = useCreateReservation(equipmentId);
   const cancelReservation = useCancelReservation(equipmentId);
+  const dialogs = useDialogs();
 
   const [startAt, setStartAt] = useState(() => {
     const now = new Date();
@@ -166,10 +168,14 @@ export function EquipmentDetailPage() {
                     <button
                       type="button"
                       className="danger"
-                      onClick={() => {
-                        if (confirm("예약을 취소할까요?")) {
-                          cancelReservation.mutate(r.id);
-                        }
+                      onClick={async () => {
+                        const ok = await dialogs.confirm({
+                          title: "예약 취소",
+                          message: "이 예약을 취소할까요?",
+                          confirmLabel: "취소",
+                          danger: true,
+                        });
+                        if (ok) cancelReservation.mutate(r.id);
                       }}
                     >
                       취소

@@ -6,6 +6,7 @@ import {
   useAuditLogs,
   useRevealCardBody,
 } from "../lib/queries";
+import { useDialogs } from "../components/ui/DialogProvider";
 import "./AdminPage.css";
 
 export function AdminPage() {
@@ -15,6 +16,7 @@ export function AdminPage() {
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const adminCards = useAdminBoardCards(selectedBoardId);
   const reveal = useRevealCardBody();
+  const dialogs = useDialogs();
   const [revealed, setRevealed] = useState<{
     cardId: string;
     title: string;
@@ -22,22 +24,31 @@ export function AdminPage() {
   } | null>(null);
 
   async function handleReveal(cardId: string) {
-    const reason = prompt("본문 노출 사유 (감사 로그에 기록됨, 10자 이상)");
-    if (!reason || reason.length < 10) {
-      alert("사유는 10자 이상이어야 합니다.");
+    const reason = await dialogs.prompt({
+      title: "본문 노출",
+      message: "노출 사유 (감사 로그에 기록됨, 10자 이상)",
+      placeholder: "사유",
+    });
+    if (reason === null) return;
+    if (reason.trim().length < 10) {
+      await dialogs.alert({
+        title: "사유 부족",
+        message: "사유는 10자 이상이어야 합니다.",
+      });
       return;
     }
     try {
-      const res = await reveal.mutateAsync({ cardId, reason });
+      const res = await reveal.mutateAsync({ cardId, reason: reason.trim() });
       setRevealed({
         cardId: res.cardId,
         title: res.title,
         bodyMd: res.bodyMd,
       });
     } catch (e) {
-      alert(
-        `노출 실패: ${e instanceof Error ? e.message : String(e)} (OWNER만 가능)`,
-      );
+      await dialogs.alert({
+        title: "노출 실패",
+        message: `${e instanceof Error ? e.message : String(e)} (OWNER만 가능)`,
+      });
     }
   }
 

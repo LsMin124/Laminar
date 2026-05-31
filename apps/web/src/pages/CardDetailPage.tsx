@@ -15,6 +15,7 @@ import {
   useUpdateCard,
 } from "../lib/queries";
 import { api } from "../lib/api";
+import { useDialogs } from "../components/ui/DialogProvider";
 import type { PresignedUrlResponse } from "../lib/types";
 import "./CardDetailPage.css";
 
@@ -25,6 +26,7 @@ export function CardDetailPage() {
   const cardId = params.cardId ?? "";
   const [editing, setEditing] = useState(false);
 
+  const dialogs = useDialogs();
   const card = useCard(cardId);
   const rendered = useCardRendered(cardId);
   const updateCard = useUpdateCard(cardId, boardId);
@@ -48,9 +50,13 @@ export function CardDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm(`'${card.data?.title}' 카드를 삭제할까요? (soft delete)`)) {
-      return;
-    }
+    const ok = await dialogs.confirm({
+      title: "카드 삭제",
+      message: `'${card.data?.title}' 카드를 삭제할까요? (soft delete)`,
+      confirmLabel: "삭제",
+      danger: true,
+    });
+    if (!ok) return;
     await deleteCard.mutateAsync();
     navigate(`/boards/${boardId}`);
   }
@@ -62,7 +68,10 @@ export function CardDetailPage() {
       );
       window.open(presigned.url, "_blank", "noopener,noreferrer");
     } catch (e) {
-      alert(`다운로드 URL 발급 실패: ${e instanceof Error ? e.message : e}`);
+      await dialogs.alert({
+        title: "다운로드 실패",
+        message: `URL 발급 실패: ${e instanceof Error ? e.message : e}`,
+      });
     }
   }
 

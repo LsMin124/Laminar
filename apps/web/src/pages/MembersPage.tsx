@@ -10,6 +10,7 @@ import {
   useRemoveMember,
 } from "../lib/queries";
 import type { WorkspaceRole } from "../lib/types";
+import { useDialogs } from "../components/ui/DialogProvider";
 import "./MembersPage.css";
 
 const ROLE_OPTIONS: WorkspaceRole[] = ["OWNER", "MEMBER", "VIEWER"];
@@ -22,6 +23,7 @@ export function MembersPage() {
   const revoke = useRevokeInvitation();
   const updateRole = useUpdateMemberRole();
   const removeMember = useRemoveMember();
+  const dialogs = useDialogs();
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>("MEMBER");
@@ -108,10 +110,14 @@ export function MembersPage() {
                 <button
                   type="button"
                   className="members-item-remove"
-                  onClick={() => {
-                    if (confirm(`${m.email} 멤버를 제거할까요?`)) {
-                      removeMember.mutate(m.userId);
-                    }
+                  onClick={async () => {
+                    const ok = await dialogs.confirm({
+                      title: "멤버 제거",
+                      message: `${m.email} 멤버를 제거할까요?`,
+                      confirmLabel: "제거",
+                      danger: true,
+                    });
+                    if (ok) removeMember.mutate(m.userId);
                   }}
                   disabled={removeMember.isPending}
                 >

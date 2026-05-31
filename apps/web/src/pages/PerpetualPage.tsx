@@ -24,6 +24,7 @@ import type {
   PerpetualNoteResponse,
   TabResponse,
 } from "../lib/types";
+import { useDialogs } from "../components/ui/DialogProvider";
 import "./PerpetualPage.css";
 
 const COLUMN_TYPES: PerpetualColumnType[] = [
@@ -88,6 +89,7 @@ export function PerpetualPage() {
   const tabs = useBoardTabs(boardId);
   const notes = useBoardPerpetualNotes(boardId);
   const columns = useBoardPerpetualColumns(boardId);
+  const dialogs = useDialogs();
 
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -128,9 +130,12 @@ export function PerpetualPage() {
             <h2>탭</h2>
             <button
               type="button"
-              onClick={() => {
-                const name = prompt("탭 이름");
-                if (name) createTab.mutate({ name });
+              onClick={async () => {
+                const name = await dialogs.prompt({
+                  title: "탭 추가",
+                  placeholder: "탭 이름",
+                });
+                if (name?.trim()) createTab.mutate({ name: name.trim() });
               }}
             >
               +
@@ -144,15 +149,25 @@ export function PerpetualPage() {
               setSelectedTabId(id);
               setSelectedNoteId(null);
             }}
-            onDelete={(id) => {
-              if (confirm("탭을 삭제할까요? (하위 노트 분리)")) {
+            onDelete={async (id) => {
+              const ok = await dialogs.confirm({
+                title: "탭 삭제",
+                message: "탭을 삭제할까요? (하위 노트 분리)",
+                confirmLabel: "삭제",
+                danger: true,
+              });
+              if (ok) {
                 deleteTab.mutate(id);
                 if (selectedTabId === id) setSelectedTabId(null);
               }
             }}
-            onCreateChild={(parentId) => {
-              const name = prompt("하위 탭 이름");
-              if (name) createTab.mutate({ name, parentTabId: parentId });
+            onCreateChild={async (parentId) => {
+              const name = await dialogs.prompt({
+                title: "하위 탭 추가",
+                placeholder: "탭 이름",
+              });
+              if (name?.trim())
+                createTab.mutate({ name: name.trim(), parentTabId: parentId });
             }}
           />
         </aside>
@@ -163,10 +178,17 @@ export function PerpetualPage() {
             <button
               type="button"
               disabled={!selectedTabId}
-              onClick={() => {
+              onClick={async () => {
                 if (!selectedTabId) return;
-                const title = prompt("노트 제목");
-                if (title) createNote.mutate({ tabId: selectedTabId, title });
+                const title = await dialogs.prompt({
+                  title: "노트 추가",
+                  placeholder: "노트 제목",
+                });
+                if (title?.trim())
+                  createNote.mutate({
+                    tabId: selectedTabId,
+                    title: title.trim(),
+                  });
               }}
             >
               + 노트
@@ -180,17 +202,26 @@ export function PerpetualPage() {
               depth={0}
               selectedId={selectedNoteId}
               onSelect={setSelectedNoteId}
-              onCreateChild={(parentId) => {
-                const title = prompt("하위 노트 제목");
-                if (title)
+              onCreateChild={async (parentId) => {
+                const title = await dialogs.prompt({
+                  title: "하위 노트 추가",
+                  placeholder: "노트 제목",
+                });
+                if (title?.trim())
                   createNote.mutate({
                     tabId: selectedTabId,
                     parentPerpetualId: parentId,
-                    title,
+                    title: title.trim(),
                   });
               }}
-              onDelete={(id) => {
-                if (confirm("노트를 삭제할까요?")) {
+              onDelete={async (id) => {
+                const ok = await dialogs.confirm({
+                  title: "노트 삭제",
+                  message: "노트를 삭제할까요?",
+                  confirmLabel: "삭제",
+                  danger: true,
+                });
+                if (ok) {
                   deleteNote.mutate(id);
                   if (selectedNoteId === id) setSelectedNoteId(null);
                 }
@@ -217,23 +248,32 @@ export function PerpetualPage() {
           <h2>시트 컬럼 정의 ({columns.data?.length ?? 0})</h2>
           <button
             type="button"
-            onClick={() => {
-              const name = prompt("컬럼 이름");
-              if (!name) return;
-              const type = prompt(
-                "타입: " + COLUMN_TYPES.join("/"),
-                "TEXT",
-              ) as PerpetualColumnType;
-              if (!COLUMN_TYPES.includes(type)) return;
+            onClick={async () => {
+              const name = await dialogs.prompt({
+                title: "컬럼 추가",
+                placeholder: "컬럼 이름",
+              });
+              if (!name?.trim()) return;
+              const typeRaw = await dialogs.prompt({
+                title: "컬럼 타입",
+                message: COLUMN_TYPES.join(" / "),
+                defaultValue: "TEXT",
+              });
+              const type = typeRaw as PerpetualColumnType;
+              if (!typeRaw || !COLUMN_TYPES.includes(type)) return;
               let enumValues: string[] | undefined;
               if (type === "ENUM") {
-                const raw = prompt("ENUM 값 (콤마 구분)") ?? "";
+                const raw =
+                  (await dialogs.prompt({
+                    title: "ENUM 값",
+                    placeholder: "콤마로 구분",
+                  })) ?? "";
                 enumValues = raw
                   .split(",")
                   .map((v) => v.trim())
                   .filter(Boolean);
               }
-              createColumn.mutate({ name, type, enumValues });
+              createColumn.mutate({ name: name.trim(), type, enumValues });
             }}
           >
             + 컬럼
@@ -252,10 +292,14 @@ export function PerpetualPage() {
               <button
                 type="button"
                 className="members-item-remove"
-                onClick={() => {
-                  if (confirm(`'${c.name}' 컬럼 삭제?`)) {
-                    deleteColumn.mutate(c.id);
-                  }
+                onClick={async () => {
+                  const ok = await dialogs.confirm({
+                    title: "컬럼 삭제",
+                    message: `'${c.name}' 컬럼을 삭제할까요?`,
+                    confirmLabel: "삭제",
+                    danger: true,
+                  });
+                  if (ok) deleteColumn.mutate(c.id);
                 }}
               >
                 삭제

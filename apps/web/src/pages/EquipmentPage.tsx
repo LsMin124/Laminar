@@ -7,6 +7,7 @@ import {
   useMyReservations,
   useToggleEquipmentActive,
 } from "../lib/queries";
+import { useDialogs } from "../components/ui/DialogProvider";
 import "./EquipmentPage.css";
 
 export function EquipmentPage() {
@@ -16,6 +17,7 @@ export function EquipmentPage() {
   const createEquipment = useCreateEquipment();
   const toggleActive = useToggleEquipmentActive();
   const deleteEquipment = useDeleteEquipment();
+  const dialogs = useDialogs();
 
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
@@ -142,10 +144,14 @@ export function EquipmentPage() {
                   <button
                     type="button"
                     className="danger"
-                    onClick={() => {
-                      if (confirm(`'${eq.name}' 장비를 삭제할까요?`)) {
-                        deleteEquipment.mutate(eq.id);
-                      }
+                    onClick={async () => {
+                      const ok = await dialogs.confirm({
+                        title: "장비 삭제",
+                        message: `'${eq.name}' 장비를 삭제할까요?`,
+                        confirmLabel: "삭제",
+                        danger: true,
+                      });
+                      if (ok) deleteEquipment.mutate(eq.id);
                     }}
                   >
                     삭제

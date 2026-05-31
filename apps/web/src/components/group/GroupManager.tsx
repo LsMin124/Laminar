@@ -14,6 +14,7 @@ import {
   useRemoveGroupMember,
   useUpdateGroup,
 } from "../../lib/queries";
+import { useDialogs } from "../ui/DialogProvider";
 import type { CardResponse } from "../../lib/types";
 import "./GroupManager.css";
 
@@ -23,6 +24,7 @@ interface GroupManagerProps {
 }
 
 export function GroupManager({ boardId, cards }: GroupManagerProps) {
+  const dialogs = useDialogs();
   const groups = useGroups(boardId);
   const createGroup = useCreateGroup(boardId);
   const updateGroup = useUpdateGroup(boardId);
@@ -58,11 +60,17 @@ export function GroupManager({ boardId, cards }: GroupManagerProps) {
           <h3>그룹 ({groups.data?.length ?? 0})</h3>
           <button
             type="button"
-            onClick={() => {
-              const name = prompt("그룹 이름");
-              if (!name) return;
-              const color = prompt("색상 (#rrggbb, 비우면 회색)") || null;
-              createGroup.mutate({ name, color });
+            onClick={async () => {
+              const name = await dialogs.prompt({
+                title: "그룹 추가",
+                placeholder: "그룹 이름",
+              });
+              if (!name?.trim()) return;
+              const color = await dialogs.prompt({
+                title: "그룹 색상",
+                placeholder: "#rrggbb (비우면 회색)",
+              });
+              createGroup.mutate({ name: name.trim(), color: color?.trim() || null });
             }}
           >
             + 그룹
@@ -85,11 +93,14 @@ export function GroupManager({ boardId, cards }: GroupManagerProps) {
               <button
                 type="button"
                 className="group-action"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  const next = prompt("새 이름", g.name);
-                  if (next && next !== g.name) {
-                    updateGroup.mutate({ groupId: g.id, name: next });
+                  const next = await dialogs.prompt({
+                    title: "그룹 이름 변경",
+                    defaultValue: g.name,
+                  });
+                  if (next && next.trim() && next !== g.name) {
+                    updateGroup.mutate({ groupId: g.id, name: next.trim() });
                   }
                 }}
               >
@@ -98,9 +109,15 @@ export function GroupManager({ boardId, cards }: GroupManagerProps) {
               <button
                 type="button"
                 className="group-action danger"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  if (confirm(`'${g.name}' 그룹 삭제?`)) {
+                  const ok = await dialogs.confirm({
+                    title: "그룹 삭제",
+                    message: `'${g.name}' 그룹을 삭제할까요?`,
+                    confirmLabel: "삭제",
+                    danger: true,
+                  });
+                  if (ok) {
                     deleteGroup.mutate(g.id);
                     if (selectedGroupId === g.id) setSelectedGroupId(null);
                   }
@@ -174,9 +191,12 @@ export function GroupManager({ boardId, cards }: GroupManagerProps) {
             type="button"
             className="primary"
             disabled={!relationDraft.fromCardId || !relationDraft.toCardId}
-            onClick={() => {
+            onClick={async () => {
               if (relationDraft.fromCardId === relationDraft.toCardId) {
-                alert("같은 카드는 연결할 수 없습니다.");
+                await dialogs.alert({
+                  title: "연결 불가",
+                  message: "같은 카드는 연결할 수 없습니다.",
+                });
                 return;
               }
               createCardRelation.mutate({
@@ -278,11 +298,14 @@ export function GroupManager({ boardId, cards }: GroupManagerProps) {
             disabled={
               !groupRelationDraft.fromGroupId || !groupRelationDraft.toGroupId
             }
-            onClick={() => {
+            onClick={async () => {
               if (
                 groupRelationDraft.fromGroupId === groupRelationDraft.toGroupId
               ) {
-                alert("같은 그룹은 연결할 수 없습니다.");
+                await dialogs.alert({
+                  title: "연결 불가",
+                  message: "같은 그룹은 연결할 수 없습니다.",
+                });
                 return;
               }
               createGroupRelation.mutate({

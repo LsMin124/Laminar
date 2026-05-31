@@ -338,6 +338,7 @@ export function BoardDetailPage() {
               tabGroups={graph.data?.tabGroups ?? {}}
               groupMembers={graph.data?.groupMembers ?? {}}
               cards={graph.data?.cards ?? []}
+              cardRelations={graph.data?.cardRelations ?? []}
               onCardClick={(cardId) => setSelectedCardId(cardId)}
             />
           )}

@@ -10,6 +10,38 @@
   padding-bottom: 2rem;
 }
 
+/* 콘텐츠 래퍼 — 화살표 SVG 절대배치 기준, 그리드 폭만큼 확장 */
+.swimlane-content {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* 카드 간 관계 화살표 오버레이 */
+.swimlane-arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.swimlane-arrow-line {
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  opacity: 0.5;
+}
+
+.swimlane-arrow-label {
+  fill: var(--text-dim);
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
 /* 날짜 헤더 */
 .swimlane-header {
   display: grid;

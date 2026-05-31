@@ -1,6 +1,11 @@
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, isSameDay, isToday, parseISO } from "date-fns";
-import type { CardResponse, GroupResponse, TabResponse } from "../../lib/types";
+import type {
+  CardRelationResponse,
+  CardResponse,
+  GroupResponse,
+  TabResponse,
+} from "../../lib/types";
 import "./SwimlaneTimeline.css";
 
 const COL_W = 170;
@@ -24,12 +29,41 @@ interface Props {
   tabGroups: Record<string, string[]>;
   groupMembers: Record<string, string[]>;
   cards: CardResponse[];
+  cardRelations: CardRelationResponse[];
   onCardClick: (cardId: string) => void;
+}
+
+interface Arrow {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  label: string;
+}
+
+/** 사각형 중심에서 (tx,ty) 방향으로 테두리와 만나는 점. */
+function edgePoint(
+  cx: number,
+  cy: number,
+  hw: number,
+  hh: number,
+  tx: number,
+  ty: number,
+): [number, number] {
+  const dx = tx - cx;
+  const dy = ty - cy;
+  if (dx === 0 && dy === 0) return [cx, cy];
+  const sx = dx !== 0 ? hw / Math.abs(dx) : Infinity;
+  const sy = dy !== 0 ? hh / Math.abs(dy) : Infinity;
+  const s = Math.min(sx, sy);
+  return [cx + dx * s, cy + dy * s];
 }
 
 /**
  * 스윔레인 타임라인 (재정렬 — 원본 Laminar 뷰) — 가로축 = 날짜 열, 세로축 = 탭 섹션 행.
- * 각 탭 섹션 안에 그룹(점선 밴드)별로 카드를 날짜 위치에 배치. (화살표·멀티데이 스팬·인라인 생성은 후속.)
+ * 각 탭 섹션 안에 그룹(점선 밴드)별로 카드를 날짜 위치에 배치, 카드 간 관계는 SVG 화살표로 오버레이.
+ * (멀티데이 스팬·인라인 생성은 후속.)
  */
 export function SwimlaneTimeline({
   anchor,
@@ -39,16 +73,14 @@ export function SwimlaneTimeline({
   tabGroups,
   groupMembers,
   cards,
+  cardRelations,
   onCardClick,
 }: Props) {
   const days = useMemo(
     () => Array.from({ length: dayCount }, (_, i) => addDays(anchor, i)),
     [anchor, dayCount],
   );
-  const cardsById = useMemo(
-    () => new Map(cards.map((c) => [c.id, c])),
-    [cards],
-  );
+  const cardsById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const groupsById = useMemo(
     () => new Map(groups.map((g) => [g.id, g])),
     [groups],
@@ -57,6 +89,50 @@ export function SwimlaneTimeline({
     () => tabs.filter((t) => t.visible).sort((a, b) => a.priority - b.priority),
     [tabs],
   );
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef(new Map<string, HTMLElement>());
+  const [arrows, setArrows] = useState<Arrow[]>([]);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
+
+  // 렌더된 카드 DOM을 측정해 보이는 카드끼리만 화살표 좌표 계산.
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    function measure() {
+      const root = contentRef.current;
+      if (!root) return;
+      const base = root.getBoundingClientRect();
+      setDims({ w: root.scrollWidth, h: root.scrollHeight });
+      const next: Arrow[] = [];
+      for (const rel of cardRelations) {
+        const from = cardRefs.current.get(rel.fromCardId);
+        const to = cardRefs.current.get(rel.toCardId);
+        if (!from || !to) continue; // 둘 다 화면에 있을 때만
+        const fr = from.getBoundingClientRect();
+        const tr = to.getBoundingClientRect();
+        const fcx = fr.left - base.left + fr.width / 2;
+        const fcy = fr.top - base.top + fr.height / 2;
+        const tcx = tr.left - base.left + tr.width / 2;
+        const tcy = tr.top - base.top + tr.height / 2;
+        const [x1, y1] = edgePoint(fcx, fcy, fr.width / 2, fr.height / 2, tcx, tcy);
+        const [x2, y2] = edgePoint(tcx, tcy, tr.width / 2, tr.height / 2, fcx, fcy);
+        const label = rel.summary?.trim() || rel.relationKind;
+        next.push({ id: rel.id, x1, y1, x2, y2, label });
+      }
+      setArrows(next);
+    }
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(content);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [cardRelations, days, sections, tabGroups, groupMembers, cards]);
 
   function dayIndexOf(iso: string | null): number {
     if (!iso) return -1;
@@ -69,112 +145,170 @@ export function SwimlaneTimeline({
     width: `${dayCount * COL_W}px`,
   } as React.CSSProperties;
 
+  function registerCard(id: string) {
+    return (el: HTMLButtonElement | null) => {
+      if (el) cardRefs.current.set(id, el);
+      else cardRefs.current.delete(id);
+    };
+  }
+
   return (
     <div className="swimlane">
       <div className="swimlane-scroll">
-        <div className="swimlane-header" style={gridStyle}>
-          {days.map((d) => (
-            <div
-              key={d.toISOString()}
-              className={`swimlane-day${isToday(d) ? " today" : ""}${
-                d.getDay() === 0 ? " sunday" : d.getDay() === 6 ? " saturday" : ""
-              }`}
-            >
-              <span className="swimlane-day-date">{format(d, "MM-dd")}</span>
-              <span className="swimlane-day-wd">({WD[d.getDay()]})</span>
-            </div>
-          ))}
-        </div>
+        <div className="swimlane-content" ref={contentRef}>
+          <svg
+            className="swimlane-arrows"
+            width={dims.w}
+            height={dims.h}
+            aria-hidden="true"
+          >
+            <defs>
+              <marker
+                id="swimlane-arrowhead"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--text-dim)" />
+              </marker>
+            </defs>
+            {arrows.map((a) => {
+              const mx = (a.x1 + a.x2) / 2;
+              const my = (a.y1 + a.y2) / 2;
+              return (
+                <g key={a.id}>
+                  <line
+                    x1={a.x1}
+                    y1={a.y1}
+                    x2={a.x2}
+                    y2={a.y2}
+                    className="swimlane-arrow-line"
+                    markerEnd="url(#swimlane-arrowhead)"
+                  />
+                  {a.label && (
+                    <text
+                      x={mx}
+                      y={my}
+                      className="swimlane-arrow-label"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      {a.label.length > 14 ? `${a.label.slice(0, 13)}…` : a.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
 
-        {sections.length === 0 ? (
-          <p className="swimlane-empty">
-            표시할 탭(섹션)이 없습니다. 좌측 탭 패널에서 탭을 추가하세요.
-          </p>
-        ) : (
-          sections.map((tab) => {
-            const groupIds = tabGroups[tab.id] ?? [];
-            const count = groupIds.reduce(
-              (n, gid) => n + (groupMembers[gid]?.length ?? 0),
-              0,
-            );
-            return (
-              <section key={tab.id} className="swimlane-section">
-                <div className="swimlane-section-head">
-                  <span className="swimlane-section-name">{tab.name}</span>
-                  <span className="swimlane-section-count">{count}</span>
-                </div>
-                {groupIds.length === 0 ? (
-                  <p className="swimlane-section-empty">
-                    그룹 없음 — 그래프 뷰의 스코프 바에서 그룹을 이 탭에 추가하세요.
-                  </p>
-                ) : (
-                  groupIds.map((gid) => {
-                    const group = groupsById.get(gid);
-                    const byDay = new Map<number, CardResponse[]>();
-                    (groupMembers[gid] ?? []).forEach((cid) => {
-                      const card = cardsById.get(cid);
-                      if (!card) return;
-                      const idx = dayIndexOf(card.startDate);
-                      if (idx < 0) return;
-                      byDay.set(idx, [...(byDay.get(idx) ?? []), card]);
-                    });
-                    return (
-                      <div key={gid} className="swimlane-group">
-                        <span
-                          className="swimlane-group-label"
-                          style={
-                            group?.color
-                              ? { borderColor: group.color, color: group.color }
-                              : undefined
-                          }
-                        >
-                          {group?.name ?? "그룹"}
-                        </span>
-                        <div className="swimlane-grid" style={gridStyle}>
-                          {days.map((_, i) => (
-                            <div key={i} className="swimlane-cell">
-                              {(byDay.get(i) ?? []).map((card) => (
-                                <button
-                                  key={card.id}
-                                  type="button"
-                                  className={`swimlane-card${card.completed ? " completed" : ""}`}
-                                  style={{
-                                    borderLeftColor:
-                                      IMPORTANCE_COLOR[card.importance] ??
-                                      "#6b7280",
-                                  }}
-                                  onClick={() => onCardClick(card.id)}
-                                  title={card.title}
-                                >
-                                  <span className="swimlane-card-title">
-                                    {card.title}
-                                  </span>
-                                  <span className="swimlane-card-date">
-                                    {card.startDate}
-                                    {card.endDate &&
-                                    card.endDate !== card.startDate
-                                      ? ` ~ ${card.endDate}`
-                                      : ""}
-                                    {card.startTime ? ` ${card.startTime}` : ""}
-                                  </span>
-                                  {card.bodyMd && (
-                                    <span className="swimlane-card-summary">
-                                      {card.bodyMd.slice(0, 48)}
+          <div className="swimlane-header" style={gridStyle}>
+            {days.map((d) => (
+              <div
+                key={d.toISOString()}
+                className={`swimlane-day${isToday(d) ? " today" : ""}${
+                  d.getDay() === 0 ? " sunday" : d.getDay() === 6 ? " saturday" : ""
+                }`}
+              >
+                <span className="swimlane-day-date">{format(d, "MM-dd")}</span>
+                <span className="swimlane-day-wd">({WD[d.getDay()]})</span>
+              </div>
+            ))}
+          </div>
+
+          {sections.length === 0 ? (
+            <p className="swimlane-empty">
+              표시할 탭(섹션)이 없습니다. 좌측 탭 패널에서 탭을 추가하세요.
+            </p>
+          ) : (
+            sections.map((tab) => {
+              const groupIds = tabGroups[tab.id] ?? [];
+              const count = groupIds.reduce(
+                (n, gid) => n + (groupMembers[gid]?.length ?? 0),
+                0,
+              );
+              return (
+                <section key={tab.id} className="swimlane-section">
+                  <div className="swimlane-section-head">
+                    <span className="swimlane-section-name">{tab.name}</span>
+                    <span className="swimlane-section-count">{count}</span>
+                  </div>
+                  {groupIds.length === 0 ? (
+                    <p className="swimlane-section-empty">
+                      그룹 없음 — 그래프 뷰의 스코프 바에서 그룹을 이 탭에 추가하세요.
+                    </p>
+                  ) : (
+                    groupIds.map((gid) => {
+                      const group = groupsById.get(gid);
+                      const byDay = new Map<number, CardResponse[]>();
+                      (groupMembers[gid] ?? []).forEach((cid) => {
+                        const card = cardsById.get(cid);
+                        if (!card) return;
+                        const idx = dayIndexOf(card.startDate);
+                        if (idx < 0) return;
+                        byDay.set(idx, [...(byDay.get(idx) ?? []), card]);
+                      });
+                      return (
+                        <div key={gid} className="swimlane-group">
+                          <span
+                            className="swimlane-group-label"
+                            style={
+                              group?.color
+                                ? { borderColor: group.color, color: group.color }
+                                : undefined
+                            }
+                          >
+                            {group?.name ?? "그룹"}
+                          </span>
+                          <div className="swimlane-grid" style={gridStyle}>
+                            {days.map((_, i) => (
+                              <div key={i} className="swimlane-cell">
+                                {(byDay.get(i) ?? []).map((card) => (
+                                  <button
+                                    key={card.id}
+                                    ref={registerCard(card.id)}
+                                    type="button"
+                                    className={`swimlane-card${card.completed ? " completed" : ""}`}
+                                    style={{
+                                      borderLeftColor:
+                                        IMPORTANCE_COLOR[card.importance] ??
+                                        "#6b7280",
+                                    }}
+                                    onClick={() => onCardClick(card.id)}
+                                    title={card.title}
+                                  >
+                                    <span className="swimlane-card-title">
+                                      {card.title}
                                     </span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          ))}
+                                    <span className="swimlane-card-date">
+                                      {card.startDate}
+                                      {card.endDate &&
+                                      card.endDate !== card.startDate
+                                        ? ` ~ ${card.endDate}`
+                                        : ""}
+                                      {card.startTime ? ` ${card.startTime}` : ""}
+                                    </span>
+                                    {card.bodyMd && (
+                                      <span className="swimlane-card-summary">
+                                        {card.bodyMd.slice(0, 48)}
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </section>
-            );
-          })
-        )}
+                      );
+                    })
+                  )}
+                </section>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

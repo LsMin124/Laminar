@@ -29,7 +29,7 @@
 
 /* 순차(SEQUENCE) = 태스크 흐름: 실선 액센트 강조 */
 .swimlane-arrow-line.seq {
-  stroke: var(--accent);
+  stroke: var(--accent-bright);
   stroke-width: 1.75;
   opacity: 0.9;
 }
@@ -44,7 +44,8 @@
 
 .swimlane-arrow-label {
   fill: var(--text-dim);
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   paint-order: stroke;
   stroke: var(--bg);
   stroke-width: 3px;
@@ -67,20 +68,24 @@
   gap: 0.35rem;
   padding: 0.5rem 0.7rem;
   border-left: 1px solid var(--rule);
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
 }
 
 .swimlane-day.today {
-  background: rgba(99, 102, 241, 0.13);
+  background: rgba(46, 230, 255, 0.07);
+  box-shadow: inset 0 -2px 0 var(--accent-bright);
 }
 
 .swimlane-day-date {
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .swimlane-day-wd {
   color: var(--text-dim);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
 }
 
 .swimlane-day.sunday .swimlane-day-date {
@@ -113,12 +118,14 @@
 }
 
 .swimlane-section-count {
-  padding: 0.05rem 0.45rem;
+  padding: 0.05rem 0.4rem;
   background: var(--surface-2);
-  border-radius: 999px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
   color: var(--text-dim);
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .swimlane-empty,
@@ -149,9 +156,10 @@
   padding: 0.1rem 0.5rem;
   background: var(--bg);
   border: 1px dashed var(--rule);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--text-dim);
   font-size: 0.72rem;
+  letter-spacing: 0.02em;
 }
 
 /* 그룹=목표 진행도 */
@@ -176,15 +184,16 @@
 
 .swimlane-group-progress-num {
   color: var(--text-dim);
-  font-size: 0.66rem;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
   font-variant-numeric: tabular-nums;
 }
 
 .swimlane-grid {
   display: grid;
   border: 1px dashed var(--rule);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.012);
+  border-radius: 2px;
+  background: rgba(110, 160, 210, 0.015);
 }
 
 .swimlane-cell {
@@ -206,7 +215,7 @@
   padding: 0 0.4rem;
   background: none;
   border: 1px dashed var(--rule);
-  border-radius: 4px;
+  border-radius: 2px;
   color: var(--text-dim);
   font-size: 0.85rem;
   line-height: 1.5;
@@ -234,16 +243,19 @@
   background: var(--surface);
   border: 1px solid var(--rule);
   border-left: 3px solid #6b7280;
-  border-radius: 6px;
+  border-radius: 2px;
   text-align: left;
   cursor: pointer;
   transition:
     border-color 150ms,
-    background 150ms;
+    background 150ms,
+    box-shadow 150ms;
 }
 
 .swimlane-card:hover {
   background: var(--surface-2);
+  border-color: color-mix(in oklab, var(--accent-bright) 45%, var(--rule));
+  box-shadow: 0 0 0 1px rgba(46, 230, 255, 0.1);
 }
 
 .swimlane-card.completed {
@@ -257,8 +269,9 @@
   padding: 0;
   background: none;
   border: none;
-  color: var(--accent);
-  font-size: 0.68rem;
+  color: var(--accent-bright);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
   cursor: pointer;
   opacity: 0;
   transition: opacity 120ms;
@@ -298,7 +311,9 @@
 
 .swimlane-card-date {
   color: var(--text-dim);
-  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .swimlane-card-summary {
@@ -316,7 +331,8 @@
   gap: 0.3rem;
   margin-top: 0.15rem;
   color: var(--text-dim);
-  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
 }
 
 .swimlane-card-badge {
@@ -334,7 +350,7 @@
   justify-content: center;
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: 2px;
   background: #1a73e8;
   color: #fff;
   font-size: 0.58rem;

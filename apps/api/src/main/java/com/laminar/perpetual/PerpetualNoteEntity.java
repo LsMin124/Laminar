@@ -1,5 +1,9 @@
 package com.laminar.perpetual;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,6 +24,8 @@ import java.util.UUID;
 @Table(name = "perpetual_notes")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class PerpetualNoteEntity {
 
     @Id
@@ -60,55 +66,20 @@ public class PerpetualNoteEntity {
 
     @jakarta.persistence.Version
     @Column(name = "version", nullable = false)
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
     private long version;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getBoardId() { return boardId; }
-    public void setBoardId(UUID boardId) { this.boardId = boardId; }
-
-    public UUID getTabId() { return tabId; }
-    public void setTabId(UUID tabId) { this.tabId = tabId; }
-
-    public UUID getParentPerpetualId() { return parentPerpetualId; }
-    public void setParentPerpetualId(UUID parentPerpetualId) { this.parentPerpetualId = parentPerpetualId; }
-
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-
-    public String getBodyMd() { return bodyMd; }
-    public void setBodyMd(String bodyMd) { this.bodyMd = bodyMd; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
-    public Map<String, Object> getAttrs() { return attrs; }
-    public void setAttrs(Map<String, Object> attrs) { this.attrs = attrs; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

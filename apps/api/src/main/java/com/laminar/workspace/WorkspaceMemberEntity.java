@@ -1,5 +1,9 @@
 package com.laminar.workspace;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -12,6 +16,8 @@ import java.util.Objects;
 @Entity
 @Table(name = "workspace_members")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class WorkspaceMemberEntity {
 
     @EmbeddedId
@@ -21,26 +27,15 @@ public class WorkspaceMemberEntity {
     private WorkspaceRole role;
 
     @Column(name = "joined_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime joinedAt;
 
     @Column(name = "removed_at")
     private OffsetDateTime removedAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
-
-    public WorkspaceMemberId getId() { return id; }
-    public void setId(WorkspaceMemberId id) { this.id = id; }
-
-    public WorkspaceRole getRole() { return role; }
-    public void setRole(WorkspaceRole role) { this.role = role; }
-
-    public OffsetDateTime getJoinedAt() { return joinedAt; }
-
-    public OffsetDateTime getRemovedAt() { return removedAt; }
-    public void setRemovedAt(OffsetDateTime removedAt) { this.removedAt = removedAt; }
-
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

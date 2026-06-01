@@ -1,5 +1,9 @@
 package com.laminar.datememo;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -18,6 +22,8 @@ import java.util.UUID;
 @Table(name = "date_memos")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class DateMemoEntity {
 
     @EmbeddedId
@@ -34,25 +40,12 @@ public class DateMemoEntity {
     private Map<String, Object> attrs = new HashMap<>();
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
-
-    public DateMemoId getId() { return id; }
-    public void setId(DateMemoId id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public String getBodyMd() { return bodyMd; }
-    public void setBodyMd(String bodyMd) { this.bodyMd = bodyMd; }
-
-    public Map<String, Object> getAttrs() { return attrs; }
-    public void setAttrs(Map<String, Object> attrs) { this.attrs = attrs; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

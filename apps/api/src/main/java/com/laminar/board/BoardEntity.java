@@ -1,5 +1,9 @@
 package com.laminar.board;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -27,6 +31,8 @@ import java.util.UUID;
 )
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class BoardEntity {
 
     @Id
@@ -67,55 +73,20 @@ public class BoardEntity {
 
     @jakarta.persistence.Version
     @Column(name = "version", nullable = false)
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
     private long version;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getSlug() { return slug; }
-    public void setSlug(String slug) { this.slug = slug; }
-
-    public BoardDefaultView getDefaultView() { return defaultView; }
-    public void setDefaultView(BoardDefaultView defaultView) { this.defaultView = defaultView; }
-
-    public String getIconName() { return iconName; }
-    public void setIconName(String iconName) { this.iconName = iconName; }
-
-    public String getIconColor() { return iconColor; }
-    public void setIconColor(String iconColor) { this.iconColor = iconColor; }
-
-    public Map<String, Object> getSettings() { return settings; }
-    public void setSettings(Map<String, Object> settings) { this.settings = settings; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

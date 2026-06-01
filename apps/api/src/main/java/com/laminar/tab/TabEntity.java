@@ -1,5 +1,9 @@
 package com.laminar.tab;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,6 +24,8 @@ import java.util.UUID;
 @Table(name = "tabs")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class TabEntity {
 
     @Id
@@ -65,58 +71,15 @@ public class TabEntity {
     private Map<String, Object> attrs = new HashMap<>();
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getBoardId() { return boardId; }
-    public void setBoardId(UUID boardId) { this.boardId = boardId; }
-
-    public UUID getParentTabId() { return parentTabId; }
-    public void setParentTabId(UUID parentTabId) { this.parentTabId = parentTabId; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
-    public boolean isVisible() { return visible; }
-    public void setVisible(boolean visible) { this.visible = visible; }
-
-    public boolean isCollapsed() { return collapsed; }
-    public void setCollapsed(boolean collapsed) { this.collapsed = collapsed; }
-
-    public boolean isShowLabel() { return showLabel; }
-    public void setShowLabel(boolean showLabel) { this.showLabel = showLabel; }
-
-    public String getLabelColor() { return labelColor; }
-    public void setLabelColor(String labelColor) { this.labelColor = labelColor; }
-
-    public Map<String, Object> getAttrs() { return attrs; }
-    public void setAttrs(Map<String, Object> attrs) { this.attrs = attrs; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

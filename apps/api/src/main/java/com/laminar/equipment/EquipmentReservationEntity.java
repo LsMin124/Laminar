@@ -1,5 +1,9 @@
 package com.laminar.equipment;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "equipment_reservations")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class EquipmentReservationEntity {
 
     @Id
@@ -47,46 +53,15 @@ public class EquipmentReservationEntity {
     private UUID cardId;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getEquipmentId() { return equipmentId; }
-    public void setEquipmentId(UUID equipmentId) { this.equipmentId = equipmentId; }
-
-    public UUID getReservedBy() { return reservedBy; }
-    public void setReservedBy(UUID reservedBy) { this.reservedBy = reservedBy; }
-
-    public OffsetDateTime getStartAt() { return startAt; }
-    public void setStartAt(OffsetDateTime startAt) { this.startAt = startAt; }
-
-    public OffsetDateTime getEndAt() { return endAt; }
-    public void setEndAt(OffsetDateTime endAt) { this.endAt = endAt; }
-
-    public String getPurpose() { return purpose; }
-    public void setPurpose(String purpose) { this.purpose = purpose; }
-
-    public String getRrule() { return rrule; }
-    public void setRrule(String rrule) { this.rrule = rrule; }
-
-    public UUID getCardId() { return cardId; }
-    public void setCardId(UUID cardId) { this.cardId = cardId; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

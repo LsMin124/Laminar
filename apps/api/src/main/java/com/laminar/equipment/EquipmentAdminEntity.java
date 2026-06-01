@@ -1,5 +1,9 @@
 package com.laminar.equipment;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -11,24 +15,19 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "equipment_admins")
+@Getter
+@Setter
 public class EquipmentAdminEntity {
 
     @EmbeddedId
     private EquipmentAdminId id;
 
     @Column(name = "appointed_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime appointedAt;
 
     @Column(name = "appointed_by")
     private UUID appointedBy;
-
-    public EquipmentAdminId getId() { return id; }
-    public void setId(EquipmentAdminId id) { this.id = id; }
-
-    public OffsetDateTime getAppointedAt() { return appointedAt; }
-
-    public UUID getAppointedBy() { return appointedBy; }
-    public void setAppointedBy(UUID appointedBy) { this.appointedBy = appointedBy; }
 
     @Override
     public boolean equals(Object o) {

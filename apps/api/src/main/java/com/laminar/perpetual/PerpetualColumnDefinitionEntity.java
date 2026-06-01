@@ -1,5 +1,9 @@
 package com.laminar.perpetual;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,6 +23,8 @@ import java.util.UUID;
 @Table(name = "perpetual_column_definitions")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class PerpetualColumnDefinitionEntity {
 
     @Id
@@ -52,46 +58,15 @@ public class PerpetualColumnDefinitionEntity {
     private int priority;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getBoardId() { return boardId; }
-    public void setBoardId(UUID boardId) { this.boardId = boardId; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public PerpetualColumnType getType() { return type; }
-    public void setType(PerpetualColumnType type) { this.type = type; }
-
-    public List<String> getEnumValues() { return enumValues; }
-    public void setEnumValues(List<String> enumValues) { this.enumValues = enumValues; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

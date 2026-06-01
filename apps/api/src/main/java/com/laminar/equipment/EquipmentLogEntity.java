@@ -1,5 +1,9 @@
 package com.laminar.equipment;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,6 +23,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "equipment_logs")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class EquipmentLogEntity {
 
     @Id
@@ -49,43 +55,15 @@ public class EquipmentLogEntity {
     private String notes;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getEquipmentId() { return equipmentId; }
-    public void setEquipmentId(UUID equipmentId) { this.equipmentId = equipmentId; }
-
-    public UUID getLoggedBy() { return loggedBy; }
-    public void setLoggedBy(UUID loggedBy) { this.loggedBy = loggedBy; }
-
-    public OffsetDateTime getLoggedAt() { return loggedAt; }
-    public void setLoggedAt(OffsetDateTime loggedAt) { this.loggedAt = loggedAt; }
-
-    public UUID getReservationId() { return reservationId; }
-    public void setReservationId(UUID reservationId) { this.reservationId = reservationId; }
-
-    public Map<String, Object> getValues() { return values; }
-    public void setValues(Map<String, Object> values) { this.values = values; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

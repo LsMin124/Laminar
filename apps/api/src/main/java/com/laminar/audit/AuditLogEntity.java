@@ -1,5 +1,9 @@
 package com.laminar.audit;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,6 +23,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "audit_log")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class AuditLogEntity {
 
     @Id
@@ -49,33 +55,8 @@ public class AuditLogEntity {
     private Map<String, Object> payload = new HashMap<>();
 
     @Column(name = "occurred_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime occurredAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getActorUserId() { return actorUserId; }
-    public void setActorUserId(UUID actorUserId) { this.actorUserId = actorUserId; }
-
-    public String getAction() { return action; }
-    public void setAction(String action) { this.action = action; }
-
-    public String getTargetType() { return targetType; }
-    public void setTargetType(String targetType) { this.targetType = targetType; }
-
-    public UUID getTargetId() { return targetId; }
-    public void setTargetId(UUID targetId) { this.targetId = targetId; }
-
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
-
-    public Map<String, Object> getPayload() { return payload; }
-    public void setPayload(Map<String, Object> payload) { this.payload = payload; }
-
-    public OffsetDateTime getOccurredAt() { return occurredAt; }
 
     @Override
     public boolean equals(Object o) {

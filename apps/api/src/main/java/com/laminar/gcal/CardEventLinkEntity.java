@@ -1,5 +1,9 @@
 package com.laminar.gcal;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "card_event_links")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class CardEventLinkEntity {
 
     @Id
@@ -44,43 +50,15 @@ public class CardEventLinkEntity {
     private String lastPushedHash;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getCardId() { return cardId; }
-    public void setCardId(UUID cardId) { this.cardId = cardId; }
-
-    public UUID getBoardCalendarLinkId() { return boardCalendarLinkId; }
-    public void setBoardCalendarLinkId(UUID boardCalendarLinkId) { this.boardCalendarLinkId = boardCalendarLinkId; }
-
-    public String getGoogleEventId() { return googleEventId; }
-    public void setGoogleEventId(String googleEventId) { this.googleEventId = googleEventId; }
-
-    public String getEtag() { return etag; }
-    public void setEtag(String etag) { this.etag = etag; }
-
-    public OffsetDateTime getLastSyncedAt() { return lastSyncedAt; }
-    public void setLastSyncedAt(OffsetDateTime lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
-
-    public String getLastPushedHash() { return lastPushedHash; }
-    public void setLastPushedHash(String lastPushedHash) { this.lastPushedHash = lastPushedHash; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

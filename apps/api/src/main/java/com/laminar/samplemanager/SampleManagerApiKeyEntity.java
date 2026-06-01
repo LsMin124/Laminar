@@ -1,5 +1,9 @@
 package com.laminar.samplemanager;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -13,6 +17,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "sample_manager_api_keys")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class SampleManagerApiKeyEntity {
 
     @Id
@@ -26,6 +32,7 @@ public class SampleManagerApiKeyEntity {
     private UUID createdBy;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "last_used_at")
@@ -33,23 +40,6 @@ public class SampleManagerApiKeyEntity {
 
     @Column(name = "revoked_at")
     private OffsetDateTime revokedAt;
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public String getKeyHash() { return keyHash; }
-    public void setKeyHash(String keyHash) { this.keyHash = keyHash; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-
-    public OffsetDateTime getLastUsedAt() { return lastUsedAt; }
-    public void setLastUsedAt(OffsetDateTime lastUsedAt) { this.lastUsedAt = lastUsedAt; }
-
-    public OffsetDateTime getRevokedAt() { return revokedAt; }
-    public void setRevokedAt(OffsetDateTime revokedAt) { this.revokedAt = revokedAt; }
 
     @Override
     public boolean equals(Object o) {

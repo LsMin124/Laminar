@@ -1,5 +1,9 @@
 package com.laminar.whiteboard;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,6 +27,8 @@ import java.util.UUID;
 @Table(name = "whiteboard_nodes")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class WhiteboardNodeEntity {
 
     @Id
@@ -65,49 +71,12 @@ public class WhiteboardNodeEntity {
     private Map<String, Object> attrs = new HashMap<>();
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getBoardId() { return boardId; }
-    public void setBoardId(UUID boardId) { this.boardId = boardId; }
-
-    public String getText() { return text; }
-    public void setText(String text) { this.text = text; }
-
-    public double getX() { return x; }
-    public void setX(double x) { this.x = x; }
-
-    public double getY() { return y; }
-    public void setY(double y) { this.y = y; }
-
-    public double getWidth() { return width; }
-    public void setWidth(double width) { this.width = width; }
-
-    public double getHeight() { return height; }
-    public void setHeight(double height) { this.height = height; }
-
-    public String getColor() { return color; }
-    public void setColor(String color) { this.color = color; }
-
-    public Map<String, Object> getAttrs() { return attrs; }
-    public void setAttrs(Map<String, Object> attrs) { this.attrs = attrs; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

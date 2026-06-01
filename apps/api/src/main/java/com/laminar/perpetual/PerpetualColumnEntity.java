@@ -1,5 +1,8 @@
 package com.laminar.perpetual;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -9,6 +12,8 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "perpetual_columns")
+@Getter
+@Setter
 public class PerpetualColumnEntity {
 
     @EmbeddedId
@@ -16,12 +21,6 @@ public class PerpetualColumnEntity {
 
     @Column(name = "value")
     private String value;
-
-    public PerpetualColumnId getId() { return id; }
-    public void setId(PerpetualColumnId id) { this.id = id; }
-
-    public String getValue() { return value; }
-    public void setValue(String value) { this.value = value; }
 
     @Override
     public boolean equals(Object o) {

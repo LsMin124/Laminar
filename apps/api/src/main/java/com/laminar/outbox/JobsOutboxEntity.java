@@ -1,5 +1,9 @@
 package com.laminar.outbox;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,6 +21,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "jobs_outbox")
+@Getter
+@Setter
 public class JobsOutboxEntity {
 
     @Id
@@ -50,36 +56,8 @@ public class JobsOutboxEntity {
     private OffsetDateTime failedAt;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public String getKind() { return kind; }
-    public void setKind(String kind) { this.kind = kind; }
-
-    public Map<String, Object> getPayload() { return payload; }
-    public void setPayload(Map<String, Object> payload) { this.payload = payload; }
-
-    public OffsetDateTime getRunAfter() { return runAfter; }
-    public void setRunAfter(OffsetDateTime runAfter) { this.runAfter = runAfter; }
-
-    public int getAttemptCount() { return attemptCount; }
-    public void setAttemptCount(int attemptCount) { this.attemptCount = attemptCount; }
-
-    public String getLastError() { return lastError; }
-    public void setLastError(String lastError) { this.lastError = lastError; }
-
-    public OffsetDateTime getCompletedAt() { return completedAt; }
-    public void setCompletedAt(OffsetDateTime completedAt) { this.completedAt = completedAt; }
-
-    public OffsetDateTime getFailedAt() { return failedAt; }
-    public void setFailedAt(OffsetDateTime failedAt) { this.failedAt = failedAt; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
 
     @Override
     public boolean equals(Object o) {

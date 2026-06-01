@@ -1,5 +1,9 @@
 package com.laminar.workspace;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "workspace_invitations")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class WorkspaceInvitationEntity {
 
     @Id
@@ -47,40 +53,12 @@ public class WorkspaceInvitationEntity {
     private OffsetDateTime revokedAt;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public WorkspaceRole getRole() { return role; }
-    public void setRole(WorkspaceRole role) { this.role = role; }
-
-    public UUID getInvitedBy() { return invitedBy; }
-    public void setInvitedBy(UUID invitedBy) { this.invitedBy = invitedBy; }
-
-    public String getTokenHash() { return tokenHash; }
-    public void setTokenHash(String tokenHash) { this.tokenHash = tokenHash; }
-
-    public OffsetDateTime getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(OffsetDateTime expiresAt) { this.expiresAt = expiresAt; }
-
-    public OffsetDateTime getAcceptedAt() { return acceptedAt; }
-    public void setAcceptedAt(OffsetDateTime acceptedAt) { this.acceptedAt = acceptedAt; }
-
-    public OffsetDateTime getRevokedAt() { return revokedAt; }
-    public void setRevokedAt(OffsetDateTime revokedAt) { this.revokedAt = revokedAt; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

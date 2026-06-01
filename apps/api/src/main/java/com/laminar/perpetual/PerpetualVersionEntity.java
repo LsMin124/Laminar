@@ -1,5 +1,9 @@
 package com.laminar.perpetual;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -16,6 +20,8 @@ import java.util.UUID;
 @Table(name = "perpetual_versions")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class PerpetualVersionEntity {
 
     @Id
@@ -54,52 +60,15 @@ public class PerpetualVersionEntity {
     private OffsetDateTime committedAt;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getPerpetualNoteId() { return perpetualNoteId; }
-    public void setPerpetualNoteId(UUID perpetualNoteId) { this.perpetualNoteId = perpetualNoteId; }
-
-    public UUID getCardId() { return cardId; }
-    public void setCardId(UUID cardId) { this.cardId = cardId; }
-
-    public int getVersionNumber() { return versionNumber; }
-    public void setVersionNumber(int versionNumber) { this.versionNumber = versionNumber; }
-
-    public String getSummary() { return summary; }
-    public void setSummary(String summary) { this.summary = summary; }
-
-    public String getBodyDiffMd() { return bodyDiffMd; }
-    public void setBodyDiffMd(String bodyDiffMd) { this.bodyDiffMd = bodyDiffMd; }
-
-    public boolean isCurrentDiff() { return currentDiff; }
-    public void setCurrentDiff(boolean currentDiff) { this.currentDiff = currentDiff; }
-
-    public OffsetDateTime getCommittedAt() { return committedAt; }
-    public void setCommittedAt(OffsetDateTime committedAt) { this.committedAt = committedAt; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

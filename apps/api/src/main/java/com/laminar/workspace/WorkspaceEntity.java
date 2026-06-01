@@ -1,5 +1,9 @@
 package com.laminar.workspace;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,6 +23,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "workspaces")
 @Filter(name = "workspaceSharedFilter", condition = "id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class WorkspaceEntity {
 
     @Id
@@ -43,37 +49,15 @@ public class WorkspaceEntity {
     private Map<String, Object> settings = new HashMap<>();
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getSlug() { return slug; }
-    public void setSlug(String slug) { this.slug = slug; }
-
-    public UUID getOwnerUserId() { return ownerUserId; }
-    public void setOwnerUserId(UUID ownerUserId) { this.ownerUserId = ownerUserId; }
-
-    public String getDefaultTimezone() { return defaultTimezone; }
-    public void setDefaultTimezone(String defaultTimezone) { this.defaultTimezone = defaultTimezone; }
-
-    public Map<String, Object> getSettings() { return settings; }
-    public void setSettings(Map<String, Object> settings) { this.settings = settings; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

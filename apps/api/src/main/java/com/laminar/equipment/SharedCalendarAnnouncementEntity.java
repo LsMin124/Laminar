@@ -1,5 +1,9 @@
 package com.laminar.equipment;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "shared_calendar_announcements")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class SharedCalendarAnnouncementEntity {
 
     @Id
@@ -44,43 +50,15 @@ public class SharedCalendarAnnouncementEntity {
     private String bodyMd;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getSharedCalendarId() { return sharedCalendarId; }
-    public void setSharedCalendarId(UUID sharedCalendarId) { this.sharedCalendarId = sharedCalendarId; }
-
-    public UUID getPostedBy() { return postedBy; }
-    public void setPostedBy(UUID postedBy) { this.postedBy = postedBy; }
-
-    public OffsetDateTime getStartAt() { return startAt; }
-    public void setStartAt(OffsetDateTime startAt) { this.startAt = startAt; }
-
-    public OffsetDateTime getEndAt() { return endAt; }
-    public void setEndAt(OffsetDateTime endAt) { this.endAt = endAt; }
-
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-
-    public String getBodyMd() { return bodyMd; }
-    public void setBodyMd(String bodyMd) { this.bodyMd = bodyMd; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

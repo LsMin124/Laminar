@@ -1,5 +1,9 @@
 package com.laminar.equipment;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,6 +22,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "equipment_log_columns")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Getter
+@Setter
 public class EquipmentLogColumnEntity {
 
     @Id
@@ -54,49 +60,15 @@ public class EquipmentLogColumnEntity {
     private String defaultValue;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getEquipmentId() { return equipmentId; }
-    public void setEquipmentId(UUID equipmentId) { this.equipmentId = equipmentId; }
-
-    public String getColumnKey() { return columnKey; }
-    public void setColumnKey(String columnKey) { this.columnKey = columnKey; }
-
-    public String getColumnLabel() { return columnLabel; }
-    public void setColumnLabel(String columnLabel) { this.columnLabel = columnLabel; }
-
-    public EquipmentLogColumnType getColumnType() { return columnType; }
-    public void setColumnType(EquipmentLogColumnType columnType) { this.columnType = columnType; }
-
-    public List<String> getEnumValues() { return enumValues; }
-    public void setEnumValues(List<String> enumValues) { this.enumValues = enumValues; }
-
-    public boolean isRequired() { return required; }
-    public void setRequired(boolean required) { this.required = required; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
-    public String getDefaultValue() { return defaultValue; }
-    public void setDefaultValue(String defaultValue) { this.defaultValue = defaultValue; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

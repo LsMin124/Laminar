@@ -1,5 +1,9 @@
 package com.laminar.samplemanager;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,6 +24,8 @@ import java.util.UUID;
 @Table(name = "sample_manager_links")
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class SampleManagerLinkEntity {
 
     @Id
@@ -56,49 +62,15 @@ public class SampleManagerLinkEntity {
     private Map<String, Object> payloadSnapshot;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getCardId() { return cardId; }
-    public void setCardId(UUID cardId) { this.cardId = cardId; }
-
-    public String getSampleId() { return sampleId; }
-    public void setSampleId(String sampleId) { this.sampleId = sampleId; }
-
-    public String getStepId() { return stepId; }
-    public void setStepId(String stepId) { this.stepId = stepId; }
-
-    public String getSampleManagerUrl() { return sampleManagerUrl; }
-    public void setSampleManagerUrl(String sampleManagerUrl) { this.sampleManagerUrl = sampleManagerUrl; }
-
-    public OffsetDateTime getSyncedAt() { return syncedAt; }
-    public void setSyncedAt(OffsetDateTime syncedAt) { this.syncedAt = syncedAt; }
-
-    public Map<String, Object> getPayloadSnapshot() { return payloadSnapshot; }
-    public void setPayloadSnapshot(Map<String, Object> payloadSnapshot) { this.payloadSnapshot = payloadSnapshot; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

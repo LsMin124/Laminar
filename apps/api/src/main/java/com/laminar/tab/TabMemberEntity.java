@@ -1,5 +1,9 @@
 package com.laminar.tab;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -11,6 +15,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "tab_members")
+@Getter
+@Setter
 public class TabMemberEntity {
 
     @EmbeddedId
@@ -20,21 +26,11 @@ public class TabMemberEntity {
     private int priority;
 
     @Column(name = "added_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime addedAt;
 
     @Column(name = "added_by")
     private UUID addedBy;
-
-    public TabMemberId getId() { return id; }
-    public void setId(TabMemberId id) { this.id = id; }
-
-    public int getPriority() { return priority; }
-    public void setPriority(int priority) { this.priority = priority; }
-
-    public OffsetDateTime getAddedAt() { return addedAt; }
-
-    public UUID getAddedBy() { return addedBy; }
-    public void setAddedBy(UUID addedBy) { this.addedBy = addedBy; }
 
     @Override
     public boolean equals(Object o) {

@@ -1,5 +1,9 @@
 package com.laminar.gcal;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,6 +27,8 @@ import java.util.UUID;
 )
 @Filter(name = "personalFirstFilter",
         condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Getter
+@Setter
 public class BoardCalendarLinkEntity {
 
     @Id
@@ -61,52 +67,15 @@ public class BoardCalendarLinkEntity {
     private boolean active = true;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public UUID getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public UUID getCreatedBy() { return createdBy; }
-    public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
-
-    public UUID getBoardId() { return boardId; }
-    public void setBoardId(UUID boardId) { this.boardId = boardId; }
-
-    public String getGoogleCalendarId() { return googleCalendarId; }
-    public void setGoogleCalendarId(String googleCalendarId) { this.googleCalendarId = googleCalendarId; }
-
-    public SyncDirection getSyncDirection() { return syncDirection; }
-    public void setSyncDirection(SyncDirection syncDirection) { this.syncDirection = syncDirection; }
-
-    public String getSyncToken() { return syncToken; }
-    public void setSyncToken(String syncToken) { this.syncToken = syncToken; }
-
-    public OffsetDateTime getLastSyncAt() { return lastSyncAt; }
-    public void setLastSyncAt(OffsetDateTime lastSyncAt) { this.lastSyncAt = lastSyncAt; }
-
-    public String getLastSyncError() { return lastSyncError; }
-    public void setLastSyncError(String lastSyncError) { this.lastSyncError = lastSyncError; }
-
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
-
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

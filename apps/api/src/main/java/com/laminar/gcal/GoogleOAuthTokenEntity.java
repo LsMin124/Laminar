@@ -1,5 +1,9 @@
 package com.laminar.gcal;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -11,6 +15,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "google_oauth_tokens")
+@Getter
+@Setter
 public class GoogleOAuthTokenEntity {
 
     @Id
@@ -36,34 +42,12 @@ public class GoogleOAuthTokenEntity {
     private OffsetDateTime revokedAt;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime updatedAt;
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public byte[] getAccessTokenEnc() { return accessTokenEnc; }
-    public void setAccessTokenEnc(byte[] accessTokenEnc) { this.accessTokenEnc = accessTokenEnc; }
-
-    public byte[] getRefreshTokenEnc() { return refreshTokenEnc; }
-    public void setRefreshTokenEnc(byte[] refreshTokenEnc) { this.refreshTokenEnc = refreshTokenEnc; }
-
-    public OffsetDateTime getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(OffsetDateTime expiresAt) { this.expiresAt = expiresAt; }
-
-    public String getScope() { return scope; }
-    public void setScope(String scope) { this.scope = scope; }
-
-    public int getKeyVersion() { return keyVersion; }
-    public void setKeyVersion(int keyVersion) { this.keyVersion = keyVersion; }
-
-    public OffsetDateTime getRevokedAt() { return revokedAt; }
-    public void setRevokedAt(OffsetDateTime revokedAt) { this.revokedAt = revokedAt; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public OffsetDateTime getUpdatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

@@ -49,7 +49,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Rule rule = match(request);
         if (rule != null) {
             if (buckets.size() > MAX_TRACKED_KEYS) {
-                buckets.clear();
+                // 전체 clear(전원 버킷 리셋·강제초기화 우회) 대신 일부만 축출해 절반까지 축소.
+                var it = buckets.keySet().iterator();
+                int toRemove = buckets.size() - MAX_TRACKED_KEYS / 2;
+                while (it.hasNext() && toRemove-- > 0) {
+                    it.next();
+                    it.remove();
+                }
             }
             String key = rule.path() + "|" + clientIp(request);
             Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(rule.perMinute()));
@@ -86,9 +92,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private static String clientIp(HttpServletRequest request) {
+        // Fly 엣지가 설정하는 실제 클라이언트 IP — 클라이언트가 위조 불가(엣지에서 덮어씀).
+        String flyIp = request.getHeader("Fly-Client-IP");
+        if (flyIp != null && !flyIp.isBlank()) {
+            return flyIp.trim();
+        }
+        // 폴백: XFF의 *마지막* 홉(엣지가 append) — 클라이언트가 보낸 앞쪽 토큰은 신뢰 불가.
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+            String[] parts = forwarded.split(",");
+            return parts[parts.length - 1].trim();
         }
         return request.getRemoteAddr();
     }

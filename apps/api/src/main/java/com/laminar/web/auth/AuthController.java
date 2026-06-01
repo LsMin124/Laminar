@@ -78,6 +78,11 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         extractSessionCookie(request).ifPresent(sessionService::revoke);
         clearSessionCookie(response);
+        // 잔존 HTTP 세션(JSESSIONID)도 무효화 — 세션에 영속된 인증이 로그아웃 후 남지 않도록.
+        var httpSession = request.getSession(false);
+        if (httpSession != null) {
+            httpSession.invalidate();
+        }
         SecurityContextHolder.clearContext();
         return ResponseEntity.noContent().build();
     }

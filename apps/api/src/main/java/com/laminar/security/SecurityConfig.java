@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -58,6 +59,12 @@ public class SecurityConfig {
                 // 쿠키 인증 API 요청은 세션을 만들지 않고(필터가 매 요청 컨텍스트 설정·미저장),
                 // OAuth 핸드셰이크에만 세션이 생기며 성공 핸들러가 즉시 invalidate한다.
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                // SecurityContext를 HTTP 세션에 영속하지 않고 요청 범위만 사용 — 쿠키(laminar-session)
+                // 인증을 매 요청 재파생(stateless). 세션 영속 시 JSESSIONID가 로그아웃(쿠키 삭제·토큰
+                // revoke) 후에도 인증을 유지해 로그아웃이 무력화되던 버그를 차단. OAuth 인가요청(state)은
+                // 별도 저장소(세션)라 영향 없음.
+                .securityContext(sc -> sc.securityContextRepository(
+                        new RequestAttributeSecurityContextRepository()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health/**", "/actuator/health").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()

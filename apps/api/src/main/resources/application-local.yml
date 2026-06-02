@@ -18,6 +18,8 @@ spring:
 
 # Cron 전용 DataSource (Task 1.3.4) — direct 엔드포인트, 풀 크기 3
 app:
+  cookie:
+    secure: false # 로컬 http: Secure 쿠키 미지속→인증 401 방지 stopgap (prod=true). 근본해결=JWT 재구성
   datasource:
     cron:
       url: ${DATABASE_URL_DIRECT}

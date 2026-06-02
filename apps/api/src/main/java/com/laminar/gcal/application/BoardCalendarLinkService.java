@@ -1,7 +1,10 @@
-package com.laminar.gcal;
+package com.laminar.gcal.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.gcal.domain.BoardCalendarLinkEntity;
+import com.laminar.gcal.domain.SyncDirection;
+import com.laminar.gcal.repository.BoardCalendarLinkRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;

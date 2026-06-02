@@ -1,5 +1,6 @@
-package com.laminar.gcal;
+package com.laminar.gcal.repository;
 
+import com.laminar.gcal.domain.CardEventLinkEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package com.laminar.gcal;
+package com.laminar.gcal.domain;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

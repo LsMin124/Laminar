@@ -1,4 +1,4 @@
-package com.laminar.gcal;
+package com.laminar.gcal.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -16,18 +15,11 @@ import lombok.Setter;
 import org.hibernate.annotations.Filter;
 
 @Entity
-@Table(
-    name = "board_calendar_links",
-    uniqueConstraints =
-        @UniqueConstraint(
-            name = "uk_bcl_board_user_gcal",
-            columnNames = {"board_id", "user_id", "google_calendar_id"}))
-@Filter(
-    name = "personalFirstFilter",
-    condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+@Table(name = "card_event_links")
+@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
 @Getter
 @Setter
-public class BoardCalendarLinkEntity {
+public class CardEventLinkEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -37,32 +29,23 @@ public class BoardCalendarLinkEntity {
   @Column(name = "workspace_id", nullable = false)
   private UUID workspaceId;
 
-  @Column(name = "user_id", nullable = false)
-  private UUID userId;
+  @Column(name = "card_id", nullable = false)
+  private UUID cardId;
 
-  @Column(name = "created_by")
-  private UUID createdBy;
+  @Column(name = "board_calendar_link_id", nullable = false)
+  private UUID boardCalendarLinkId;
 
-  @Column(name = "board_id", nullable = false)
-  private UUID boardId;
+  @Column(name = "google_event_id", nullable = false)
+  private String googleEventId;
 
-  @Column(name = "google_calendar_id", nullable = false)
-  private String googleCalendarId;
+  @Column(name = "etag")
+  private String etag;
 
-  @Column(name = "sync_direction", nullable = false)
-  private SyncDirection syncDirection = SyncDirection.TWO_WAY;
+  @Column(name = "last_synced_at", nullable = false)
+  private OffsetDateTime lastSyncedAt;
 
-  @Column(name = "sync_token")
-  private String syncToken;
-
-  @Column(name = "last_sync_at")
-  private OffsetDateTime lastSyncAt;
-
-  @Column(name = "last_sync_error")
-  private String lastSyncError;
-
-  @Column(name = "is_active", nullable = false)
-  private boolean active = true;
+  @Column(name = "last_pushed_hash")
+  private String lastPushedHash;
 
   @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
   @Setter(AccessLevel.NONE)
@@ -78,7 +61,7 @@ public class BoardCalendarLinkEntity {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof BoardCalendarLinkEntity that)) return false;
+    if (!(o instanceof CardEventLinkEntity that)) return false;
     return id != null && Objects.equals(id, that.id);
   }
 

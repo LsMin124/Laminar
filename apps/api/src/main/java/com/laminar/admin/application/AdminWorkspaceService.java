@@ -1,4 +1,4 @@
-package com.laminar.admin;
+package com.laminar.admin.application;
 
 import com.laminar.audit.AuditLogService;
 import com.laminar.board.BoardEntity;

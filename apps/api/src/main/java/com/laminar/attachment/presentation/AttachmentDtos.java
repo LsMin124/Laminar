@@ -1,6 +1,6 @@
-package com.laminar.web.attachment;
+package com.laminar.attachment.presentation;
 
-import com.laminar.attachment.AttachmentParentType;
+import com.laminar.attachment.domain.AttachmentParentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

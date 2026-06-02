@@ -1,4 +1,4 @@
-package com.laminar.attachment;
+package com.laminar.attachment.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

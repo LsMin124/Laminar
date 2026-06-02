@@ -1,9 +1,9 @@
-package com.laminar.web.attachment;
+package com.laminar.attachment.presentation;
 
-import com.laminar.attachment.AttachmentEntity;
-import com.laminar.attachment.AttachmentParentType;
-import com.laminar.attachment.AttachmentService;
-import com.laminar.attachment.R2StorageService;
+import com.laminar.attachment.application.AttachmentService;
+import com.laminar.attachment.domain.AttachmentEntity;
+import com.laminar.attachment.domain.AttachmentParentType;
+import com.laminar.attachment.infrastructure.R2StorageService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

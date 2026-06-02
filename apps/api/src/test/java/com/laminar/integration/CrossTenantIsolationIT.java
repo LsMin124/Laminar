@@ -2,8 +2,8 @@ package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.laminar.attachment.AttachmentParentType;
-import com.laminar.attachment.AttachmentService;
+import com.laminar.attachment.application.AttachmentService;
+import com.laminar.attachment.domain.AttachmentParentType;
 import com.laminar.board.BoardService;
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardImportance;

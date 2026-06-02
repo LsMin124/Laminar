@@ -1,4 +1,4 @@
-package com.laminar.attachment;
+package com.laminar.attachment.infrastructure;
 
 import com.laminar.config.R2Properties;
 import com.laminar.context.WorkspaceContext;

@@ -1,5 +1,7 @@
-package com.laminar.attachment;
+package com.laminar.attachment.repository;
 
+import com.laminar.attachment.domain.AttachmentEntity;
+import com.laminar.attachment.domain.AttachmentParentType;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,5 +1,9 @@
-package com.laminar.attachment;
+package com.laminar.attachment.application;
 
+import com.laminar.attachment.domain.AttachmentEntity;
+import com.laminar.attachment.domain.AttachmentParentType;
+import com.laminar.attachment.infrastructure.R2StorageService;
+import com.laminar.attachment.repository.AttachmentRepository;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import java.time.OffsetDateTime;

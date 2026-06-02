@@ -12,9 +12,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * M-1 CSRF 방어 — custom-header 패턴 강제.
  *
- * <p>쿠키({@link SessionAuthenticationFilter#COOKIE_NAME}) 기반 ambient 자격으로 들어오는 상태변경
- * 요청(POST/PUT/PATCH/DELETE)에 {@code X-Laminar-CSRF} 헤더를 강제한다. 교차출처 공격 페이지가 커스텀 헤더를 붙이려면 CORS
- * preflight가 필요한데, 본 앱은 CORS 미허용(동일 출처 전용)이라 preflight가 실패 → 위조 요청이 헤더를 달 수 없어 차단된다.
+ * <p>쿠키({@link AuthCookies#ACCESS_COOKIE}) 기반 ambient 자격으로 들어오는 상태변경 요청(POST/PUT/PATCH/DELETE)에
+ * {@code X-Laminar-CSRF} 헤더를 강제한다. 교차출처 공격 페이지가 커스텀 헤더를 붙이려면 CORS preflight가 필요한데, 본 앱은 CORS 미허용(동일
+ * 출처 전용)이라 preflight가 실패 → 위조 요청이 헤더를 달 수 없어 차단된다.
  *
  * <p>{@code SameSite=Lax}(쿠키 속성)와 합쳐 다층 방어를 이룬다. 쿠키가 없는 요청 (로그인·가입, 미래의 서버간 HMAC 호출)은 ambient 자격이
  * 없어 CSRF 대상이 아니므로 면제한다.
@@ -47,16 +47,17 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
     if (path == null || !path.startsWith("/api/")) {
       return false;
     }
-    return hasSessionCookie(request);
+    return hasAuthCookie(request);
   }
 
-  private boolean hasSessionCookie(HttpServletRequest request) {
+  private boolean hasAuthCookie(HttpServletRequest request) {
     Cookie[] cookies = request.getCookies();
     if (cookies == null) {
       return false;
     }
     for (Cookie cookie : cookies) {
-      if (SessionAuthenticationFilter.COOKIE_NAME.equals(cookie.getName())
+      String name = cookie.getName();
+      if ((AuthCookies.ACCESS_COOKIE.equals(name) || AuthCookies.REFRESH_COOKIE.equals(name))
           && !isBlank(cookie.getValue())) {
         return true;
       }

@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +58,22 @@ public class SessionService {
     sessionRepo.findBySessionToken(hashToken(rawToken)).ifPresent(sessionRepo::delete);
   }
 
-  /** 쿠키의 raw 토큰을 DB 조회용 해시로 변환 (SessionAuthenticationFilter에서 사용). */
+  /**
+   * refresh 토큰(raw) → 활성 세션의 userId. 만료·미존재 시 빈 Optional. JWT access는 stateless라, refresh 검증만 DB를
+   * 거친다(이 테이블이 refresh rotation·revoke의 SOR). AuthController.refresh가 호출.
+   */
+  @Transactional(readOnly = true)
+  public Optional<UUID> resolveUserId(String rawToken) {
+    if (rawToken == null || rawToken.isBlank()) {
+      return Optional.empty();
+    }
+    return sessionRepo
+        .findBySessionToken(hashToken(rawToken))
+        .filter(s -> s.getExpiresAt().isAfter(OffsetDateTime.now()))
+        .map(SessionEntity::getUserId);
+  }
+
+  /** 쿠키의 raw 토큰을 DB 조회용 해시로 변환 (resolveUserId·revoke에서 사용). */
   public static String hashToken(String rawToken) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");

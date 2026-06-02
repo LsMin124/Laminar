@@ -1,13 +1,12 @@
 package com.laminar.web.auth;
 
-import com.laminar.config.CookieProperties;
+import com.laminar.security.AuthCookies;
+import com.laminar.security.JwtService;
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.security.SessionAuthenticationFilter;
 import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
 import com.laminar.user.UserService;
 import com.laminar.workspace.WorkspaceService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -24,10 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * /api/auth/** 엔드포인트 — signup·login·logout·me.
+ * /api/auth/** — signup·login·refresh·logout·me.
  *
- * <p>Cookie 정책: - HttpOnly + SameSite=Lax + Path=/ - Secure: app.cookie.secure 프로파일 (prod=true,
- * local=false) - Max-Age: 28일 (SessionService.DEFAULT_TTL_DAYS와 일치)
+ * <p>토큰: access(JWT, 단명, stateless) + refresh(opaque, sessions 테이블 해시, 28일). 둘 다 HttpOnly ·
+ * Secure(prod) · SameSite=Lax 쿠키({@link AuthCookies}). access 만료 시 프론트가 /refresh로 재발급(refresh
+ * rotation).
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -36,17 +36,20 @@ public class AuthController {
   private final UserService userService;
   private final SessionService sessionService;
   private final WorkspaceService workspaceService;
-  private final CookieProperties cookieProperties;
+  private final JwtService jwtService;
+  private final AuthCookies authCookies;
 
   public AuthController(
       UserService userService,
       SessionService sessionService,
       WorkspaceService workspaceService,
-      CookieProperties cookieProperties) {
+      JwtService jwtService,
+      AuthCookies authCookies) {
     this.userService = userService;
     this.sessionService = sessionService;
     this.workspaceService = workspaceService;
-    this.cookieProperties = cookieProperties;
+    this.jwtService = jwtService;
+    this.authCookies = authCookies;
   }
 
   @PostMapping("/signup")
@@ -55,8 +58,7 @@ public class AuthController {
     UserEntity user =
         userService.signup(request.email(), request.password(), request.displayName());
     workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
-    String token = sessionService.issue(user.getId());
-    writeSessionCookie(response, token);
+    issueTokens(user, response);
     return ResponseEntity.ok(toResponse(user));
   }
 
@@ -68,16 +70,35 @@ public class AuthController {
             .verifyCredentials(request.email(), request.password())
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid credentials"));
-    String token = sessionService.issue(user.getId());
-    writeSessionCookie(response, token);
+    issueTokens(user, response);
     return ResponseEntity.ok(toResponse(user));
+  }
+
+  /**
+   * refresh 쿠키 → 새 access(+refresh rotation). 무효·만료·비활성 사용자면 401 + 쿠키 삭제. 토큰 탈취 대응으로 사용 시마다 기존
+   * refresh를 revoke하고 새로 발급(rotation).
+   */
+  @PostMapping("/refresh")
+  public ResponseEntity<AuthDtos.AuthResponse> refresh(
+      HttpServletRequest request, HttpServletResponse response) {
+    Optional<String> rawRefresh = authCookies.readRefresh(request);
+    Optional<UserEntity> user =
+        rawRefresh.flatMap(sessionService::resolveUserId).flatMap(userService::findActive);
+    if (user.isEmpty()) {
+      authCookies.clearAll(response);
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    // rotation: 기존 refresh 폐기 후 새 토큰쌍 발급.
+    rawRefresh.ifPresent(sessionService::revoke);
+    issueTokens(user.get(), response);
+    return ResponseEntity.ok(toResponse(user.get()));
   }
 
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-    extractSessionCookie(request).ifPresent(sessionService::revoke);
-    clearSessionCookie(response);
-    // 잔존 HTTP 세션(JSESSIONID)도 무효화 — 세션에 영속된 인증이 로그아웃 후 남지 않도록.
+    authCookies.readRefresh(request).ifPresent(sessionService::revoke);
+    authCookies.clearAll(response);
+    // 잔존 HTTP 세션(JSESSIONID·OAuth 핸드셰이크)도 무효화.
     var httpSession = request.getSession(false);
     if (httpSession != null) {
       httpSession.invalidate();
@@ -99,39 +120,16 @@ public class AuthController {
         .orElseGet(() -> ResponseEntity.status(401).build());
   }
 
+  private void issueTokens(UserEntity user, HttpServletResponse response) {
+    String access =
+        jwtService.issueAccessToken(user.getId(), user.getEmail(), user.getDisplayName());
+    String refresh = sessionService.issue(user.getId());
+    authCookies.writeAccess(response, access);
+    authCookies.writeRefresh(response, refresh);
+  }
+
   private AuthDtos.AuthResponse toResponse(UserEntity user) {
     return new AuthDtos.AuthResponse(
         user.getId(), user.getEmail(), user.getDisplayName(), user.getEmailVerifiedAt() != null);
-  }
-
-  private void writeSessionCookie(HttpServletResponse response, String token) {
-    Cookie cookie = new Cookie(SessionAuthenticationFilter.COOKIE_NAME, token);
-    cookie.setHttpOnly(true);
-    cookie.setSecure(cookieProperties.secure());
-    cookie.setPath("/");
-    cookie.setMaxAge(28 * 24 * 60 * 60);
-    cookie.setAttribute("SameSite", "Lax");
-    response.addCookie(cookie);
-  }
-
-  private void clearSessionCookie(HttpServletResponse response) {
-    Cookie cookie = new Cookie(SessionAuthenticationFilter.COOKIE_NAME, "");
-    cookie.setHttpOnly(true);
-    cookie.setSecure(cookieProperties.secure());
-    cookie.setPath("/");
-    cookie.setMaxAge(0);
-    cookie.setAttribute("SameSite", "Lax");
-    response.addCookie(cookie);
-  }
-
-  private Optional<String> extractSessionCookie(HttpServletRequest request) {
-    Cookie[] cookies = request.getCookies();
-    if (cookies == null) return Optional.empty();
-    for (Cookie c : cookies) {
-      if (SessionAuthenticationFilter.COOKIE_NAME.equals(c.getName())) {
-        return Optional.ofNullable(c.getValue());
-      }
-    }
-    return Optional.empty();
   }
 }

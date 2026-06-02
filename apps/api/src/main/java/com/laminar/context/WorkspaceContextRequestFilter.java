@@ -19,8 +19,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * SecurityContext + 워크스페이스 헤더 → WorkspaceContext 도출 → ThreadLocal set.
  *
- * <p>Spring Security FilterChain (default Order=-100) 이후 동작 (Order=50).
- * SessionAuthenticationFilter가 SecurityContext에 LaminarPrincipal을 채운 다음 본 필터가 워크스페이스 진입 여부를 결정.
+ * <p>Spring Security FilterChain (default Order=-100) 이후 동작 (Order=50). JwtAuthenticationFilter가
+ * SecurityContext에 LaminarPrincipal을 채운 다음 본 필터가 워크스페이스 진입 여부를 결정.
  *
  * <p>scope 결정 매트릭스: - 비인증 + workspaceId 없음 → SYSTEM (health/login 등) - 인증 + workspaceId 없음 → SYSTEM
  * (워크스페이스 미선택, /api/workspaces 등 글로벌) - 인증 + workspaceId 있고 활성 멤버 → PERSONAL

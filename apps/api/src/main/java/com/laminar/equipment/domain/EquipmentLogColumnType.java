@@ -1,4 +1,4 @@
-package com.laminar.equipment;
+package com.laminar.equipment.domain;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

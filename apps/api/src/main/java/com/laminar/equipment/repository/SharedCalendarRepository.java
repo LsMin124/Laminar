@@ -1,5 +1,6 @@
-package com.laminar.equipment;
+package com.laminar.equipment.repository;
 
+import com.laminar.equipment.domain.SharedCalendarEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

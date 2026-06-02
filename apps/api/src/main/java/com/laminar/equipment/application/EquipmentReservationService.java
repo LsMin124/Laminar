@@ -1,7 +1,11 @@
-package com.laminar.equipment;
+package com.laminar.equipment.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.equipment.domain.EquipmentEntity;
+import com.laminar.equipment.domain.EquipmentReservationEntity;
+import com.laminar.equipment.repository.EquipmentRepository;
+import com.laminar.equipment.repository.EquipmentReservationRepository;
 import com.laminar.web.error.ConflictException;
 import java.time.Duration;
 import java.time.OffsetDateTime;

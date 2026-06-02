@@ -1,7 +1,11 @@
-package com.laminar.equipment;
+package com.laminar.equipment.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.equipment.domain.EquipmentAdminEntity;
+import com.laminar.equipment.domain.EquipmentAdminId;
+import com.laminar.equipment.repository.EquipmentAdminRepository;
+import com.laminar.equipment.repository.EquipmentRepository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;

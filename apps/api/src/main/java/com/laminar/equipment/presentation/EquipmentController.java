@@ -1,7 +1,7 @@
-package com.laminar.web.equipment;
+package com.laminar.equipment.presentation;
 
-import com.laminar.equipment.EquipmentEntity;
-import com.laminar.equipment.EquipmentService;
+import com.laminar.equipment.application.EquipmentService;
+import com.laminar.equipment.domain.EquipmentEntity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

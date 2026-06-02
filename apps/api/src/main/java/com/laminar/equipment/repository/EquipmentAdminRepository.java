@@ -1,5 +1,7 @@
-package com.laminar.equipment;
+package com.laminar.equipment.repository;
 
+import com.laminar.equipment.domain.EquipmentAdminEntity;
+import com.laminar.equipment.domain.EquipmentAdminId;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

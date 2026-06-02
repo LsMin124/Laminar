@@ -1,4 +1,4 @@
-package com.laminar.equipment;
+package com.laminar.equipment.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,19 +7,24 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "equipment_reservations")
+@Table(name = "equipment")
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
 @Getter
 @Setter
-public class EquipmentReservationEntity {
+public class EquipmentEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,26 +34,24 @@ public class EquipmentReservationEntity {
   @Column(name = "workspace_id", nullable = false)
   private UUID workspaceId;
 
-  @Column(name = "equipment_id", nullable = false)
-  private UUID equipmentId;
+  @Column(name = "created_by")
+  private UUID createdBy;
 
-  @Column(name = "reserved_by", nullable = false)
-  private UUID reservedBy;
+  @Column(name = "name", nullable = false)
+  private String name;
 
-  @Column(name = "start_at", nullable = false)
-  private OffsetDateTime startAt;
+  @Column(name = "description")
+  private String description;
 
-  @Column(name = "end_at", nullable = false)
-  private OffsetDateTime endAt;
+  @Column(name = "location")
+  private String location;
 
-  @Column(name = "purpose")
-  private String purpose;
+  @Column(name = "is_active", nullable = false)
+  private boolean active = true;
 
-  @Column(name = "rrule")
-  private String rrule;
-
-  @Column(name = "card_id")
-  private UUID cardId;
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "default_log_columns", nullable = false, columnDefinition = "jsonb")
+  private List<Map<String, Object>> defaultLogColumns = new ArrayList<>();
 
   @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
   @Setter(AccessLevel.NONE)
@@ -64,7 +67,7 @@ public class EquipmentReservationEntity {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof EquipmentReservationEntity that)) return false;
+    if (!(o instanceof EquipmentEntity that)) return false;
     return id != null && Objects.equals(id, that.id);
   }
 

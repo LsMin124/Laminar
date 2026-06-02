@@ -1,4 +1,4 @@
-package com.laminar.equipment;
+package com.laminar.equipment.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,8 +1,10 @@
-package com.laminar.equipment;
+package com.laminar.equipment.application;
 
 import com.laminar.board.BoardDefaultView;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.equipment.domain.SharedCalendarEntity;
+import com.laminar.equipment.repository.SharedCalendarRepository;
 import com.laminar.web.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.List;

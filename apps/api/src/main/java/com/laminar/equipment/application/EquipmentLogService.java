@@ -1,7 +1,13 @@
-package com.laminar.equipment;
+package com.laminar.equipment.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.equipment.domain.EquipmentLogColumnEntity;
+import com.laminar.equipment.domain.EquipmentLogColumnType;
+import com.laminar.equipment.domain.EquipmentLogEntity;
+import com.laminar.equipment.repository.EquipmentLogColumnRepository;
+import com.laminar.equipment.repository.EquipmentLogRepository;
+import com.laminar.equipment.repository.EquipmentRepository;
 import com.laminar.web.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;

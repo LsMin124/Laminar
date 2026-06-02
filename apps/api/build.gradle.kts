@@ -31,6 +31,7 @@ val shedlockVersion = "7.7.0" // 5.x→7.x major bump (코드 없으니 마이�
 val sentryVersion = "8.41.0"
 val archunitVersion = "1.4.2"
 val testcontainersVersion = "1.21.0"
+val jjwtVersion = "0.12.6" // JWT access 토큰 서명·검증 (HS256)
 
 dependencies {
     // ── Spring Boot starters (Initializr) ──
@@ -62,6 +63,11 @@ dependencies {
 
     // ── Rate limiting (인증·핵심 API; v8부터 groupId가 com.bucket4j) ──
     implementation("com.bucket4j:bucket4j-core:$bucket4jVersion")
+
+    // ── JWT access 토큰 (HS256 서명·검증; impl/jackson은 런타임 전용) ──
+    implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 
     // ── Distributed lock (cron coordination) ──
     implementation("net.javacrumbs.shedlock:shedlock-spring:$shedlockVersion")

@@ -37,3 +37,11 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
+
+# JWT 인증 — access 토큰 HS256 서명. secret은 환경변수(JWT_SECRET) 주입, 평문 커밋 금지.
+# refresh 토큰은 opaque(sessions 테이블 해시)라 secret 불필요. TTL은 ISO-8601 Duration.
+app:
+  jwt:
+    secret: ${JWT_SECRET:}
+    access-ttl: PT15M
+    refresh-ttl: P28D

@@ -36,6 +36,40 @@ export class ApiError extends Error {
   }
 }
 
+// 401 시 refresh를 시도하지 않을 경로 — refresh 자신(무한루프), 자격 자체를 다루는 login/signup/logout.
+const AUTH_RETRY_SKIP = [
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/refresh",
+  "/api/auth/logout",
+];
+
+function skipAuthRetry(path: string): boolean {
+  return AUTH_RETRY_SKIP.some((p) => path.startsWith(p));
+}
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * access 만료 시 refresh 쿠키로 새 토큰쌍 발급. single-flight — 동시에 401이 다발해도 refresh 요청은 1회만 나가고
+ * 모든 대기자가 그 결과를 공유한다. 쿠키는 httpOnly라 JS가 토큰을 직접 만지지 않는다.
+ */
+function attemptRefresh(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${API_BASE}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "X-Laminar-CSRF": "1" },
+      credentials: "include",
+    })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -52,12 +86,24 @@ async function request<T>(
     headers["X-Laminar-Workspace-Id"] = workspaceId;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    credentials: "include",
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const serializedBody = body === undefined ? undefined : JSON.stringify(body);
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      credentials: "include",
+      body: serializedBody,
+    });
+
+  let response = await doFetch();
+
+  // access 만료(401) → refresh 1회 시도 후 원요청 재시도. 성공 시 새 access 쿠키로 재요청이 통과한다.
+  if (response.status === 401 && !skipAuthRetry(path)) {
+    const refreshed = await attemptRefresh();
+    if (refreshed) {
+      response = await doFetch();
+    }
+  }
 
   if (!response.ok) {
     const text = await response.text();

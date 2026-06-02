@@ -1,8 +1,8 @@
-package com.laminar.web.whiteboard;
+package com.laminar.whiteboard.presentation;
 
-import com.laminar.whiteboard.WhiteboardEdgeEntity;
-import com.laminar.whiteboard.WhiteboardNodeEntity;
-import com.laminar.whiteboard.WhiteboardService;
+import com.laminar.whiteboard.application.WhiteboardService;
+import com.laminar.whiteboard.domain.WhiteboardEdgeEntity;
+import com.laminar.whiteboard.domain.WhiteboardNodeEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

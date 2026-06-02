@@ -1,4 +1,4 @@
-package com.laminar.whiteboard;
+package com.laminar.whiteboard.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,15 +18,15 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/** 화이트보드 노드 — 타임라인/캘린더와 무관한 독립 캔버스의 자유 노드 (Personal-First). */
+/** 화이트보드 엣지 — 독립 캔버스 노드 간 자유 연결 (Personal-First). */
 @Entity
-@Table(name = "whiteboard_nodes")
+@Table(name = "whiteboard_edges")
 @Filter(
     name = "personalFirstFilter",
     condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
 @Getter
 @Setter
-public class WhiteboardNodeEntity {
+public class WhiteboardEdgeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -45,23 +45,14 @@ public class WhiteboardNodeEntity {
   @Column(name = "board_id", nullable = false)
   private UUID boardId;
 
-  @Column(name = "text", nullable = false)
-  private String text = "";
+  @Column(name = "from_node_id", nullable = false)
+  private UUID fromNodeId;
 
-  @Column(name = "x", nullable = false)
-  private double x;
+  @Column(name = "to_node_id", nullable = false)
+  private UUID toNodeId;
 
-  @Column(name = "y", nullable = false)
-  private double y;
-
-  @Column(name = "width", nullable = false)
-  private double width = 180;
-
-  @Column(name = "height", nullable = false)
-  private double height = 88;
-
-  @Column(name = "color")
-  private String color;
+  @Column(name = "label")
+  private String label;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "attrs", nullable = false, columnDefinition = "jsonb")
@@ -78,7 +69,7 @@ public class WhiteboardNodeEntity {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof WhiteboardNodeEntity that)) return false;
+    if (!(o instanceof WhiteboardEdgeEntity that)) return false;
     return id != null && Objects.equals(id, that.id);
   }
 

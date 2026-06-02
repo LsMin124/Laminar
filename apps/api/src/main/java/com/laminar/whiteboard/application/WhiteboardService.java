@@ -1,7 +1,11 @@
-package com.laminar.whiteboard;
+package com.laminar.whiteboard.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.whiteboard.domain.WhiteboardEdgeEntity;
+import com.laminar.whiteboard.domain.WhiteboardNodeEntity;
+import com.laminar.whiteboard.repository.WhiteboardEdgeRepository;
+import com.laminar.whiteboard.repository.WhiteboardNodeRepository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;

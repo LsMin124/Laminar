@@ -10,7 +10,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
+import com.laminar.config.CookieProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -39,17 +39,17 @@ public class AuthController {
     private final UserService userService;
     private final SessionService sessionService;
     private final WorkspaceService workspaceService;
-    private final boolean cookieSecure;
+    private final CookieProperties cookieProperties;
 
     public AuthController(
             UserService userService,
             SessionService sessionService,
             WorkspaceService workspaceService,
-            @Value("${app.cookie.secure:true}") boolean cookieSecure) {
+            CookieProperties cookieProperties) {
         this.userService = userService;
         this.sessionService = sessionService;
         this.workspaceService = workspaceService;
-        this.cookieSecure = cookieSecure;
+        this.cookieProperties = cookieProperties;
     }
 
     @PostMapping("/signup")
@@ -109,7 +109,7 @@ public class AuthController {
     private void writeSessionCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(SessionAuthenticationFilter.COOKIE_NAME, token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
+        cookie.setSecure(cookieProperties.secure());
         cookie.setPath("/");
         cookie.setMaxAge(28 * 24 * 60 * 60);
         cookie.setAttribute("SameSite", "Lax");
@@ -119,7 +119,7 @@ public class AuthController {
     private void clearSessionCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(SessionAuthenticationFilter.COOKIE_NAME, "");
         cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
+        cookie.setSecure(cookieProperties.secure());
         cookie.setPath("/");
         cookie.setMaxAge(0);
         cookie.setAttribute("SameSite", "Lax");

@@ -2,7 +2,7 @@ package com.laminar.attachment;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
-import org.springframework.beans.factory.annotation.Value;
+import com.laminar.config.R2Properties;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -53,10 +53,10 @@ public class R2StorageService {
     public R2StorageService(
             S3Presigner r2S3Presigner,
             S3Client r2S3Client,
-            @Value("${app.r2.bucket:laminar-attachments}") String bucket) {
+            R2Properties r2Properties) {
         this.presigner = r2S3Presigner;
         this.s3Client = r2S3Client;
-        this.bucket = bucket;
+        this.bucket = r2Properties.bucket();
     }
 
     public PresignedUpload createUploadUrl(String filename, String mime) {

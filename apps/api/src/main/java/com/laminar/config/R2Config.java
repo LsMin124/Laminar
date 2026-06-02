@@ -1,6 +1,5 @@
 package com.laminar.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -21,17 +20,10 @@ import java.net.URI;
 @Configuration
 public class R2Config {
 
-    private final String endpoint;
-    private final String accessKey;
-    private final String secretKey;
+    private final R2Properties props;
 
-    public R2Config(
-            @Value("${app.r2.endpoint:}") String endpoint,
-            @Value("${app.r2.access-key:}") String accessKey,
-            @Value("${app.r2.secret-key:}") String secretKey) {
-        this.endpoint = endpoint;
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
+    public R2Config(R2Properties props) {
+        this.props = props;
     }
 
     @Bean
@@ -40,7 +32,7 @@ public class R2Config {
                 .region(Region.of("auto"))
                 .endpointOverride(URI.create(endpointOrDefault()))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(accessKey, secretKey)))
+                        AwsBasicCredentials.create(props.accessKey(), props.secretKey())))
                 .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
     }
@@ -51,13 +43,14 @@ public class R2Config {
                 .region(Region.of("auto"))
                 .endpointOverride(URI.create(endpointOrDefault()))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(accessKey, secretKey)))
+                        AwsBasicCredentials.create(props.accessKey(), props.secretKey())))
                 .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
     }
 
     /** local dev에서 R2 미설정 시 dummy URL — 실제 호출은 미지원이라 prod에서 ENV 강제. */
     private String endpointOrDefault() {
+        String endpoint = props.endpoint();
         return endpoint == null || endpoint.isBlank()
                 ? "https://localhost:0/r2-dev-placeholder"
                 : endpoint;

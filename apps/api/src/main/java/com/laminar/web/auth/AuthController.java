@@ -1,16 +1,12 @@
 package com.laminar.web.auth;
 
 import com.laminar.security.AuthCookies;
-import com.laminar.security.JwtService;
+import com.laminar.security.AuthService;
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
-import com.laminar.user.UserService;
-import com.laminar.workspace.WorkspaceService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -25,78 +21,56 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * /api/auth/** — signup·login·refresh·logout·me.
  *
- * <p>토큰: access(JWT, 단명, stateless) + refresh(opaque, sessions 테이블 해시, 28일). 둘 다 HttpOnly ·
- * Secure(prod) · SameSite=Lax 쿠키({@link AuthCookies}). access 만료 시 프론트가 /refresh로 재발급(refresh
- * rotation).
+ * <p>HTTP 매핑·쿠키·응답 변환만 담당한다. 토큰 발급/rotation/사용자 검증/워크스페이스 생성 등 인증 로직은 {@link AuthService}가 처리한다.
+ * 토큰: access(JWT, 단명, stateless) + refresh(opaque, 28일) — 둘 다 HttpOnly·Secure(prod)·SameSite=Lax
+ * 쿠키({@link AuthCookies}).
  */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-  private final UserService userService;
-  private final SessionService sessionService;
-  private final WorkspaceService workspaceService;
-  private final JwtService jwtService;
+  private final AuthService authService;
   private final AuthCookies authCookies;
 
-  public AuthController(
-      UserService userService,
-      SessionService sessionService,
-      WorkspaceService workspaceService,
-      JwtService jwtService,
-      AuthCookies authCookies) {
-    this.userService = userService;
-    this.sessionService = sessionService;
-    this.workspaceService = workspaceService;
-    this.jwtService = jwtService;
+  public AuthController(AuthService authService, AuthCookies authCookies) {
+    this.authService = authService;
     this.authCookies = authCookies;
   }
 
   @PostMapping("/signup")
   public ResponseEntity<AuthDtos.AuthResponse> signup(
       @Valid @RequestBody AuthDtos.SignupRequest request, HttpServletResponse response) {
-    UserEntity user =
-        userService.signup(request.email(), request.password(), request.displayName());
-    workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
-    issueTokens(user, response);
-    return ResponseEntity.ok(toResponse(user));
+    AuthService.Tokens tokens =
+        authService.register(request.email(), request.password(), request.displayName());
+    return issued(tokens, response);
   }
 
   @PostMapping("/login")
   public ResponseEntity<AuthDtos.AuthResponse> login(
       @Valid @RequestBody AuthDtos.LoginRequest request, HttpServletResponse response) {
-    UserEntity user =
-        userService
-            .verifyCredentials(request.email(), request.password())
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid credentials"));
-    issueTokens(user, response);
-    return ResponseEntity.ok(toResponse(user));
+    return authService
+        .authenticate(request.email(), request.password())
+        .map(tokens -> issued(tokens, response))
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid credentials"));
   }
 
-  /**
-   * refresh 쿠키 → 새 access(+refresh rotation). 무효·만료·비활성 사용자면 401 + 쿠키 삭제. 토큰 탈취 대응으로 사용 시마다 기존
-   * refresh를 revoke하고 새로 발급(rotation).
-   */
   @PostMapping("/refresh")
   public ResponseEntity<AuthDtos.AuthResponse> refresh(
       HttpServletRequest request, HttpServletResponse response) {
-    Optional<String> rawRefresh = authCookies.readRefresh(request);
-    Optional<UserEntity> user =
-        rawRefresh.flatMap(sessionService::resolveUserId).flatMap(userService::findActive);
-    if (user.isEmpty()) {
-      authCookies.clearAll(response);
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
-    // rotation: 기존 refresh 폐기 후 새 토큰쌍 발급.
-    rawRefresh.ifPresent(sessionService::revoke);
-    issueTokens(user.get(), response);
-    return ResponseEntity.ok(toResponse(user.get()));
+    return authService
+        .refresh(authCookies.readRefresh(request).orElse(null))
+        .map(tokens -> issued(tokens, response))
+        .orElseGet(
+            () -> {
+              authCookies.clearAll(response);
+              return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            });
   }
 
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-    authCookies.readRefresh(request).ifPresent(sessionService::revoke);
+    authService.logout(authCookies.readRefresh(request).orElse(null));
     authCookies.clearAll(response);
     // 잔존 HTTP 세션(JSESSIONID·OAuth 핸드셰이크)도 무효화.
     var httpSession = request.getSession(false);
@@ -113,19 +87,19 @@ public class AuthController {
         || !(authentication.getPrincipal() instanceof LaminarPrincipal principal)) {
       return ResponseEntity.status(401).build();
     }
-    return userService
-        .findActive(principal.userId())
+    return authService
+        .activeUser(principal.userId())
         .map(this::toResponse)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.status(401).build());
   }
 
-  private void issueTokens(UserEntity user, HttpServletResponse response) {
-    String access =
-        jwtService.issueAccessToken(user.getId(), user.getEmail(), user.getDisplayName());
-    String refresh = sessionService.issue(user.getId());
-    authCookies.writeAccess(response, access);
-    authCookies.writeRefresh(response, refresh);
+  /** 토큰쌍을 access/refresh 쿠키로 굽고 사용자 응답을 반환. */
+  private ResponseEntity<AuthDtos.AuthResponse> issued(
+      AuthService.Tokens tokens, HttpServletResponse response) {
+    authCookies.writeAccess(response, tokens.access());
+    authCookies.writeRefresh(response, tokens.refresh());
+    return ResponseEntity.ok(toResponse(tokens.user()));
   }
 
   private AuthDtos.AuthResponse toResponse(UserEntity user) {

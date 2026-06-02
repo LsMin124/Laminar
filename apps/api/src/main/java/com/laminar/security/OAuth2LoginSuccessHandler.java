@@ -1,9 +1,5 @@
 package com.laminar.security;
 
-import com.laminar.user.SessionService;
-import com.laminar.user.UserEntity;
-import com.laminar.user.UserService;
-import com.laminar.workspace.WorkspaceService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,31 +13,20 @@ import org.springframework.stereotype.Component;
 /**
  * Google OAuth2 로그인 성공 핸들러.
  *
- * <p>OAuth 인증 성공 후: 이메일로 사용자 find-or-create(신규는 개인 워크스페이스 생성) → access(JWT) + refresh(opaque) 쿠키 발급
- * → SPA 루트로 리다이렉트. 비밀번호 로그인/가입과 **동일한 토큰·쿠키**({@link AuthCookies})로 인증 경로를 통일한다.
+ * <p>OAuth 응답에서 검증된 이메일을 꺼내 {@link AuthService#oauthLogin}으로 위임(find-or-create + 워크스페이스 보장 + 토큰
+ * 발급)하고, 비밀번호 경로와 동일한 JWT 쿠키({@link AuthCookies})를 구운 뒤 SPA 루트로 리다이렉트한다.
  *
- * <p>OAuth 핸드셰이크용 HTTP 세션(JSESSIONID)은 쿠키 발급 직후 invalidate해, 이후 요청이 JWT 쿠키로만 인증되도록 한다(OAuth2
+ * <p>OAuth 핸드셰이크용 HTTP 세션(JSESSIONID)은 쿠키 발급 직후 invalidate해 이후 요청이 JWT 쿠키로만 인증되도록 한다(OAuth2
  * SecurityContext 잔존 차단).
  */
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
-  private final UserService userService;
-  private final WorkspaceService workspaceService;
-  private final SessionService sessionService;
-  private final JwtService jwtService;
+  private final AuthService authService;
   private final AuthCookies authCookies;
 
-  public OAuth2LoginSuccessHandler(
-      UserService userService,
-      WorkspaceService workspaceService,
-      SessionService sessionService,
-      JwtService jwtService,
-      AuthCookies authCookies) {
-    this.userService = userService;
-    this.workspaceService = workspaceService;
-    this.sessionService = sessionService;
-    this.jwtService = jwtService;
+  public OAuth2LoginSuccessHandler(AuthService authService, AuthCookies authCookies) {
+    this.authService = authService;
     this.authCookies = authCookies;
   }
 
@@ -65,15 +50,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     }
     String name = principal.getAttribute("name");
 
-    UserEntity user = userService.findOrCreateOAuthUser(email, name);
-    if (workspaceService.listForUser(user.getId()).isEmpty()) {
-      workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
-    }
-    String access =
-        jwtService.issueAccessToken(user.getId(), user.getEmail(), user.getDisplayName());
-    String refresh = sessionService.issue(user.getId());
-    authCookies.writeAccess(response, access);
-    authCookies.writeRefresh(response, refresh);
+    AuthService.Tokens tokens = authService.oauthLogin(email, name);
+    authCookies.writeAccess(response, tokens.access());
+    authCookies.writeRefresh(response, tokens.refresh());
 
     // OAuth 핸드셰이크용 HTTP 세션 제거 — 이후엔 JWT 쿠키만 사용.
     HttpSession session = request.getSession(false);

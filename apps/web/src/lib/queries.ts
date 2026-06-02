@@ -349,7 +349,7 @@ export function useAddCardToGroup(boardId: string) {
     mutationFn: (input: { groupId: string; cardId: string }) =>
       api.post<void>(`/api/groups/${input.groupId}/cards/${input.cardId}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }
@@ -361,7 +361,7 @@ export function useAddGroupToTab(boardId: string) {
     mutationFn: (input: { tabId: string; groupId: string }) =>
       api.post<void>(`/api/tabs/${input.tabId}/groups/${input.groupId}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }
@@ -373,7 +373,7 @@ export function useRemoveGroupFromTab(boardId: string) {
     mutationFn: (input: { tabId: string; groupId: string }) =>
       api.delete<void>(`/api/tabs/${input.tabId}/groups/${input.groupId}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }

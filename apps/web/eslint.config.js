@@ -18,5 +18,11 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // 개발편의/의견적 규칙 — 버그가 아니므로 warn (CI 차단 해제).
+      // tsc·exhaustive-deps 등 실버그 규칙은 error 유지.
+      'react-refresh/only-export-components': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

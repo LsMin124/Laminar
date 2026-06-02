@@ -15,6 +15,8 @@ import type {
   BoardGraphResponse,
   BoardResponse,
   CalendarViewResponse,
+  CardImportance,
+  CardOrigin,
   CardRelationResponse,
   CardResponse,
   EquipmentResponse,
@@ -210,11 +212,54 @@ export interface CreateCardInput {
 
 export function useCreateCard(boardId: string) {
   const qc = useQueryClient();
+  const listKey = queryKeys.boardCards(boardId);
   return useMutation({
     mutationFn: (input: CreateCardInput) =>
       api.post<CardResponse>("/api/cards", { ...input, boardId }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: listKey });
+      const prev = qc.getQueryData<CardResponse[]>(listKey);
+      const tempId = `optimistic-${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      const optimistic: CardResponse = {
+        id: tempId,
+        workspaceId: "",
+        userId: "",
+        boardId,
+        title: input.title,
+        slug: input.slug ?? null,
+        bodyMd: input.bodyMd ?? null,
+        startDate: input.startDate ?? null,
+        endDate: input.endDate ?? null,
+        startTime: input.startTime ?? null,
+        allDay: input.allDay ?? true,
+        timeZone: input.timeZone ?? null,
+        importance: (input.importance ?? "NORMAL") as CardImportance,
+        completed: false,
+        linkedPerpetualId: input.linkedPerpetualId ?? null,
+        rrule: input.rrule ?? null,
+        origin: "MANUAL" as CardOrigin,
+        priority: 0,
+        attrs: input.attrs ?? {},
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      qc.setQueryData<CardResponse[]>(listKey, (old) => [
+        ...(old ?? []),
+        optimistic,
+      ]);
+      return { prev, tempId };
+    },
+    onError: (_e, _input, ctx) => {
+      if (ctx?.prev) qc.setQueryData(listKey, ctx.prev);
+    },
+    onSuccess: (created, _input, ctx) => {
+      qc.setQueryData<CardResponse[]>(listKey, (old) =>
+        (old ?? []).map((c) => (c.id === ctx?.tempId ? created : c)),
+      );
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "calendar"] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }
@@ -236,23 +281,63 @@ export interface UpdateCardInput {
 
 export function useUpdateCard(cardId: string, boardId: string) {
   const qc = useQueryClient();
+  const listKey = queryKeys.boardCards(boardId);
+  const cardKey = queryKeys.card(cardId);
   return useMutation({
     mutationFn: (input: UpdateCardInput) =>
       api.patch<CardResponse>(`/api/cards/${cardId}`, input),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.card(cardId) });
+    // 낙관적 패치: 정의된 필드만 병합 → 타임라인 즉시 반영, 보드 전체 refetch 없음.
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: listKey });
+      await qc.cancelQueries({ queryKey: cardKey });
+      const prevList = qc.getQueryData<CardResponse[]>(listKey);
+      const prevCard = qc.getQueryData<CardResponse>(cardKey);
+      const defined = Object.fromEntries(
+        Object.entries(input).filter(([, v]) => v !== undefined),
+      );
+      const apply = (c: CardResponse): CardResponse =>
+        ({ ...c, ...defined }) as CardResponse;
+      qc.setQueryData<CardResponse[]>(listKey, (old) =>
+        (old ?? []).map((c) => (c.id === cardId ? apply(c) : c)),
+      );
+      qc.setQueryData<CardResponse>(cardKey, (old) => (old ? apply(old) : old));
+      return { prevList, prevCard };
+    },
+    onError: (_e, _input, ctx) => {
+      if (ctx?.prevList) qc.setQueryData(listKey, ctx.prevList);
+      if (ctx?.prevCard) qc.setQueryData(cardKey, ctx.prevCard);
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData<CardResponse[]>(listKey, (old) =>
+        (old ?? []).map((c) => (c.id === cardId ? updated : c)),
+      );
+      qc.setQueryData<CardResponse>(cardKey, updated);
       qc.invalidateQueries({ queryKey: queryKeys.cardRendered(cardId) });
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "calendar"] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }
 
 export function useDeleteCard(cardId: string, boardId: string) {
   const qc = useQueryClient();
+  const listKey = queryKeys.boardCards(boardId);
   return useMutation({
     mutationFn: () => api.delete<void>(`/api/cards/${cardId}`),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: listKey });
+      const prev = qc.getQueryData<CardResponse[]>(listKey);
+      qc.setQueryData<CardResponse[]>(listKey, (old) =>
+        (old ?? []).filter((c) => c.id !== cardId),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(listKey, ctx.prev);
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["boards", boardId] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "calendar"] });
+      qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
 }

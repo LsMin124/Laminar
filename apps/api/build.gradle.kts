@@ -92,6 +92,11 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // R6 후속: Testcontainers 기반 IT(*IT)는 CI에 컨테이너 기동이 아직 미정비라 CI에선 제외(-PexcludeIT).
+    // 로컬(docker-compose)에선 전체 실행. TODO: CI에 Testcontainers/Docker 연결 후 이 게이트 제거.
+    if (project.hasProperty("excludeIT") || System.getenv("GITHUB_ACTIONS") == "true") {
+        exclude("**/*IT.class")
+    }
 }
 
 // ── 포맷팅 (Task 1.2.7) — formatter 버전은 spotless 플러그인 기본 사용 ──

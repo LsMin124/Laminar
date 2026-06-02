@@ -788,6 +788,7 @@ export function useCardRelations(boardId: string | null) {
 
 export function useCreateCardRelation(boardId: string) {
   const qc = useQueryClient();
+  const key = groupKeys.cardRelations(boardId);
   return useMutation({
     mutationFn: (input: {
       fromCardId: string;
@@ -802,8 +803,40 @@ export function useCreateCardRelation(boardId: string) {
         bodyMd: null,
         attrs: {},
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: groupKeys.cardRelations(boardId) });
+    // 낙관적 추가: 캐시에 즉시 반영(서버 응답 대기·관계목록 refetch 없음) → 서버는 write 1건만.
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<CardRelationResponse[]>(key);
+      const tempId = `optimistic-${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      const optimistic: CardRelationResponse = {
+        id: tempId,
+        workspaceId: "",
+        userId: "",
+        boardId,
+        fromCardId: input.fromCardId,
+        toCardId: input.toCardId,
+        relationKind: input.relationKind ?? "RELATED",
+        summary: input.summary ?? null,
+        bodyMd: null,
+        attrs: {},
+        createdAt: now,
+        updatedAt: now,
+      };
+      qc.setQueryData<CardRelationResponse[]>(key, (old) => [
+        ...(old ?? []),
+        optimistic,
+      ]);
+      return { prev, tempId };
+    },
+    onError: (_e, _input, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    // 서버 확정행으로 임시 항목 치환(실 id 확보). 풀 refetch 안 함.
+    onSuccess: (created, _input, ctx) => {
+      qc.setQueryData<CardRelationResponse[]>(key, (old) =>
+        (old ?? []).map((r) => (r.id === ctx?.tempId ? created : r)),
+      );
       qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
@@ -811,11 +844,22 @@ export function useCreateCardRelation(boardId: string) {
 
 export function useDeleteCardRelation(boardId: string) {
   const qc = useQueryClient();
+  const key = groupKeys.cardRelations(boardId);
   return useMutation({
     mutationFn: (relationId: string) =>
       api.delete<void>(`/api/card-relations/${relationId}`),
+    onMutate: async (relationId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<CardRelationResponse[]>(key);
+      qc.setQueryData<CardRelationResponse[]>(key, (old) =>
+        (old ?? []).filter((r) => r.id !== relationId),
+      );
+      return { prev };
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: groupKeys.cardRelations(boardId) });
       qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
@@ -836,6 +880,7 @@ export function useGroupRelations(boardId: string | null) {
 
 export function useCreateGroupRelation(boardId: string) {
   const qc = useQueryClient();
+  const key = groupKeys.groupRelations(boardId);
   return useMutation({
     mutationFn: (input: {
       fromGroupId: string;
@@ -850,8 +895,38 @@ export function useCreateGroupRelation(boardId: string) {
         bodyMd: null,
         attrs: {},
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: groupKeys.groupRelations(boardId) });
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<GroupRelationResponse[]>(key);
+      const tempId = `optimistic-${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      const optimistic: GroupRelationResponse = {
+        id: tempId,
+        workspaceId: "",
+        userId: "",
+        boardId,
+        fromGroupId: input.fromGroupId,
+        toGroupId: input.toGroupId,
+        relationKind: input.relationKind ?? "RELATED",
+        summary: input.summary ?? null,
+        bodyMd: null,
+        attrs: {},
+        createdAt: now,
+        updatedAt: now,
+      };
+      qc.setQueryData<GroupRelationResponse[]>(key, (old) => [
+        ...(old ?? []),
+        optimistic,
+      ]);
+      return { prev, tempId };
+    },
+    onError: (_e, _input, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    onSuccess: (created, _input, ctx) => {
+      qc.setQueryData<GroupRelationResponse[]>(key, (old) =>
+        (old ?? []).map((r) => (r.id === ctx?.tempId ? created : r)),
+      );
       qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });
@@ -859,11 +934,22 @@ export function useCreateGroupRelation(boardId: string) {
 
 export function useDeleteGroupRelation(boardId: string) {
   const qc = useQueryClient();
+  const key = groupKeys.groupRelations(boardId);
   return useMutation({
     mutationFn: (relationId: string) =>
       api.delete<void>(`/api/group-relations/${relationId}`),
+    onMutate: async (relationId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<GroupRelationResponse[]>(key);
+      qc.setQueryData<GroupRelationResponse[]>(key, (old) =>
+        (old ?? []).filter((r) => r.id !== relationId),
+      );
+      return { prev };
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: groupKeys.groupRelations(boardId) });
       qc.invalidateQueries({ queryKey: ["boards", boardId, "graph"] });
     },
   });

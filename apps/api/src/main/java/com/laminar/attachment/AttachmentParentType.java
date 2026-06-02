@@ -2,43 +2,42 @@ package com.laminar.attachment;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-
 import java.util.Arrays;
 
 public enum AttachmentParentType {
-    CARD("card"),
-    PERPETUAL("perpetual");
+  CARD("card"),
+  PERPETUAL("perpetual");
 
-    private final String dbValue;
+  private final String dbValue;
 
-    AttachmentParentType(String dbValue) {
-        this.dbValue = dbValue;
+  AttachmentParentType(String dbValue) {
+    this.dbValue = dbValue;
+  }
+
+  public String getDbValue() {
+    return dbValue;
+  }
+
+  public static AttachmentParentType fromDbValue(String dbValue) {
+    return Arrays.stream(values())
+        .filter(v -> v.dbValue.equals(dbValue))
+        .findFirst()
+        .orElseThrow(
+            () -> new IllegalArgumentException("Unknown attachment parent type: " + dbValue));
+  }
+
+  @Converter(autoApply = true)
+  public static class AttachmentParentTypeConverter
+      implements AttributeConverter<AttachmentParentType, String> {
+
+    @Override
+    public String convertToDatabaseColumn(AttachmentParentType attribute) {
+      return attribute == null ? null : attribute.dbValue;
     }
 
-    public String getDbValue() {
-        return dbValue;
+    @Override
+    public AttachmentParentType convertToEntityAttribute(String dbData) {
+      return dbData == null ? null : fromDbValue(dbData);
     }
-
-    public static AttachmentParentType fromDbValue(String dbValue) {
-        return Arrays.stream(values())
-                .filter(v -> v.dbValue.equals(dbValue))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Unknown attachment parent type: " + dbValue));
-    }
-
-    @Converter(autoApply = true)
-    public static class AttachmentParentTypeConverter
-            implements AttributeConverter<AttachmentParentType, String> {
-
-        @Override
-        public String convertToDatabaseColumn(AttachmentParentType attribute) {
-            return attribute == null ? null : attribute.dbValue;
-        }
-
-        @Override
-        public AttachmentParentType convertToEntityAttribute(String dbData) {
-            return dbData == null ? null : fromDbValue(dbData);
-        }
-    }
+  }
 }

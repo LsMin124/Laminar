@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -12,41 +11,28 @@ import java.util.UUID;
 
 public final class GroupDtos {
 
-    private GroupDtos() {
-    }
+  private GroupDtos() {}
 
-    public record CreateRequest(
-            @NotNull UUID boardId,
-            @NotBlank @Size(max = 200) String name,
-            @Size(max = 30) String color,
-            Map<String, Object> attrs
-    ) {
-    }
+  public record CreateRequest(
+      @NotNull UUID boardId,
+      @NotBlank @Size(max = 200) String name,
+      @Size(max = 30) String color,
+      Map<String, Object> attrs) {}
 
-    public record UpdateRequest(
-            @Size(max = 200) String name,
-            @Size(max = 30) String color,
-            Map<String, Object> attrs
-    ) {
-    }
+  public record UpdateRequest(
+      @Size(max = 200) String name, @Size(max = 30) String color, Map<String, Object> attrs) {}
 
-    public record ReorderRequest(
-            @NotNull UUID boardId,
-            @NotEmpty List<UUID> orderedIds
-    ) {
-    }
+  public record ReorderRequest(@NotNull UUID boardId, @NotEmpty List<UUID> orderedIds) {}
 
-    public record GroupResponse(
-            UUID id,
-            UUID workspaceId,
-            UUID userId,
-            UUID boardId,
-            String name,
-            String color,
-            int priority,
-            Map<String, Object> attrs,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt
-    ) {
-    }
+  public record GroupResponse(
+      UUID id,
+      UUID workspaceId,
+      UUID userId,
+      UUID boardId,
+      String name,
+      String color,
+      int priority,
+      Map<String, Object> attrs,
+      OffsetDateTime createdAt,
+      OffsetDateTime updatedAt) {}
 }

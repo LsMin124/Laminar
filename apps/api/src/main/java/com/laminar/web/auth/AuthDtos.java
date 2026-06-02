@@ -3,38 +3,25 @@ package com.laminar.web.auth;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
 import java.util.UUID;
 
 /**
  * /api/auth/** 요청·응답 DTO 모음.
  *
- * email — 정규화 책임은 UserService (trim + lowercase). 본 record는 검증만.
- * password — 8자 이상 128자 이하 (해시 BCrypt 72-byte 한계 고려).
+ * <p>email — 정규화 책임은 UserService (trim + lowercase). 본 record는 검증만. password — 8자 이상 128자 이하 (해시
+ * BCrypt 72-byte 한계 고려).
  */
 public final class AuthDtos {
 
-    private AuthDtos() {
-    }
+  private AuthDtos() {}
 
-    public record SignupRequest(
-            @Email @NotBlank String email,
-            @NotBlank @Size(min = 8, max = 128) String password,
-            @NotBlank @Size(max = 100) String displayName
-    ) {
-    }
+  public record SignupRequest(
+      @Email @NotBlank String email,
+      @NotBlank @Size(min = 8, max = 128) String password,
+      @NotBlank @Size(max = 100) String displayName) {}
 
-    public record LoginRequest(
-            @Email @NotBlank String email,
-            @NotBlank String password
-    ) {
-    }
+  public record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {}
 
-    public record AuthResponse(
-            UUID userId,
-            String email,
-            String displayName,
-            boolean emailVerified
-    ) {
-    }
+  public record AuthResponse(
+      UUID userId, String email, String displayName, boolean emailVerified) {}
 }

@@ -1,19 +1,16 @@
 package com.laminar.outbox;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-/**
- * ImportJob Repository — Personal-First (@Filter 자동).
- */
+/** ImportJob Repository — Personal-First (@Filter 자동). */
 public interface ImportJobRepository extends JpaRepository<ImportJobEntity, UUID> {
 
-    List<ImportJobEntity> findByDeletedAtIsNullOrderByCreatedAtDesc();
+  List<ImportJobEntity> findByDeletedAtIsNullOrderByCreatedAtDesc();
 
-    List<ImportJobEntity> findByStatusAndDeletedAtIsNull(ImportJobStatus status);
+  List<ImportJobEntity> findByStatusAndDeletedAtIsNull(ImportJobStatus status);
 
-    Optional<ImportJobEntity> findByImportTokenAndDeletedAtIsNull(String importToken);
+  Optional<ImportJobEntity> findByImportTokenAndDeletedAtIsNull(String importToken);
 }

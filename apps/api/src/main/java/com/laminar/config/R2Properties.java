@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  */
 @ConfigurationProperties(prefix = "app.r2")
 public record R2Properties(
-        @DefaultValue("") String endpoint,
-        @DefaultValue("") String accessKey,
-        @DefaultValue("") String secretKey,
-        @DefaultValue("laminar-attachments") String bucket) {}
+    @DefaultValue("") String endpoint,
+    @DefaultValue("") String accessKey,
+    @DefaultValue("") String secretKey,
+    @DefaultValue("laminar-attachments") String bucket) {}

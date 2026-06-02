@@ -6,19 +6,16 @@ import java.util.UUID;
 
 public final class AuditLogDtos {
 
-    private AuditLogDtos() {
-    }
+  private AuditLogDtos() {}
 
-    public record AuditLogResponse(
-            UUID id,
-            UUID workspaceId,
-            UUID actorUserId,
-            String action,
-            String targetType,
-            UUID targetId,
-            String summary,
-            Map<String, Object> payload,
-            OffsetDateTime occurredAt
-    ) {
-    }
+  public record AuditLogResponse(
+      UUID id,
+      UUID workspaceId,
+      UUID actorUserId,
+      String action,
+      String targetType,
+      UUID targetId,
+      String summary,
+      Map<String, Object> payload,
+      OffsetDateTime occurredAt) {}
 }

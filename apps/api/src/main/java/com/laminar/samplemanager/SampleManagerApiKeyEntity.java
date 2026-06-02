@@ -1,18 +1,16 @@
 package com.laminar.samplemanager;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Filter;
-
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "sample_manager_api_keys")
@@ -21,35 +19,35 @@ import java.util.UUID;
 @Setter
 public class SampleManagerApiKeyEntity {
 
-    @Id
-    @Column(name = "workspace_id", nullable = false)
-    private UUID workspaceId;
+  @Id
+  @Column(name = "workspace_id", nullable = false)
+  private UUID workspaceId;
 
-    @Column(name = "key_hash", nullable = false)
-    private String keyHash;
+  @Column(name = "key_hash", nullable = false)
+  private String keyHash;
 
-    @Column(name = "created_by", nullable = false)
-    private UUID createdBy;
+  @Column(name = "created_by", nullable = false)
+  private UUID createdBy;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    @Setter(AccessLevel.NONE)
-    private OffsetDateTime createdAt;
+  @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+  @Setter(AccessLevel.NONE)
+  private OffsetDateTime createdAt;
 
-    @Column(name = "last_used_at")
-    private OffsetDateTime lastUsedAt;
+  @Column(name = "last_used_at")
+  private OffsetDateTime lastUsedAt;
 
-    @Column(name = "revoked_at")
-    private OffsetDateTime revokedAt;
+  @Column(name = "revoked_at")
+  private OffsetDateTime revokedAt;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof SampleManagerApiKeyEntity that)) return false;
-        return workspaceId != null && Objects.equals(workspaceId, that.workspaceId);
-    }
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof SampleManagerApiKeyEntity that)) return false;
+    return workspaceId != null && Objects.equals(workspaceId, that.workspaceId);
+  }
 
-    @Override
-    public int hashCode() {
-        return workspaceId != null ? workspaceId.hashCode() : getClass().hashCode();
-    }
+  @Override
+  public int hashCode() {
+    return workspaceId != null ? workspaceId.hashCode() : getClass().hashCode();
+  }
 }

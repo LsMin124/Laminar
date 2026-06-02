@@ -4,6 +4,9 @@ import com.laminar.card.CardEntity;
 import com.laminar.card.CardService;
 import com.laminar.markdown.MarkdownService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,25 +19,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api")
 public class CardController {
 
-    private final CardService cardService;
-    private final MarkdownService markdownService;
+  private final CardService cardService;
+  private final MarkdownService markdownService;
 
-    public CardController(CardService cardService, MarkdownService markdownService) {
-        this.cardService = cardService;
-        this.markdownService = markdownService;
-    }
+  public CardController(CardService cardService, MarkdownService markdownService) {
+    this.cardService = cardService;
+    this.markdownService = markdownService;
+  }
 
-    @PostMapping("/cards")
-    public ResponseEntity<CardDtos.CardResponse> create(@Valid @RequestBody CardDtos.CreateRequest request) {
-        CardEntity card = cardService.create(new CardService.CreateInput(
+  @PostMapping("/cards")
+  public ResponseEntity<CardDtos.CardResponse> create(
+      @Valid @RequestBody CardDtos.CreateRequest request) {
+    CardEntity card =
+        cardService.create(
+            new CardService.CreateInput(
                 request.boardId(),
                 request.title(),
                 request.slug(),
@@ -49,33 +51,37 @@ public class CardController {
                 request.rrule(),
                 request.origin(),
                 request.attrs()));
-        return ResponseEntity.ok(toResponse(card));
-    }
+    return ResponseEntity.ok(toResponse(card));
+  }
 
-    @GetMapping("/boards/{boardId}/cards")
-    public ResponseEntity<List<CardDtos.CardResponse>> listByBoard(
-            @PathVariable UUID boardId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        List<CardEntity> cards = (from != null && to != null)
-                ? cardService.listByBoardAndDateRange(boardId, from, to)
-                : cardService.listByBoard(boardId);
-        return ResponseEntity.ok(cards.stream().map(this::toResponse).toList());
-    }
+  @GetMapping("/boards/{boardId}/cards")
+  public ResponseEntity<List<CardDtos.CardResponse>> listByBoard(
+      @PathVariable UUID boardId,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+    List<CardEntity> cards =
+        (from != null && to != null)
+            ? cardService.listByBoardAndDateRange(boardId, from, to)
+            : cardService.listByBoard(boardId);
+    return ResponseEntity.ok(cards.stream().map(this::toResponse).toList());
+  }
 
-    @GetMapping("/cards/{cardId}")
-    public ResponseEntity<CardDtos.CardResponse> get(@PathVariable UUID cardId) {
-        return cardService.findById(cardId)
-                .map(this::toResponse)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+  @GetMapping("/cards/{cardId}")
+  public ResponseEntity<CardDtos.CardResponse> get(@PathVariable UUID cardId) {
+    return cardService
+        .findById(cardId)
+        .map(this::toResponse)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
 
-    @PatchMapping("/cards/{cardId}")
-    public ResponseEntity<CardDtos.CardResponse> update(
-            @PathVariable UUID cardId,
-            @Valid @RequestBody CardDtos.UpdateRequest request) {
-        CardEntity updated = cardService.update(cardId, new CardService.UpdateInput(
+  @PatchMapping("/cards/{cardId}")
+  public ResponseEntity<CardDtos.CardResponse> update(
+      @PathVariable UUID cardId, @Valid @RequestBody CardDtos.UpdateRequest request) {
+    CardEntity updated =
+        cardService.update(
+            cardId,
+            new CardService.UpdateInput(
                 request.title(),
                 request.bodyMd(),
                 request.startDate(),
@@ -88,62 +94,60 @@ public class CardController {
                 request.rrule(),
                 request.completed(),
                 request.attrs()));
-        return ResponseEntity.ok(toResponse(updated));
-    }
+    return ResponseEntity.ok(toResponse(updated));
+  }
 
-    @PostMapping("/cards/{cardId}/archive")
-    public ResponseEntity<Void> archive(@PathVariable UUID cardId) {
-        cardService.archive(cardId);
-        return ResponseEntity.noContent().build();
-    }
+  @PostMapping("/cards/{cardId}/archive")
+  public ResponseEntity<Void> archive(@PathVariable UUID cardId) {
+    cardService.archive(cardId);
+    return ResponseEntity.noContent().build();
+  }
 
-    @DeleteMapping("/cards/{cardId}")
-    public ResponseEntity<Void> delete(@PathVariable UUID cardId) {
-        cardService.softDelete(cardId);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/cards/{cardId}")
+  public ResponseEntity<Void> delete(@PathVariable UUID cardId) {
+    cardService.softDelete(cardId);
+    return ResponseEntity.noContent().build();
+  }
 
-    @PatchMapping("/boards/{boardId}/cards/reorder")
-    public ResponseEntity<List<CardDtos.CardResponse>> reorder(
-            @PathVariable UUID boardId,
-            @Valid @RequestBody CardDtos.ReorderRequest request) {
-        return ResponseEntity.ok(cardService.reorder(boardId, request.orderedIds()).stream()
-                .map(this::toResponse)
-                .toList());
-    }
+  @PatchMapping("/boards/{boardId}/cards/reorder")
+  public ResponseEntity<List<CardDtos.CardResponse>> reorder(
+      @PathVariable UUID boardId, @Valid @RequestBody CardDtos.ReorderRequest request) {
+    return ResponseEntity.ok(
+        cardService.reorder(boardId, request.orderedIds()).stream().map(this::toResponse).toList());
+  }
 
-    @GetMapping("/cards/{cardId}/rendered")
-    public ResponseEntity<CardDtos.RenderedBodyResponse> rendered(@PathVariable UUID cardId) {
-        return cardService.findById(cardId)
-                .map(c -> new CardDtos.RenderedBodyResponse(
-                        cardId, markdownService.render(c.getBodyMd())))
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+  @GetMapping("/cards/{cardId}/rendered")
+  public ResponseEntity<CardDtos.RenderedBodyResponse> rendered(@PathVariable UUID cardId) {
+    return cardService
+        .findById(cardId)
+        .map(c -> new CardDtos.RenderedBodyResponse(cardId, markdownService.render(c.getBodyMd())))
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
 
-    private CardDtos.CardResponse toResponse(CardEntity c) {
-        return new CardDtos.CardResponse(
-                c.getId(),
-                c.getWorkspaceId(),
-                c.getUserId(),
-                c.getBoardId(),
-                c.getTitle(),
-                c.getSlug(),
-                c.getBodyMd(),
-                c.getStartDate(),
-                c.getEndDate(),
-                c.getStartTime(),
-                c.isAllDay(),
-                c.getTimeZone(),
-                c.getImportance(),
-                c.isCompleted(),
-                c.getLinkedPerpetualId(),
-                c.getRrule(),
-                c.getOrigin(),
-                c.getPriority(),
-                c.getAttrs(),
-                c.getArchivedAt(),
-                c.getCreatedAt(),
-                c.getUpdatedAt());
-    }
+  private CardDtos.CardResponse toResponse(CardEntity c) {
+    return new CardDtos.CardResponse(
+        c.getId(),
+        c.getWorkspaceId(),
+        c.getUserId(),
+        c.getBoardId(),
+        c.getTitle(),
+        c.getSlug(),
+        c.getBodyMd(),
+        c.getStartDate(),
+        c.getEndDate(),
+        c.getStartTime(),
+        c.isAllDay(),
+        c.getTimeZone(),
+        c.getImportance(),
+        c.isCompleted(),
+        c.getLinkedPerpetualId(),
+        c.getRrule(),
+        c.getOrigin(),
+        c.getPriority(),
+        c.getAttrs(),
+        c.getArchivedAt(),
+        c.getCreatedAt(),
+        c.getUpdatedAt());
+  }
 }

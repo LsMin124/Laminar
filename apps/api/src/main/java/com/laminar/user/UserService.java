@@ -2,105 +2,101 @@ package com.laminar.user;
 
 import com.laminar.system.UserSystemRepository;
 import com.laminar.web.error.ConflictException;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
 /**
  * 사용자 도메인 서비스 (가입·인증).
  *
- * 시스템 컨텍스트 (UserSystemRepository) 사용 — 사용자 자체는 글로벌 자원. 워크스페이스 진입 후
- * WorkspaceContext.userId()로 격리.
+ * <p>시스템 컨텍스트 (UserSystemRepository) 사용 — 사용자 자체는 글로벌 자원. 워크스페이스 진입 후 WorkspaceContext.userId()로
+ * 격리.
  */
 @Service
 public class UserService {
 
-    private final UserSystemRepository userRepo;
-    private final PasswordEncoder passwordEncoder;
+  private final UserSystemRepository userRepo;
+  private final PasswordEncoder passwordEncoder;
 
-    /** 미존재 사용자 로그인 시 동일한 BCrypt 비용을 치르기 위한 디코이 해시 (M-3 타이밍 enumeration 차단). */
-    private final String timingDecoyHash;
+  /** 미존재 사용자 로그인 시 동일한 BCrypt 비용을 치르기 위한 디코이 해시 (M-3 타이밍 enumeration 차단). */
+  private final String timingDecoyHash;
 
-    public UserService(UserSystemRepository userRepo, PasswordEncoder passwordEncoder) {
-        this.userRepo = userRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.timingDecoyHash = passwordEncoder.encode("laminar-timing-decoy");
+  public UserService(UserSystemRepository userRepo, PasswordEncoder passwordEncoder) {
+    this.userRepo = userRepo;
+    this.passwordEncoder = passwordEncoder;
+    this.timingDecoyHash = passwordEncoder.encode("laminar-timing-decoy");
+  }
+
+  /**
+   * 이메일 가입 — 중복 시 ConflictException(409). BCrypt 12 round 해시. emailVerifiedAt=null (검증 토큰은 Phase
+   * 4.5에서 email_outbox INSERT).
+   *
+   * <p>N-2: 중복을 409(전용 ConflictException)로 분리 — 이전 IllegalStateException은 블랭킷 403 + "email already
+   * registered" 노출로 가입 enumeration을 허용했다. 완전한 anti-enumeration(존재 여부 무차별 동일 응답)은 메일 검증 파이프라인(M-9)
+   * 구축 후 가능.
+   */
+  @Transactional
+  public UserEntity signup(String email, String rawPassword, String displayName) {
+    String normalizedEmail = email.trim().toLowerCase();
+    if (userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail).isPresent()) {
+      throw new ConflictException("이미 가입된 이메일입니다.");
     }
+    UserEntity user = new UserEntity();
+    user.setEmail(normalizedEmail);
+    user.setPasswordHash(passwordEncoder.encode(rawPassword));
+    user.setDisplayName(displayName);
+    return userRepo.save(user);
+  }
 
-    /**
-     * 이메일 가입 — 중복 시 ConflictException(409). BCrypt 12 round 해시.
-     * emailVerifiedAt=null (검증 토큰은 Phase 4.5에서 email_outbox INSERT).
-     *
-     * <p>N-2: 중복을 409(전용 ConflictException)로 분리 — 이전 IllegalStateException은
-     * 블랭킷 403 + "email already registered" 노출로 가입 enumeration을 허용했다. 완전한
-     * anti-enumeration(존재 여부 무차별 동일 응답)은 메일 검증 파이프라인(M-9) 구축 후 가능.
-     */
-    @Transactional
-    public UserEntity signup(String email, String rawPassword, String displayName) {
-        String normalizedEmail = email.trim().toLowerCase();
-        if (userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail).isPresent()) {
-            throw new ConflictException("이미 가입된 이메일입니다.");
-        }
-        UserEntity user = new UserEntity();
-        user.setEmail(normalizedEmail);
-        user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        user.setDisplayName(displayName);
-        return userRepo.save(user);
-    }
-
-    /**
-     * OAuth(Google) 로그인/가입 — 이메일로 기존 계정 find-or-create.
-     *
-     * <p>OAuth 제공자가 검증한 이메일이므로 {@code emailVerifiedAt}을 설정한다. 신규 계정은
-     * {@code passwordHash=null}(비밀번호 로그인 불가, OAuth 전용)으로 생성하며, 같은 이메일의 기존
-     * 비밀번호 계정이 있으면 그 계정에 자동 연결(이메일 기준)한다.
-     */
-    @Transactional
-    public UserEntity findOrCreateOAuthUser(String email, String displayName) {
-        String normalizedEmail = email.trim().toLowerCase();
-        Optional<UserEntity> existing = userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail);
-        if (existing.isPresent()) {
-            UserEntity user = existing.get();
-            if (user.getEmailVerifiedAt() == null) {
-                user.setEmailVerifiedAt(OffsetDateTime.now());
-                return userRepo.save(user);
-            }
-            return user;
-        }
-        UserEntity user = new UserEntity();
-        user.setEmail(normalizedEmail);
-        user.setPasswordHash(null);
-        user.setDisplayName(
-                displayName == null || displayName.isBlank() ? normalizedEmail : displayName);
+  /**
+   * OAuth(Google) 로그인/가입 — 이메일로 기존 계정 find-or-create.
+   *
+   * <p>OAuth 제공자가 검증한 이메일이므로 {@code emailVerifiedAt}을 설정한다. 신규 계정은 {@code passwordHash=null}(비밀번호
+   * 로그인 불가, OAuth 전용)으로 생성하며, 같은 이메일의 기존 비밀번호 계정이 있으면 그 계정에 자동 연결(이메일 기준)한다.
+   */
+  @Transactional
+  public UserEntity findOrCreateOAuthUser(String email, String displayName) {
+    String normalizedEmail = email.trim().toLowerCase();
+    Optional<UserEntity> existing = userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail);
+    if (existing.isPresent()) {
+      UserEntity user = existing.get();
+      if (user.getEmailVerifiedAt() == null) {
         user.setEmailVerifiedAt(OffsetDateTime.now());
         return userRepo.save(user);
+      }
+      return user;
     }
+    UserEntity user = new UserEntity();
+    user.setEmail(normalizedEmail);
+    user.setPasswordHash(null);
+    user.setDisplayName(
+        displayName == null || displayName.isBlank() ? normalizedEmail : displayName);
+    user.setEmailVerifiedAt(OffsetDateTime.now());
+    return userRepo.save(user);
+  }
 
-    /**
-     * 이메일·비밀번호 검증 — soft delete된 사용자·해시 미설정·불일치 시 빈 Optional.
-     */
-    @Transactional(readOnly = true)
-    public Optional<UserEntity> verifyCredentials(String email, String rawPassword) {
-        String normalizedEmail = email.trim().toLowerCase();
-        Optional<UserEntity> maybeUser = userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail);
-        if (maybeUser.isEmpty() || maybeUser.get().getPasswordHash() == null) {
-            // 미존재/해시없음도 동일한 BCrypt 비교 비용을 치러 타이밍 차이 제거 (M-3).
-            passwordEncoder.matches(rawPassword, timingDecoyHash);
-            return Optional.empty();
-        }
-        UserEntity user = maybeUser.get();
-        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
-            return Optional.empty();
-        }
-        return Optional.of(user);
+  /** 이메일·비밀번호 검증 — soft delete된 사용자·해시 미설정·불일치 시 빈 Optional. */
+  @Transactional(readOnly = true)
+  public Optional<UserEntity> verifyCredentials(String email, String rawPassword) {
+    String normalizedEmail = email.trim().toLowerCase();
+    Optional<UserEntity> maybeUser = userRepo.findByEmailAndDeletedAtIsNull(normalizedEmail);
+    if (maybeUser.isEmpty() || maybeUser.get().getPasswordHash() == null) {
+      // 미존재/해시없음도 동일한 BCrypt 비교 비용을 치러 타이밍 차이 제거 (M-3).
+      passwordEncoder.matches(rawPassword, timingDecoyHash);
+      return Optional.empty();
     }
+    UserEntity user = maybeUser.get();
+    if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+      return Optional.empty();
+    }
+    return Optional.of(user);
+  }
 
-    @Transactional(readOnly = true)
-    public Optional<UserEntity> findActive(UUID userId) {
-        return userRepo.findById(userId).filter(u -> u.getDeletedAt() == null);
-    }
+  @Transactional(readOnly = true)
+  public Optional<UserEntity> findActive(UUID userId) {
+    return userRepo.findById(userId).filter(u -> u.getDeletedAt() == null);
+  }
 }

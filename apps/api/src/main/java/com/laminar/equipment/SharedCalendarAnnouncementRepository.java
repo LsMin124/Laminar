@@ -1,18 +1,17 @@
 package com.laminar.equipment;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SharedCalendarAnnouncementRepository
-        extends JpaRepository<SharedCalendarAnnouncementEntity, UUID> {
+    extends JpaRepository<SharedCalendarAnnouncementEntity, UUID> {
 
-    List<SharedCalendarAnnouncementEntity>
-            findBySharedCalendarIdAndStartAtBetweenAndDeletedAtIsNullOrderByStartAtAsc(
-                    UUID sharedCalendarId, OffsetDateTime from, OffsetDateTime to);
+  List<SharedCalendarAnnouncementEntity>
+      findBySharedCalendarIdAndStartAtBetweenAndDeletedAtIsNullOrderByStartAtAsc(
+          UUID sharedCalendarId, OffsetDateTime from, OffsetDateTime to);
 
-    List<SharedCalendarAnnouncementEntity> findBySharedCalendarIdAndDeletedAtIsNullOrderByStartAtDesc(
-            UUID sharedCalendarId);
+  List<SharedCalendarAnnouncementEntity> findBySharedCalendarIdAndDeletedAtIsNullOrderByStartAtDesc(
+      UUID sharedCalendarId);
 }

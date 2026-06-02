@@ -1,5 +1,6 @@
-package com.laminar.security;
+package com.laminar.auth.application;
 
+import com.laminar.security.JwtService;
 import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
 import com.laminar.user.UserService;

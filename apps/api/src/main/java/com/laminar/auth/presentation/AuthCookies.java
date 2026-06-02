@@ -1,4 +1,4 @@
-package com.laminar.security;
+package com.laminar.auth.presentation;
 
 import com.laminar.config.CookieProperties;
 import com.laminar.config.JwtProperties;

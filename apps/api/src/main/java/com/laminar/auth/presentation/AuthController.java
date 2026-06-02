@@ -1,7 +1,6 @@
-package com.laminar.web.auth;
+package com.laminar.auth.presentation;
 
-import com.laminar.security.AuthCookies;
-import com.laminar.security.AuthService;
+import com.laminar.auth.application.AuthService;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.user.UserEntity;
 import jakarta.servlet.http.HttpServletRequest;

@@ -1,4 +1,4 @@
-package com.laminar.web.auth;
+package com.laminar.auth.presentation;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

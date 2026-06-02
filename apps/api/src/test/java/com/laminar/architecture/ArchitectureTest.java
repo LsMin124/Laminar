@@ -124,10 +124,10 @@ public class ArchitectureTest {
    * SystemRepository 직접 접근도 위 룰로 금지).
    */
   @ArchTest
-  static final ArchRule web_must_not_access_repositories_directly =
+  static final ArchRule controllers_must_not_access_repositories_directly =
       noClasses()
           .that()
-          .resideInAPackage("com.laminar.web..")
+          .areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
           .should()
           .dependOnClassesThat()
           .haveSimpleNameEndingWith("Repository")

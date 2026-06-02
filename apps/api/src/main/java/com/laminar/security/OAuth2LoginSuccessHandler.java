@@ -1,5 +1,7 @@
 package com.laminar.security;
 
+import com.laminar.auth.application.AuthService;
+import com.laminar.auth.presentation.AuthCookies;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

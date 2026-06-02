@@ -1,7 +1,7 @@
-package com.laminar.web.samplemanager;
+package com.laminar.samplemanager.presentation;
 
-import com.laminar.samplemanager.SampleManagerLinkEntity;
-import com.laminar.samplemanager.SampleManagerLinkService;
+import com.laminar.samplemanager.application.SampleManagerLinkService;
+import com.laminar.samplemanager.domain.SampleManagerLinkEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

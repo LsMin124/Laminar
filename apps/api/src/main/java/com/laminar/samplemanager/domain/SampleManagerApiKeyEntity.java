@@ -1,4 +1,4 @@
-package com.laminar.samplemanager;
+package com.laminar.samplemanager.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,5 +1,6 @@
-package com.laminar.samplemanager;
+package com.laminar.samplemanager.repository;
 
+import com.laminar.samplemanager.domain.SampleManagerLinkEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

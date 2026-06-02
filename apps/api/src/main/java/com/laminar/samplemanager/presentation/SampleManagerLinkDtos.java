@@ -1,4 +1,4 @@
-package com.laminar.web.samplemanager;
+package com.laminar.samplemanager.presentation;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

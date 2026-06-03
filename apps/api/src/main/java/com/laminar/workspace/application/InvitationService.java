@@ -4,7 +4,7 @@ import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.outbox.domain.EmailOutboxEntity;
 import com.laminar.system.EmailOutboxSystemRepository;
 import com.laminar.system.UserSystemRepository;
-import com.laminar.user.UserEntity;
+import com.laminar.user.domain.UserEntity;
 import com.laminar.workspace.domain.WorkspaceInvitationEntity;
 import com.laminar.workspace.domain.WorkspaceMemberEntity;
 import com.laminar.workspace.domain.WorkspaceMemberId;

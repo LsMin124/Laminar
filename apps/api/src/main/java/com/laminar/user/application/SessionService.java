@@ -1,6 +1,7 @@
-package com.laminar.user;
+package com.laminar.user.application;
 
 import com.laminar.system.SessionSystemRepository;
+import com.laminar.user.domain.SessionEntity;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

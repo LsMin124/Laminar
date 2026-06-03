@@ -11,7 +11,7 @@ import com.laminar.system.UserSystemRepository;
 import com.laminar.tab.application.TabRelationService;
 import com.laminar.tab.application.TabService;
 import com.laminar.tab.domain.TabEntity;
-import com.laminar.user.UserEntity;
+import com.laminar.user.domain.UserEntity;
 import com.laminar.workspace.domain.WorkspaceEntity;
 import com.laminar.workspace.domain.WorkspaceMemberEntity;
 import com.laminar.workspace.domain.WorkspaceMemberId;

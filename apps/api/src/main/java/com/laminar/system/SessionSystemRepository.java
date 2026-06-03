@@ -1,6 +1,6 @@
 package com.laminar.system;
 
-import com.laminar.user.SessionEntity;
+import com.laminar.user.domain.SessionEntity;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;

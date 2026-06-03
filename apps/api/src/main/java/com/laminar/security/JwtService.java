@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
  * Access 토큰(JWT, HS256) 발급·검증.
  *
  * <p>Stateless — 서명·만료만 검증(DB 조회 0). claims: sub=userId, email, name. refresh 토큰은 opaque({@link
- * com.laminar.user.SessionService})이며 본 서비스는 access 전용이다.
+ * com.laminar.user.application.SessionService})이며 본 서비스는 access 전용이다.
  *
  * <p>키는 {@code JWT_SECRET}(≥32바이트)에서 파생. 미설정·약한 키는 부팅 시 즉시 실패(fail fast)해 무서명/약서명 운영을 차단한다. 검증은
  * {@code verifyWith(SecretKey)}로 HMAC 계열만 허용 — "alg:none" 위조와 알고리즘 혼동 공격을 차단한다.

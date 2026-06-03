@@ -2,7 +2,7 @@ package com.laminar.auth.presentation;
 
 import com.laminar.auth.application.AuthService;
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.user.UserEntity;
+import com.laminar.user.domain.UserEntity;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;

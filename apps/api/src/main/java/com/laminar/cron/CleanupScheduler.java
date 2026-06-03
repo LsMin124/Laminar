@@ -1,7 +1,7 @@
 package com.laminar.cron;
 
 import com.laminar.audit.application.AuditLogService;
-import com.laminar.user.SessionService;
+import com.laminar.user.application.SessionService;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

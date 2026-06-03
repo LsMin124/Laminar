@@ -15,7 +15,7 @@ import com.laminar.perpetual.domain.PerpetualColumnType;
 import com.laminar.perpetual.domain.PerpetualNoteEntity;
 import com.laminar.perpetual.domain.PerpetualVersionEntity;
 import com.laminar.system.UserSystemRepository;
-import com.laminar.user.UserEntity;
+import com.laminar.user.domain.UserEntity;
 import com.laminar.workspace.domain.WorkspaceEntity;
 import com.laminar.workspace.domain.WorkspaceMemberEntity;
 import com.laminar.workspace.domain.WorkspaceMemberId;

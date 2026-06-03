@@ -15,7 +15,7 @@ import com.laminar.group.application.GroupRelationService;
 import com.laminar.group.application.GroupService;
 import com.laminar.group.domain.GroupEntity;
 import com.laminar.system.UserSystemRepository;
-import com.laminar.user.UserEntity;
+import com.laminar.user.domain.UserEntity;
 import com.laminar.workspace.domain.WorkspaceEntity;
 import com.laminar.workspace.domain.WorkspaceMemberEntity;
 import com.laminar.workspace.domain.WorkspaceMemberId;

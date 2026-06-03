@@ -1,6 +1,6 @@
 package com.laminar.system;
 
-import com.laminar.user.UserEntity;
+import com.laminar.user.domain.UserEntity;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

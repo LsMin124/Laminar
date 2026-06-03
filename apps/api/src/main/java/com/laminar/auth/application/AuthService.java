@@ -1,9 +1,9 @@
 package com.laminar.auth.application;
 
 import com.laminar.security.JwtService;
-import com.laminar.user.SessionService;
-import com.laminar.user.UserEntity;
-import com.laminar.user.UserService;
+import com.laminar.user.application.SessionService;
+import com.laminar.user.application.UserService;
+import com.laminar.user.domain.UserEntity;
 import com.laminar.workspace.application.WorkspaceService;
 import java.util.Optional;
 import java.util.UUID;

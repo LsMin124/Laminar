@@ -1,5 +1,6 @@
-package com.laminar.workspace;
+package com.laminar.workspace.repository;
 
+import com.laminar.workspace.domain.WorkspaceEntity;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

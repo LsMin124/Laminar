@@ -1,8 +1,8 @@
-package com.laminar.web.workspace;
+package com.laminar.workspace.presentation;
 
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.workspace.WorkspaceEntity;
-import com.laminar.workspace.WorkspaceService;
+import com.laminar.workspace.application.WorkspaceService;
+import com.laminar.workspace.domain.WorkspaceEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;

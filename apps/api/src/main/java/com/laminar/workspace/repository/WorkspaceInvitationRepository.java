@@ -1,5 +1,6 @@
-package com.laminar.workspace;
+package com.laminar.workspace.repository;
 
+import com.laminar.workspace.domain.WorkspaceInvitationEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

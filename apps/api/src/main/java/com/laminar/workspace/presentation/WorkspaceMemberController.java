@@ -1,10 +1,10 @@
-package com.laminar.web.workspace;
+package com.laminar.workspace.presentation;
 
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.workspace.WorkspaceMemberEntity;
-import com.laminar.workspace.WorkspaceMemberService;
-import com.laminar.workspace.WorkspaceRole;
+import com.laminar.workspace.application.WorkspaceMemberService;
+import com.laminar.workspace.domain.WorkspaceMemberEntity;
+import com.laminar.workspace.domain.WorkspaceRole;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;

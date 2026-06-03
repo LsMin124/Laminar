@@ -4,7 +4,7 @@ import com.laminar.security.JwtService;
 import com.laminar.user.SessionService;
 import com.laminar.user.UserEntity;
 import com.laminar.user.UserService;
-import com.laminar.workspace.WorkspaceService;
+import com.laminar.workspace.application.WorkspaceService;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;

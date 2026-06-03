@@ -1,4 +1,4 @@
-package com.laminar.web.workspace;
+package com.laminar.workspace.presentation;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

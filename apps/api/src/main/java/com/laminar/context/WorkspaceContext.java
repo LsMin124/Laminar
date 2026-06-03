@@ -1,6 +1,6 @@
 package com.laminar.context;
 
-import com.laminar.workspace.WorkspaceRole;
+import com.laminar.workspace.domain.WorkspaceRole;
 import java.util.UUID;
 
 /**

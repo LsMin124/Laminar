@@ -1,8 +1,8 @@
 package com.laminar.context;
 
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.workspace.WorkspaceMemberEntity;
-import com.laminar.workspace.WorkspaceMemberRepository;
+import com.laminar.workspace.domain.WorkspaceMemberEntity;
+import com.laminar.workspace.repository.WorkspaceMemberRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

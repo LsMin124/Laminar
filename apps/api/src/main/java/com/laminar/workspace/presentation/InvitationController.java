@@ -1,8 +1,8 @@
-package com.laminar.web.workspace;
+package com.laminar.workspace.presentation;
 
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.workspace.InvitationService;
+import com.laminar.workspace.application.InvitationService;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;

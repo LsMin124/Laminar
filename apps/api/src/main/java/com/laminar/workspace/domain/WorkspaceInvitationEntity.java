@@ -1,4 +1,4 @@
-package com.laminar.workspace;
+package com.laminar.workspace.domain;
 
 import com.laminar.common.domain.WorkspaceScopedBaseEntity;
 import jakarta.persistence.Column;

@@ -1,10 +1,16 @@
-package com.laminar.workspace;
+package com.laminar.workspace.application;
 
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.outbox.domain.EmailOutboxEntity;
 import com.laminar.system.EmailOutboxSystemRepository;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.user.UserEntity;
+import com.laminar.workspace.domain.WorkspaceInvitationEntity;
+import com.laminar.workspace.domain.WorkspaceMemberEntity;
+import com.laminar.workspace.domain.WorkspaceMemberId;
+import com.laminar.workspace.domain.WorkspaceRole;
+import com.laminar.workspace.repository.WorkspaceInvitationRepository;
+import com.laminar.workspace.repository.WorkspaceMemberRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

@@ -1,6 +1,6 @@
-package com.laminar.web.workspace;
+package com.laminar.workspace.presentation;
 
-import com.laminar.workspace.WorkspaceRole;
+import com.laminar.workspace.domain.WorkspaceRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

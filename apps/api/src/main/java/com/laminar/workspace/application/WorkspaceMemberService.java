@@ -1,9 +1,15 @@
-package com.laminar.workspace;
+package com.laminar.workspace.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.user.UserEntity;
+import com.laminar.workspace.domain.WorkspaceEntity;
+import com.laminar.workspace.domain.WorkspaceMemberEntity;
+import com.laminar.workspace.domain.WorkspaceMemberId;
+import com.laminar.workspace.domain.WorkspaceRole;
+import com.laminar.workspace.repository.WorkspaceMemberRepository;
+import com.laminar.workspace.repository.WorkspaceRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;

@@ -1,7 +1,13 @@
-package com.laminar.workspace;
+package com.laminar.workspace.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.workspace.domain.WorkspaceEntity;
+import com.laminar.workspace.domain.WorkspaceMemberEntity;
+import com.laminar.workspace.domain.WorkspaceMemberId;
+import com.laminar.workspace.domain.WorkspaceRole;
+import com.laminar.workspace.repository.WorkspaceMemberRepository;
+import com.laminar.workspace.repository.WorkspaceRepository;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;

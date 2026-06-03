@@ -23,16 +23,16 @@ import jakarta.persistence.Entity;
 public class ArchitectureTest {
 
   /**
-   * 1.10.2 — system 패키지는 web.controller에서 import 금지 (3계층 컨텍스트 우회 방지).
+   * 1.10.2 — @RestController는 system 패키지를 직접 import 금지 (3계층 컨텍스트 우회 방지).
    *
-   * <p>{@code allowEmptyShould(true)} — Phase 1엔 web.controller 패키지가 비어 vacuous하게 통과 (Phase 2+ 컨트롤러
-   * 적재 후 강제).
+   * <p>컨트롤러는 서비스 경유만 — system 패키지(격리 우회 표면)에 직접 의존하면 WorkspaceContext 검증을 건너뛸 수 있다. 컨트롤러가 도메인별
+   * presentation에 분산되므로 위치가 아닌 애너테이션 기반으로 강제한다.
    */
   @ArchTest
-  static final ArchRule system_package_not_imported_by_web_controller =
+  static final ArchRule controllers_must_not_import_system_package =
       noClasses()
           .that()
-          .resideInAPackage("com.laminar.web.controller..")
+          .areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
           .should()
           .dependOnClassesThat()
           .resideInAPackage("com.laminar.system..")
@@ -98,21 +98,6 @@ public class ArchitectureTest {
           .areNotAssignableFrom(SystemRepository.class)
           .should()
           .resideInAPackage("com.laminar.system..");
-
-  /**
-   * 3.5.3 — SystemRepository는 web.controller에서 직접 import 금지 (3계층 우회 방지).
-   *
-   * <p>web 레이어는 서비스 경유만 — SystemRepository는 서비스 안에서 격리 정책 검증 후 호출.
-   */
-  @ArchTest
-  static final ArchRule system_repository_not_in_web_controller =
-      noClasses()
-          .that()
-          .resideInAPackage("com.laminar.web.controller..")
-          .should()
-          .dependOnClassesThat()
-          .areAssignableTo(SystemRepository.class)
-          .allowEmptyShould(true);
 
   /**
    * N-3 — web 레이어(컨트롤러)는 Repository에 직접 의존 금지.

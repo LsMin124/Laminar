@@ -27,7 +27,6 @@ public final class CardDtos {
       Boolean allDay,
       @Size(max = 60) String timeZone,
       CardImportance importance,
-      UUID linkedPerpetualId,
       @Size(max = 500) String rrule,
       CardOrigin origin,
       Map<String, Object> attrs) {}
@@ -41,7 +40,6 @@ public final class CardDtos {
       Boolean allDay,
       @Size(max = 60) String timeZone,
       CardImportance importance,
-      UUID linkedPerpetualId,
       @Size(max = 500) String rrule,
       Boolean completed,
       Map<String, Object> attrs) {}
@@ -65,7 +63,6 @@ public final class CardDtos {
       String timeZone,
       CardImportance importance,
       boolean completed,
-      UUID linkedPerpetualId,
       String rrule,
       CardOrigin origin,
       int priority,

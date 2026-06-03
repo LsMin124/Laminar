@@ -81,7 +81,6 @@ class SampleManagerLinkServiceIT extends IsolationIntegrationBase {
                 CardImportance.NORMAL,
                 null,
                 null,
-                null,
                 null));
     cardId = card.getId();
   }

@@ -5,8 +5,7 @@ import jakarta.persistence.Converter;
 import java.util.Arrays;
 
 public enum AttachmentParentType {
-  CARD("card"),
-  PERPETUAL("perpetual");
+  CARD("card");
 
   private final String dbValue;
 

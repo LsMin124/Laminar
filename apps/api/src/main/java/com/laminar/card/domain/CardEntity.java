@@ -62,9 +62,6 @@ public class CardEntity extends PersonalBaseEntity {
   @Column(name = "is_completed", nullable = false)
   private boolean completed;
 
-  @Column(name = "linked_perpetual_id")
-  private UUID linkedPerpetualId;
-
   @Column(name = "rrule")
   private String rrule;
 

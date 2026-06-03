@@ -93,37 +93,11 @@ class CardServiceIT extends IsolationIntegrationBase {
                 CardImportance.NORMAL,
                 null,
                 null,
-                null,
                 null));
 
     assertThat(card.getWorkspaceId()).isEqualTo(workspaceId);
     assertThat(card.getUserId()).isEqualTo(userA);
     assertThat(card.getPriority()).isEqualTo(100);
-  }
-
-  @Test
-  @Transactional
-  void perpetual_link_invariant_rejects_mismatch() {
-    assertThatThrownBy(
-            () ->
-                cardService.create(
-                    new CardService.CreateInput(
-                        boardId,
-                        "Bad",
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        true,
-                        null,
-                        CardImportance.PERPETUAL_VER,
-                        null,
-                        null,
-                        null,
-                        null)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("linked_perpetual_id");
   }
 
   @Test
@@ -141,7 +115,6 @@ class CardServiceIT extends IsolationIntegrationBase {
                         LocalDate.of(2026, 7, 5),
                         null,
                         true,
-                        null,
                         null,
                         null,
                         null,
@@ -164,7 +137,6 @@ class CardServiceIT extends IsolationIntegrationBase {
             LocalDate.of(2026, 6, 7),
             null,
             true,
-            null,
             null,
             null,
             null,
@@ -205,7 +177,6 @@ class CardServiceIT extends IsolationIntegrationBase {
         true,
         null,
         CardImportance.NORMAL,
-        null,
         null,
         null,
         null);

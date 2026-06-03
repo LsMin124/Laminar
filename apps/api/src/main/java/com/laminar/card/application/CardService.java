@@ -22,9 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
  * 카드 CRUD — Personal-First 격리 + 도메인 invariant 강제.
  *
  * <p>검증 (V3 cards 테이블 CHECK 제약 + Spec §3.5): - end_date >= start_date (DB chk_cards_end_date_order와
- * 동일) - end_date - start_date <= 30 (DB chk_cards_max_span) - importance=perpetual-ver ↔
- * linked_perpetual_id NN (DB chk_cards_perpetual_link) - rrule 있으면 all_day OR start_time NN (DB
- * chk_cards_rrule_time)
+ * 동일) - end_date - start_date <= 30 (DB chk_cards_max_span) - rrule 있으면 all_day OR start_time NN
+ * (DB chk_cards_rrule_time)
  *
  * <p>DB CHECK가 최종 방어선이지만 application 단에서 명시 검증으로 사용자 친화 에러.
  */
@@ -35,13 +34,9 @@ public class CardService {
   private static final int MAX_SPAN_DAYS = 30;
 
   private final CardRepository cardRepo;
-  private final com.laminar.perpetual.application.PerpetualVersionService perpetualVersionService;
 
-  public CardService(
-      CardRepository cardRepo,
-      com.laminar.perpetual.application.PerpetualVersionService perpetualVersionService) {
+  public CardService(CardRepository cardRepo) {
     this.cardRepo = cardRepo;
-    this.perpetualVersionService = perpetualVersionService;
   }
 
   @Transactional
@@ -71,21 +66,11 @@ public class CardService {
     card.setAllDay(input.allDay() == null ? true : input.allDay());
     card.setTimeZone(input.timeZone());
     card.setImportance(input.importance() == null ? CardImportance.NORMAL : input.importance());
-    card.setLinkedPerpetualId(input.linkedPerpetualId());
     card.setRrule(input.rrule());
     card.setOrigin(input.origin() == null ? CardOrigin.MANUAL : input.origin());
     card.setPriority(nextPriority);
     card.setAttrs(input.attrs() == null ? new HashMap<>() : input.attrs());
-    CardEntity saved = cardRepo.save(card);
-
-    // Spec §3.5 카드 ↔ 영구노트: importance=perpetual-ver + linked_perpetual_id 있으면
-    // 영구노트 새 버전 자동 commit + card_id 1:1 매핑 (uq_perpetual_versions_card).
-    if (saved.getImportance() == CardImportance.PERPETUAL_VER
-        && saved.getLinkedPerpetualId() != null) {
-      perpetualVersionService.commit(
-          saved.getLinkedPerpetualId(), saved.getId(), saved.getTitle(), saved.getBodyMd(), true);
-    }
-    return saved;
+    return cardRepo.save(card);
   }
 
   @Transactional(readOnly = true)
@@ -127,7 +112,6 @@ public class CardService {
     if (input.allDay() != null) card.setAllDay(input.allDay());
     if (input.timeZone() != null) card.setTimeZone(input.timeZone());
     if (input.importance() != null) card.setImportance(input.importance());
-    if (input.linkedPerpetualId() != null) card.setLinkedPerpetualId(input.linkedPerpetualId());
     if (input.rrule() != null) card.setRrule(input.rrule());
     if (input.completed() != null) card.setCompleted(input.completed());
     if (input.attrs() != null) card.setAttrs(input.attrs());
@@ -203,13 +187,11 @@ public class CardService {
 
   private void validateInvariants(CreateInput input) {
     validateDateRange(input.startDate(), input.endDate());
-    validatePerpetualLink(input.importance(), input.linkedPerpetualId());
     validateRruleTime(input.rrule(), input.allDay(), input.startTime());
   }
 
   private void validateInvariants(CardEntity card) {
     validateDateRange(card.getStartDate(), card.getEndDate());
-    validatePerpetualLink(card.getImportance(), card.getLinkedPerpetualId());
     validateRruleTime(card.getRrule(), card.isAllDay(), card.getStartTime());
   }
 
@@ -221,16 +203,6 @@ public class CardService {
     long days = ChronoUnit.DAYS.between(start, end);
     if (days > MAX_SPAN_DAYS) {
       throw new IllegalArgumentException("date span exceeds " + MAX_SPAN_DAYS + " days");
-    }
-  }
-
-  private void validatePerpetualLink(CardImportance importance, UUID linkedPerpetualId) {
-    if (importance == null) return;
-    boolean isPerpetualVer = importance == CardImportance.PERPETUAL_VER;
-    boolean linkPresent = linkedPerpetualId != null;
-    if (isPerpetualVer != linkPresent) {
-      throw new IllegalArgumentException(
-          "importance=perpetual-ver requires linked_perpetual_id (and vice versa)");
     }
   }
 
@@ -253,7 +225,6 @@ public class CardService {
       Boolean allDay,
       String timeZone,
       CardImportance importance,
-      UUID linkedPerpetualId,
       String rrule,
       CardOrigin origin,
       Map<String, Object> attrs) {}
@@ -267,7 +238,6 @@ public class CardService {
       Boolean allDay,
       String timeZone,
       CardImportance importance,
-      UUID linkedPerpetualId,
       String rrule,
       Boolean completed,
       Map<String, Object> attrs) {}

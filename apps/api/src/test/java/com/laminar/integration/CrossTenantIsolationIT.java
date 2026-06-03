@@ -80,7 +80,6 @@ class CrossTenantIsolationIT extends IsolationIntegrationBase {
                 CardImportance.NORMAL,
                 null,
                 null,
-                null,
                 null));
     cardA = card.getId();
     WorkspaceContextHolder.clear();

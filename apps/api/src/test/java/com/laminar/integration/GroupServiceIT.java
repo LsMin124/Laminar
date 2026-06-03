@@ -104,7 +104,6 @@ class GroupServiceIT extends IsolationIntegrationBase {
                 CardImportance.NORMAL,
                 null,
                 null,
-                null,
                 null));
 
     groupService.addMember(group.getId(), card.getId());
@@ -130,7 +129,6 @@ class GroupServiceIT extends IsolationIntegrationBase {
                 true,
                 null,
                 CardImportance.NORMAL,
-                null,
                 null,
                 null,
                 null));

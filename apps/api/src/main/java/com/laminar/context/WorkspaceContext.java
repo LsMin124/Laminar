@@ -8,7 +8,7 @@ import java.util.UUID;
  *
  * <p>3계층: - SYSTEM: workspaceId·userId 둘 다 null (cron, shedlock, email_outbox, users-self) -
  * WORKSPACE_SHARED: workspaceId만 (audit_log, equipment 시리즈, jobs_outbox) - PERSONAL: workspaceId +
- * userId 모두 set (cards/boards/perpetual 등 Personal-First)
+ * userId 모두 set (cards/boards 등 Personal-First)
  *
  * <p>scope()는 set된 필드 조합으로 즉시 도출.
  */

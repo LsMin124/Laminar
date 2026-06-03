@@ -47,7 +47,6 @@ public class CardController {
                 request.allDay(),
                 request.timeZone(),
                 request.importance(),
-                request.linkedPerpetualId(),
                 request.rrule(),
                 request.origin(),
                 request.attrs()));
@@ -90,7 +89,6 @@ public class CardController {
                 request.allDay(),
                 request.timeZone(),
                 request.importance(),
-                request.linkedPerpetualId(),
                 request.rrule(),
                 request.completed(),
                 request.attrs()));
@@ -141,7 +139,6 @@ public class CardController {
         c.getTimeZone(),
         c.getImportance(),
         c.isCompleted(),
-        c.getLinkedPerpetualId(),
         c.getRrule(),
         c.getOrigin(),
         c.getPriority(),

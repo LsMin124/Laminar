@@ -68,7 +68,6 @@ public class CalendarController {
         c.getTimeZone(),
         c.getImportance(),
         c.isCompleted(),
-        c.getLinkedPerpetualId(),
         c.getRrule(),
         c.getOrigin(),
         c.getPriority(),

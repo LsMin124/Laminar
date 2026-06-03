@@ -94,7 +94,6 @@ class RelationServiceIT extends IsolationIntegrationBase {
                 CardImportance.NORMAL,
                 null,
                 null,
-                null,
                 null));
 
     assertThatThrownBy(
@@ -140,7 +139,6 @@ class RelationServiceIT extends IsolationIntegrationBase {
         true,
         null,
         CardImportance.NORMAL,
-        null,
         null,
         null,
         null);

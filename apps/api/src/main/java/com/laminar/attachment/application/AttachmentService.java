@@ -16,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 첨부 메타 CRUD — Personal-First.
  *
- * <p>Spec §2.5.1: 20MB byte 한도 (DB CHECK + service 검증), parent_type=card/perpetual. 실제 byte는 R2에 저장
- * (이 서비스는 메타만). presigned URL은 R2StorageService.
+ * <p>Spec §2.5.1: 20MB byte 한도 (DB CHECK + service 검증), parent_type=card. 실제 byte는 R2에 저장 (이 서비스는
+ * 메타만). presigned URL은 R2StorageService.
  */
 @Service
 public class AttachmentService {

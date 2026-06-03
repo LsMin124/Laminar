@@ -119,10 +119,7 @@ class AttachmentServiceIT extends IsolationIntegrationBase {
         AttachmentParentType.CARD, cardId, "k1", "a.txt", "text/plain", 10L, null);
     attachmentService.create(
         AttachmentParentType.CARD, cardId, "k2", "b.txt", "text/plain", 20L, null);
-    attachmentService.create(
-        AttachmentParentType.PERPETUAL, cardId, "k3", "c.txt", "text/plain", 30L, null);
 
     assertThat(attachmentService.listByParent(AttachmentParentType.CARD, cardId)).hasSize(2);
-    assertThat(attachmentService.listByParent(AttachmentParentType.PERPETUAL, cardId)).hasSize(1);
   }
 }

@@ -1,4 +1,4 @@
-package com.laminar.web.datememo;
+package com.laminar.datememo.presentation;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

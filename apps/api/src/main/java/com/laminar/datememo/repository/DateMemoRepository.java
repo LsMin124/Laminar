@@ -1,5 +1,7 @@
-package com.laminar.datememo;
+package com.laminar.datememo.repository;
 
+import com.laminar.datememo.domain.DateMemoEntity;
+import com.laminar.datememo.domain.DateMemoId;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;

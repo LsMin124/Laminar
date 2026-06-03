@@ -1,4 +1,4 @@
-package com.laminar.datememo;
+package com.laminar.datememo.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;

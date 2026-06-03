@@ -1,7 +1,7 @@
-package com.laminar.web.datememo;
+package com.laminar.datememo.presentation;
 
-import com.laminar.datememo.DateMemoEntity;
-import com.laminar.datememo.DateMemoService;
+import com.laminar.datememo.application.DateMemoService;
+import com.laminar.datememo.domain.DateMemoEntity;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;

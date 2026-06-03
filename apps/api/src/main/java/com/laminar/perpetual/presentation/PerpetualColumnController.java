@@ -1,9 +1,8 @@
 package com.laminar.perpetual.presentation;
 
+import com.laminar.perpetual.application.PerpetualColumnService;
 import com.laminar.perpetual.domain.PerpetualColumnDefinitionEntity;
 import com.laminar.perpetual.domain.PerpetualColumnEntity;
-import com.laminar.perpetual.application.PerpetualColumnService;
-
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

@@ -1,8 +1,7 @@
 package com.laminar.perpetual.presentation;
 
-import com.laminar.perpetual.domain.PerpetualNoteEntity;
 import com.laminar.perpetual.application.PerpetualNoteService;
-
+import com.laminar.perpetual.domain.PerpetualNoteEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

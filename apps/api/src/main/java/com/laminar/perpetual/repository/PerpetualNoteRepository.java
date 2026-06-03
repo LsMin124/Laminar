@@ -1,7 +1,6 @@
 package com.laminar.perpetual.repository;
 
 import com.laminar.perpetual.domain.PerpetualNoteEntity;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

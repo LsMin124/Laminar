@@ -31,11 +31,11 @@ public class CardService {
   private static final int MAX_SPAN_DAYS = 30;
 
   private final CardRepository cardRepo;
-  private final com.laminar.perpetual.PerpetualVersionService perpetualVersionService;
+  private final com.laminar.perpetual.application.PerpetualVersionService perpetualVersionService;
 
   public CardService(
       CardRepository cardRepo,
-      com.laminar.perpetual.PerpetualVersionService perpetualVersionService) {
+      com.laminar.perpetual.application.PerpetualVersionService perpetualVersionService) {
     this.cardRepo = cardRepo;
     this.perpetualVersionService = perpetualVersionService;
   }

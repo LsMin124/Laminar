@@ -1,6 +1,7 @@
-package com.laminar.web.perpetual;
+package com.laminar.perpetual.presentation;
 
-import com.laminar.perpetual.PerpetualColumnType;
+import com.laminar.perpetual.domain.PerpetualColumnType;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

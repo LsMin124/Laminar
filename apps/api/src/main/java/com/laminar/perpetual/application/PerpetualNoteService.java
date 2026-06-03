@@ -1,4 +1,7 @@
-package com.laminar.perpetual;
+package com.laminar.perpetual.application;
+
+import com.laminar.perpetual.domain.PerpetualNoteEntity;
+import com.laminar.perpetual.repository.PerpetualNoteRepository;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;

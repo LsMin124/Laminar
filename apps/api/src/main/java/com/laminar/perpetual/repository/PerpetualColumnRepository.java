@@ -1,4 +1,7 @@
-package com.laminar.perpetual;
+package com.laminar.perpetual.repository;
+
+import com.laminar.perpetual.domain.PerpetualColumnEntity;
+import com.laminar.perpetual.domain.PerpetualColumnId;
 
 import java.util.List;
 import java.util.UUID;

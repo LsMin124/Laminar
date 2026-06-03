@@ -1,4 +1,12 @@
-package com.laminar.perpetual;
+package com.laminar.perpetual.application;
+
+import com.laminar.perpetual.domain.PerpetualColumnDefinitionEntity;
+import com.laminar.perpetual.repository.PerpetualColumnDefinitionRepository;
+import com.laminar.perpetual.domain.PerpetualColumnEntity;
+import com.laminar.perpetual.domain.PerpetualColumnId;
+import com.laminar.perpetual.repository.PerpetualColumnRepository;
+import com.laminar.perpetual.domain.PerpetualColumnType;
+import com.laminar.perpetual.repository.PerpetualNoteRepository;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;

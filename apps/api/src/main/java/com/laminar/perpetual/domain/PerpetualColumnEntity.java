@@ -1,4 +1,4 @@
-package com.laminar.perpetual;
+package com.laminar.perpetual.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;

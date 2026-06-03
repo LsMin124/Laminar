@@ -1,4 +1,4 @@
-package com.laminar.web.perpetual;
+package com.laminar.perpetual.presentation;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

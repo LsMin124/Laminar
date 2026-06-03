@@ -49,7 +49,7 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID> {
             SELECT c FROM CardEntity c
             WHERE c.deletedAt IS NULL
               AND c.rrule IS NOT NULL
-              AND c.origin = com.laminar.card.CardOrigin.MANUAL
+              AND c.origin = com.laminar.card.domain.CardOrigin.MANUAL
               AND c.startDate IS NOT NULL
             """)
   List<CardEntity> findActiveRruleMasters();

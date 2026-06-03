@@ -1,8 +1,8 @@
 package com.laminar.admin.application;
 
 import com.laminar.audit.application.AuditLogService;
-import com.laminar.board.BoardEntity;
-import com.laminar.board.BoardRepository;
+import com.laminar.board.domain.BoardEntity;
+import com.laminar.board.repository.BoardRepository;
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardRepository;
 import com.laminar.context.HibernateFilterActivator;

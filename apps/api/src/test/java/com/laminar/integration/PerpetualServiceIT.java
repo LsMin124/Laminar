@@ -3,7 +3,7 @@ package com.laminar.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.laminar.board.BoardService;
+import com.laminar.board.application.BoardService;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;

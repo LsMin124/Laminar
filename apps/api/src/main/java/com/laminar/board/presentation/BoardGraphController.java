@@ -1,6 +1,6 @@
-package com.laminar.web.board;
+package com.laminar.board.presentation;
 
-import com.laminar.board.BoardGraphService;
+import com.laminar.board.application.BoardGraphService;
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardRelationEntity;
 import com.laminar.group.domain.GroupEntity;

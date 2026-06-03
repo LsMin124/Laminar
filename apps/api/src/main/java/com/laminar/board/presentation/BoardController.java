@@ -1,7 +1,7 @@
-package com.laminar.web.board;
+package com.laminar.board.presentation;
 
-import com.laminar.board.BoardEntity;
-import com.laminar.board.BoardService;
+import com.laminar.board.application.BoardService;
+import com.laminar.board.domain.BoardEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

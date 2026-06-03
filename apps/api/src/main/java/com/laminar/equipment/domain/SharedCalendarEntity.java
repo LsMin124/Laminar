@@ -1,6 +1,6 @@
 package com.laminar.equipment.domain;
 
-import com.laminar.board.BoardDefaultView;
+import com.laminar.board.domain.BoardDefaultView;
 import com.laminar.common.domain.WorkspaceScopedBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

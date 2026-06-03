@@ -1,5 +1,6 @@
-package com.laminar.board;
+package com.laminar.board.repository;
 
+import com.laminar.board.domain.BoardEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

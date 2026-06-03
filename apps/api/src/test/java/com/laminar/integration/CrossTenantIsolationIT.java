@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.laminar.attachment.application.AttachmentService;
 import com.laminar.attachment.domain.AttachmentParentType;
-import com.laminar.board.BoardService;
+import com.laminar.board.application.BoardService;
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardImportance;
 import com.laminar.card.CardService;

@@ -1,6 +1,6 @@
-package com.laminar.web.board;
+package com.laminar.board.presentation;
 
-import com.laminar.board.CalendarService;
+import com.laminar.board.application.CalendarService;
 import com.laminar.card.CardEntity;
 import com.laminar.datememo.domain.DateMemoEntity;
 import com.laminar.web.card.CardDtos;

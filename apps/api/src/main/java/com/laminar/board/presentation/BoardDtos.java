@@ -1,6 +1,6 @@
-package com.laminar.web.board;
+package com.laminar.board.presentation;
 
-import com.laminar.board.BoardDefaultView;
+import com.laminar.board.domain.BoardDefaultView;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;

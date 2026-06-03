@@ -1,6 +1,6 @@
 package com.laminar.equipment.application;
 
-import com.laminar.board.BoardDefaultView;
+import com.laminar.board.domain.BoardDefaultView;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.equipment.domain.SharedCalendarEntity;

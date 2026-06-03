@@ -3,8 +3,8 @@ package com.laminar.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.laminar.board.BoardService;
-import com.laminar.board.CalendarService;
+import com.laminar.board.application.BoardService;
+import com.laminar.board.application.CalendarService;
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardImportance;
 import com.laminar.card.CardService;

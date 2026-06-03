@@ -1,4 +1,4 @@
-package com.laminar.board;
+package com.laminar.board.application;
 
 import com.laminar.card.CardEntity;
 import com.laminar.card.CardRelationEntity;

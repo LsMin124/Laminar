@@ -2,8 +2,8 @@ package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.laminar.board.BoardEntity;
-import com.laminar.board.BoardRepository;
+import com.laminar.board.domain.BoardEntity;
+import com.laminar.board.repository.BoardRepository;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;

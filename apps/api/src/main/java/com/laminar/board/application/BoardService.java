@@ -1,5 +1,8 @@
-package com.laminar.board;
+package com.laminar.board.application;
 
+import com.laminar.board.domain.BoardDefaultView;
+import com.laminar.board.domain.BoardEntity;
+import com.laminar.board.repository.BoardRepository;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import java.time.OffsetDateTime;

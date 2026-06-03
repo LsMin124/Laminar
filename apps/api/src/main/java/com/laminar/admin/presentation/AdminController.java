@@ -1,7 +1,7 @@
 package com.laminar.admin.presentation;
 
 import com.laminar.admin.application.AdminWorkspaceService;
-import com.laminar.board.BoardEntity;
+import com.laminar.board.domain.BoardEntity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

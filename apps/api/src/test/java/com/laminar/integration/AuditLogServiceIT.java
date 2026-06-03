@@ -2,8 +2,8 @@ package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.laminar.audit.AuditLogEntity;
-import com.laminar.audit.AuditLogService;
+import com.laminar.audit.application.AuditLogService;
+import com.laminar.audit.domain.AuditLogEntity;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;

@@ -1,7 +1,7 @@
-package com.laminar.web.audit;
+package com.laminar.audit.presentation;
 
-import com.laminar.audit.AuditLogEntity;
-import com.laminar.audit.AuditLogService;
+import com.laminar.audit.application.AuditLogService;
+import com.laminar.audit.domain.AuditLogEntity;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;

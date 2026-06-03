@@ -1,5 +1,6 @@
-package com.laminar.audit;
+package com.laminar.audit.repository;
 
+import com.laminar.audit.domain.AuditLogEntity;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package com.laminar.web.audit;
+package com.laminar.audit.presentation;
 
 import java.time.OffsetDateTime;
 import java.util.Map;

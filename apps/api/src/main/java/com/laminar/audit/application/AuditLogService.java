@@ -1,5 +1,7 @@
-package com.laminar.audit;
+package com.laminar.audit.application;
 
+import com.laminar.audit.domain.AuditLogEntity;
+import com.laminar.audit.repository.AuditLogRepository;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import java.time.OffsetDateTime;

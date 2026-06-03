@@ -1,4 +1,4 @@
-package com.laminar.audit;
+package com.laminar.audit.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

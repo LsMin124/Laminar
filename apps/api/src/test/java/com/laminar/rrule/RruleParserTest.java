@@ -3,6 +3,9 @@ package com.laminar.rrule;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.laminar.rrule.domain.Rrule;
+import com.laminar.rrule.domain.RruleFrequency;
+import com.laminar.rrule.domain.RruleParser;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;

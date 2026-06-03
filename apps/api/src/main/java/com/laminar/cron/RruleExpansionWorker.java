@@ -5,7 +5,7 @@ import com.laminar.card.CardRepository;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
-import com.laminar.rrule.RruleExpansionService;
+import com.laminar.rrule.application.RruleExpansionService;
 import java.time.LocalDate;
 import java.util.List;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;

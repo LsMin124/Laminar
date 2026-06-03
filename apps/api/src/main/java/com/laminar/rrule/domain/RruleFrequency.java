@@ -1,4 +1,4 @@
-package com.laminar.rrule;
+package com.laminar.rrule.domain;
 
 import java.time.LocalDate;
 import java.util.Arrays;

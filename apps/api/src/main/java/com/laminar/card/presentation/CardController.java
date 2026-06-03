@@ -37,7 +37,7 @@ public class CardController {
     CardEntity card =
         cardService.create(
             new CardService.CreateInput(
-                request.boardId(),
+                request.tabId(),
                 request.title(),
                 request.slug(),
                 request.bodyMd(),
@@ -53,15 +53,15 @@ public class CardController {
     return ResponseEntity.ok(toResponse(card));
   }
 
-  @GetMapping("/boards/{boardId}/cards")
-  public ResponseEntity<List<CardDtos.CardResponse>> listByBoard(
-      @PathVariable UUID boardId,
+  @GetMapping("/boards/{tabId}/cards")
+  public ResponseEntity<List<CardDtos.CardResponse>> listByTab(
+      @PathVariable UUID tabId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
     List<CardEntity> cards =
         (from != null && to != null)
-            ? cardService.listByBoardAndDateRange(boardId, from, to)
-            : cardService.listByBoard(boardId);
+            ? cardService.listByTabAndDateRange(tabId, from, to)
+            : cardService.listByTab(tabId);
     return ResponseEntity.ok(cards.stream().map(this::toResponse).toList());
   }
 
@@ -107,11 +107,11 @@ public class CardController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/boards/{boardId}/cards/reorder")
+  @PatchMapping("/boards/{tabId}/cards/reorder")
   public ResponseEntity<List<CardDtos.CardResponse>> reorder(
-      @PathVariable UUID boardId, @Valid @RequestBody CardDtos.ReorderRequest request) {
+      @PathVariable UUID tabId, @Valid @RequestBody CardDtos.ReorderRequest request) {
     return ResponseEntity.ok(
-        cardService.reorder(boardId, request.orderedIds()).stream().map(this::toResponse).toList());
+        cardService.reorder(tabId, request.orderedIds()).stream().map(this::toResponse).toList());
   }
 
   @GetMapping("/cards/{cardId}/rendered")
@@ -126,9 +126,9 @@ public class CardController {
   private CardDtos.CardResponse toResponse(CardEntity c) {
     return new CardDtos.CardResponse(
         c.getId(),
-        c.getWorkspaceId(),
+        c.getSubjectId(),
         c.getUserId(),
-        c.getBoardId(),
+        c.getTabId(),
         c.getTitle(),
         c.getSlug(),
         c.getBodyMd(),

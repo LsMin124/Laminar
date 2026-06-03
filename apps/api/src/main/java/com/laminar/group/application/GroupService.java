@@ -1,7 +1,7 @@
 package com.laminar.group.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.group.domain.GroupEntity;
 import com.laminar.group.domain.GroupMemberEntity;
 import com.laminar.group.domain.GroupMemberId;
@@ -41,20 +41,20 @@ public class GroupService {
   }
 
   @Transactional
-  public GroupEntity create(UUID boardId, String name, String color, Map<String, Object> attrs) {
-    WorkspaceContext ctx = requirePersonalWritable();
+  public GroupEntity create(UUID tabId, String name, String color, Map<String, Object> attrs) {
+    SubjectContext ctx = requirePersonalWritable();
 
     int nextPriority =
         groupRepo
-            .findFirstByBoardIdAndDeletedAtIsNullOrderByPriorityDesc(boardId)
+            .findFirstByTabIdAndDeletedAtIsNullOrderByPriorityDesc(tabId)
             .map(g -> g.getPriority() + PRIORITY_STEP)
             .orElse(PRIORITY_STEP);
 
     GroupEntity group = new GroupEntity();
-    group.setWorkspaceId(ctx.workspaceId());
+    group.setSubjectId(ctx.subjectId());
     group.setUserId(ctx.userId());
     group.setCreatedBy(ctx.userId());
-    group.setBoardId(boardId);
+    group.setTabId(tabId);
     group.setName(name);
     group.setColor(color);
     group.setPriority(nextPriority);
@@ -63,28 +63,28 @@ public class GroupService {
   }
 
   @Transactional(readOnly = true)
-  public List<GroupEntity> listByBoard(UUID boardId) {
-    WorkspaceContextHolder.requirePersonal();
-    return groupRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
+  public List<GroupEntity> listByTab(UUID tabId) {
+    SubjectContextHolder.requirePersonal();
+    return groupRepo.findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(tabId);
   }
 
   @Transactional(readOnly = true)
   public Optional<GroupEntity> findById(UUID groupId) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
     return groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()));
+        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()));
   }
 
   @Transactional
   public GroupEntity update(UUID groupId, String name, String color, Map<String, Object> attrs) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     GroupEntity group =
         groupRepo
             .findById(groupId)
             .filter(g -> g.getDeletedAt() == null)
-            .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+            .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
             .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
     if (name != null && !name.isBlank()) group.setName(name);
     if (color != null) group.setColor(color);
@@ -93,8 +93,8 @@ public class GroupService {
   }
 
   @Transactional
-  public List<GroupEntity> reorder(UUID boardId, List<UUID> orderedGroupIds) {
-    WorkspaceContext ctx = requirePersonalWritable();
+  public List<GroupEntity> reorder(UUID tabId, List<UUID> orderedGroupIds) {
+    SubjectContext ctx = requirePersonalWritable();
     if (orderedGroupIds == null || orderedGroupIds.isEmpty()) {
       return List.of();
     }
@@ -105,8 +105,8 @@ public class GroupService {
       groupRepo
           .findById(groupId)
           .filter(g -> g.getDeletedAt() == null)
-          .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
-          .filter(g -> boardId == null || boardId.equals(g.getBoardId()))
+          .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
+          .filter(g -> tabId == null || tabId.equals(g.getTabId()))
           .ifPresent(
               g -> {
                 g.setPriority(newPriority);
@@ -118,11 +118,11 @@ public class GroupService {
 
   @Transactional
   public void softDelete(UUID groupId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
         .ifPresent(
             group -> {
               group.setDeletedAt(OffsetDateTime.now());
@@ -133,16 +133,16 @@ public class GroupService {
   /** 그룹 ↔ 카드 멤버십 추가. group/card는 현재 user의 자원이어야 (Personal-First 격리 자동). */
   @Transactional
   public GroupMemberEntity addMember(UUID groupId, UUID cardId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
         .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
     cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
+        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
         .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
 
     GroupMemberEntity member = new GroupMemberEntity();
@@ -153,41 +153,41 @@ public class GroupService {
 
   @Transactional
   public void removeMember(UUID groupId, UUID cardId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     // group/card 격리 검증 후 삭제 — 다른 user 그룹은 소유권 불일치로 빈 Optional
     groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
         .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
     memberRepo.findById(new GroupMemberId(groupId, cardId)).ifPresent(memberRepo::delete);
   }
 
   @Transactional(readOnly = true)
   public List<UUID> listCardIdsInGroup(UUID groupId) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
     groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
         .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
     return memberRepo.findByIdGroupId(groupId).stream().map(m -> m.getId().getCardId()).toList();
   }
 
   @Transactional(readOnly = true)
   public List<UUID> listGroupIdsForCard(UUID cardId) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
     cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
+        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
         .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
     return memberRepo.findByIdCardId(cardId).stream().map(m -> m.getId().getGroupId()).toList();
   }
 
-  private WorkspaceContext requirePersonalWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+  private SubjectContext requirePersonalWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     if (!ctx.canWrite()) {

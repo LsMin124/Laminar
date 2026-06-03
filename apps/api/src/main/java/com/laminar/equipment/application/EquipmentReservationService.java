@@ -1,7 +1,7 @@
 package com.laminar.equipment.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.EquipmentEntity;
 import com.laminar.equipment.domain.EquipmentReservationEntity;
 import com.laminar.equipment.repository.EquipmentRepository;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 장비 예약 — workspace-shared, 시간 겹침 차단.
+ * 장비 예약 — subject-shared, 시간 겹침 차단.
  *
  * <p>검증 (V11 §2.10.6 + DB EXCLUDE): - start_at < end_at - 길이 ≤ 7일 (chk_er_max_span) - 같은 equipment
  * + 같은 시간대 겹침 차단 (단일 예약, rrule IS NULL에 한정)
@@ -44,7 +44,7 @@ public class EquipmentReservationService {
       String purpose,
       String rrule,
       UUID cardId) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     if (startAt == null || endAt == null) {
       throw new IllegalArgumentException("start_at and end_at required");
     }
@@ -58,7 +58,7 @@ public class EquipmentReservationService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .filter(EquipmentEntity::isActive)
         .orElseThrow(() -> new IllegalArgumentException("equipment not found or inactive"));
 
@@ -74,7 +74,7 @@ public class EquipmentReservationService {
     }
 
     EquipmentReservationEntity reservation = new EquipmentReservationEntity();
-    reservation.setWorkspaceId(ctx.workspaceId());
+    reservation.setSubjectId(ctx.subjectId());
     reservation.setEquipmentId(equipmentId);
     reservation.setReservedBy(ctx.userId());
     reservation.setStartAt(startAt);
@@ -87,14 +87,14 @@ public class EquipmentReservationService {
 
   @Transactional
   public void cancel(UUID reservationId) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     EquipmentReservationEntity reservation =
         reservationRepo
             .findById(reservationId)
             .filter(r -> r.getDeletedAt() == null)
-            .filter(r -> ctx.ownsShared(r.getWorkspaceId()))
+            .filter(r -> ctx.ownsShared(r.getSubjectId()))
             .orElseThrow(() -> new IllegalArgumentException("reservation not found"));
-    // 본인 예약 또는 OWNER만 취소 (OWNER override는 같은 workspace 한정 — ownsShared 선검증)
+    // 본인 예약 또는 OWNER만 취소 (OWNER override는 같은 subject 한정 — ownsShared 선검증)
     if (!ctx.isOwner() && !reservation.getReservedBy().equals(ctx.userId())) {
       throw new IllegalStateException("can only cancel own reservation (OWNER override allowed)");
     }
@@ -105,26 +105,26 @@ public class EquipmentReservationService {
   @Transactional(readOnly = true)
   public List<EquipmentReservationEntity> listByEquipmentRange(
       UUID equipmentId, OffsetDateTime from, OffsetDateTime to) {
-    WorkspaceContextHolder.require();
+    SubjectContextHolder.require();
     return reservationRepo.findByEquipmentIdAndStartAtBetweenAndDeletedAtIsNull(
         equipmentId, from, to);
   }
 
   @Transactional(readOnly = true)
   public List<EquipmentReservationEntity> listMyReservations() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
+    SubjectContext ctx = SubjectContextHolder.require();
     if (ctx.userId() == null) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     return reservationRepo.findByReservedByAndDeletedAtIsNullOrderByStartAtDesc(ctx.userId());
   }
 
-  private WorkspaceContext requireWorkspaceWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required");
+  private SubjectContext requireSubjectWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required");
     }
-    if (ctx.scope() == WorkspaceContext.Scope.PERSONAL && !ctx.canWrite()) {
+    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
       throw new IllegalStateException("VIEWER cannot reserve equipment");
     }
     return ctx;

@@ -13,8 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 사용자 도메인 서비스 (가입·인증).
  *
- * <p>시스템 컨텍스트 (UserSystemRepository) 사용 — 사용자 자체는 글로벌 자원. 워크스페이스 진입 후 WorkspaceContext.userId()로
- * 격리.
+ * <p>시스템 컨텍스트 (UserSystemRepository) 사용 — 사용자 자체는 글로벌 자원. 워크스페이스 진입 후 SubjectContext.userId()로 격리.
  */
 @Service
 public class UserService {

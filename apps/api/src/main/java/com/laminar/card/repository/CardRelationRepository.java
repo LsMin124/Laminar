@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** 카드 관계 Repository — Personal-First (@Filter 자동). */
 public interface CardRelationRepository extends JpaRepository<CardRelationEntity, UUID> {
 
-  List<CardRelationEntity> findByBoardIdAndDeletedAtIsNull(UUID boardId);
+  List<CardRelationEntity> findByTabIdAndDeletedAtIsNull(UUID tabId);
 
   List<CardRelationEntity> findByFromCardIdAndDeletedAtIsNull(UUID fromCardId);
 

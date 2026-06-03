@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "groups")
 @Filter(
     name = "personalFirstFilter",
-    condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+    condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
 public class GroupEntity extends PersonalBaseEntity {
@@ -26,8 +26,8 @@ public class GroupEntity extends PersonalBaseEntity {
   @Column(name = "created_by")
   private UUID createdBy;
 
-  @Column(name = "board_id", nullable = false)
-  private UUID boardId;
+  @Column(name = "tab_id", nullable = false)
+  private UUID tabId;
 
   @Column(name = "name", nullable = false)
   private String name;

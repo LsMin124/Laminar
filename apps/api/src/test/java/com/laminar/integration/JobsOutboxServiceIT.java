@@ -2,8 +2,8 @@ package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.outbox.application.JobsOutboxService;
 import com.laminar.outbox.domain.JobsOutboxEntity;
 import java.time.OffsetDateTime;
@@ -21,12 +21,12 @@ class JobsOutboxServiceIT extends IsolationIntegrationBase {
 
   @BeforeEach
   void enterSystemScope() {
-    WorkspaceContextHolder.set(WorkspaceContext.system());
+    SubjectContextHolder.set(SubjectContext.system());
   }
 
   @AfterEach
   void cleanup() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
   }
 
   @Test

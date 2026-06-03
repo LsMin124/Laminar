@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /**
  * 그룹 ↔ 카드 N:N junction.
  *
- * <p>workspace_id 컬럼 없어 Hibernate @Filter 미부착 — parent (group/card) 격리에 의존. 격리 검증 책임은 service layer
+ * <p>subject_id 컬럼 없어 Hibernate @Filter 미부착 — parent (group/card) 격리에 의존. 격리 검증 책임은 service layer
  * (groupId/cardId가 현재 user 자원인지 확인 후 INSERT).
  */
 public interface GroupMemberRepository extends JpaRepository<GroupMemberEntity, GroupMemberId> {

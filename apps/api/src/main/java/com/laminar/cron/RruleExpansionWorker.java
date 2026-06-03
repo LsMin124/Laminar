@@ -3,8 +3,8 @@ package com.laminar.cron;
 import com.laminar.card.domain.CardEntity;
 import com.laminar.card.repository.CardRepository;
 import com.laminar.context.HibernateFilterActivator;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.rrule.application.RruleExpansionService;
 import java.time.LocalDate;
 import java.util.List;
@@ -44,7 +44,7 @@ public class RruleExpansionWorker {
   @Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")
   @SchedulerLock(name = "rruleExpansion", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
   public void runExpansion() {
-    WorkspaceContextHolder.set(WorkspaceContext.system());
+    SubjectContextHolder.set(SubjectContext.system());
     filterActivator.activate();
     try {
       LocalDate windowStart = LocalDate.now();
@@ -69,7 +69,7 @@ public class RruleExpansionWorker {
           totalCreated,
           errors);
     } finally {
-      WorkspaceContextHolder.clear();
+      SubjectContextHolder.clear();
     }
   }
 }

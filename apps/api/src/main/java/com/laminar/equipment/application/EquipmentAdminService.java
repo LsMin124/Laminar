@@ -1,7 +1,7 @@
 package com.laminar.equipment.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.EquipmentAdminEntity;
 import com.laminar.equipment.domain.EquipmentAdminId;
 import com.laminar.equipment.repository.EquipmentAdminRepository;
@@ -30,11 +30,11 @@ public class EquipmentAdminService {
 
   @Transactional
   public EquipmentAdminEntity appoint(UUID equipmentId, UUID userId) {
-    WorkspaceContext ctx = requireOwner();
+    SubjectContext ctx = requireOwner();
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
 
     EquipmentAdminEntity admin = new EquipmentAdminEntity();
@@ -45,19 +45,19 @@ public class EquipmentAdminService {
 
   @Transactional
   public void dismiss(UUID equipmentId, UUID userId) {
-    WorkspaceContext ctx = requireOwner();
-    // 장비 소유권(workspace) 선검증 — 타 workspace 장비 담당자 해임 차단
+    SubjectContext ctx = requireOwner();
+    // 장비 소유권(subject) 선검증 — 타 subject 장비 담당자 해임 차단
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     adminRepo.findById(new EquipmentAdminId(equipmentId, userId)).ifPresent(adminRepo::delete);
   }
 
   @Transactional(readOnly = true)
   public List<UUID> listAdminUserIds(UUID equipmentId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return adminRepo.findByIdEquipmentId(equipmentId).stream()
         .map(a -> a.getId().getUserId())
         .toList();
@@ -65,22 +65,22 @@ public class EquipmentAdminService {
 
   @Transactional(readOnly = true)
   public List<UUID> listEquipmentIdsForUser(UUID userId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return adminRepo.findByIdUserId(userId).stream().map(a -> a.getId().getEquipmentId()).toList();
   }
 
   @Transactional(readOnly = true)
   public boolean isAdmin(UUID equipmentId, UUID userId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return adminRepo.findById(new EquipmentAdminId(equipmentId, userId)).isPresent();
   }
 
-  private WorkspaceContext requireOwner() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required");
+  private SubjectContext requireOwner() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required");
     }
-    if (ctx.scope() == WorkspaceContext.Scope.PERSONAL && !ctx.isOwner()) {
+    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.isOwner()) {
       throw new IllegalStateException("OWNER role required to appoint equipment admin");
     }
     return ctx;

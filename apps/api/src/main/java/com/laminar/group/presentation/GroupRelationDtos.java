@@ -20,9 +20,9 @@ public final class GroupRelationDtos {
 
   public record GroupRelationResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID userId,
-      UUID boardId,
+      UUID tabId,
       UUID fromGroupId,
       UUID toGroupId,
       String relationKind,

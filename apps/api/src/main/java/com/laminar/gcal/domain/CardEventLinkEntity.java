@@ -1,6 +1,6 @@
 package com.laminar.gcal.domain;
 
-import com.laminar.common.domain.WorkspaceScopedBaseEntity;
+import com.laminar.common.domain.SubjectScopedBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -12,16 +12,16 @@ import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "card_event_links")
-@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
-public class CardEventLinkEntity extends WorkspaceScopedBaseEntity {
+public class CardEventLinkEntity extends SubjectScopedBaseEntity {
 
   @Column(name = "card_id", nullable = false)
   private UUID cardId;
 
-  @Column(name = "board_calendar_link_id", nullable = false)
-  private UUID boardCalendarLinkId;
+  @Column(name = "tab_calendar_link_id", nullable = false)
+  private UUID tabCalendarLinkId;
 
   @Column(name = "google_event_id", nullable = false)
   private String googleEventId;

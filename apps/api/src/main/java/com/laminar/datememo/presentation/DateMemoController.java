@@ -31,41 +31,41 @@ public class DateMemoController {
   public ResponseEntity<DateMemoDtos.DateMemoResponse> upsert(
       @Valid @RequestBody DateMemoDtos.UpsertRequest request) {
     DateMemoEntity saved =
-        service.upsert(request.boardId(), request.date(), request.bodyMd(), request.attrs());
+        service.upsert(request.tabId(), request.date(), request.bodyMd(), request.attrs());
     return ResponseEntity.ok(toResponse(saved));
   }
 
-  @GetMapping("/{boardId}/{date}")
+  @GetMapping("/{tabId}/{date}")
   public ResponseEntity<DateMemoDtos.DateMemoResponse> get(
-      @PathVariable UUID boardId,
+      @PathVariable UUID tabId,
       @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
     return service
-        .findByDate(boardId, date)
+        .findByDate(tabId, date)
         .map(this::toResponse)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
-  @GetMapping("/{boardId}")
+  @GetMapping("/{tabId}")
   public ResponseEntity<List<DateMemoDtos.DateMemoResponse>> listByRange(
-      @PathVariable UUID boardId,
+      @PathVariable UUID tabId,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
     return ResponseEntity.ok(
-        service.listByBoardDateRange(boardId, from, to).stream().map(this::toResponse).toList());
+        service.listByTabDateRange(tabId, from, to).stream().map(this::toResponse).toList());
   }
 
-  @DeleteMapping("/{boardId}/{date}")
+  @DeleteMapping("/{tabId}/{date}")
   public ResponseEntity<Void> delete(
-      @PathVariable UUID boardId,
+      @PathVariable UUID tabId,
       @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-    service.delete(boardId, date);
+    service.delete(tabId, date);
     return ResponseEntity.noContent().build();
   }
 
   private DateMemoDtos.DateMemoResponse toResponse(DateMemoEntity m) {
     return new DateMemoDtos.DateMemoResponse(
-        m.getId().getBoardId(),
+        m.getId().getTabId(),
         m.getId().getUserId(),
         m.getId().getDate(),
         m.getBodyMd(),

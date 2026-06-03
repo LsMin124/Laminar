@@ -7,13 +7,13 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-/** audit_log Repository — workspace-shared (@Filter 자동). occurred_at DESC가 hot path (최근 활동). */
+/** audit_log Repository — subject-shared (@Filter 자동). occurred_at DESC가 hot path (최근 활동). */
 public interface AuditLogRepository extends JpaRepository<AuditLogEntity, UUID> {
 
-  List<AuditLogEntity> findByWorkspaceIdOrderByOccurredAtDesc(UUID workspaceId, Pageable pageable);
+  List<AuditLogEntity> findBySubjectIdOrderByOccurredAtDesc(UUID subjectId, Pageable pageable);
 
-  List<AuditLogEntity> findByWorkspaceIdAndOccurredAtBetweenOrderByOccurredAtDesc(
-      UUID workspaceId, OffsetDateTime from, OffsetDateTime to);
+  List<AuditLogEntity> findBySubjectIdAndOccurredAtBetweenOrderByOccurredAtDesc(
+      UUID subjectId, OffsetDateTime from, OffsetDateTime to);
 
   long deleteByOccurredAtBefore(OffsetDateTime cutoff);
 }

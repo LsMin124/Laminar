@@ -67,7 +67,7 @@ public class SampleManagerLinkController {
   private SampleManagerLinkDtos.LinkResponse toResponse(SampleManagerLinkEntity l) {
     return new SampleManagerLinkDtos.LinkResponse(
         l.getId(),
-        l.getWorkspaceId(),
+        l.getSubjectId(),
         l.getUserId(),
         l.getCardId(),
         l.getSampleId(),

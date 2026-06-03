@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Spec §3.7: enqueue는 비즈니스 트랜잭션 안에서, polling은 별도 cron 워커. SKIP LOCKED로 다중 워커 동시 실행 시 같은 job 중복
  * 처리 차단.
  *
- * <p>시스템 컨텍스트만 호출 — workspace 무관 또는 명시 workspaceId.
+ * <p>시스템 컨텍스트만 호출 — subject 무관 또는 명시 subjectId.
  */
 @Service
 public class JobsOutboxService {
@@ -33,12 +33,12 @@ public class JobsOutboxService {
 
   @Transactional
   public JobsOutboxEntity enqueue(
-      UUID workspaceId, String kind, Map<String, Object> payload, OffsetDateTime runAfter) {
+      UUID subjectId, String kind, Map<String, Object> payload, OffsetDateTime runAfter) {
     if (kind == null || kind.isBlank()) {
       throw new IllegalArgumentException("kind required");
     }
     JobsOutboxEntity job = new JobsOutboxEntity();
-    job.setWorkspaceId(workspaceId);
+    job.setSubjectId(subjectId);
     job.setKind(kind);
     job.setPayload(payload == null ? new HashMap<>() : payload);
     job.setRunAfter(runAfter == null ? OffsetDateTime.now() : runAfter);

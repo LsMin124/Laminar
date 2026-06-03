@@ -1,7 +1,7 @@
 package com.laminar.datememo.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.datememo.domain.DateMemoEntity;
 import com.laminar.datememo.domain.DateMemoId;
 import com.laminar.datememo.repository.DateMemoRepository;
@@ -17,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * date_memos CRUD — Personal-First.
  *
- * <p>PK = (board_id, user_id, date) 복합. body_md ≤ 10KB (Spec §2.5.2). upsert 패턴: 같은 (board, user,
- * date) 키로 INSERT/UPDATE 자동.
+ * <p>PK = (tab_id, user_id, date) 복합. body_md ≤ 10KB (Spec §2.5.2). upsert 패턴: 같은 (tab, user, date)
+ * 키로 INSERT/UPDATE 자동.
  */
 @Service
 public class DateMemoService {
@@ -33,16 +33,16 @@ public class DateMemoService {
 
   @Transactional
   public DateMemoEntity upsert(
-      UUID boardId, LocalDate date, String bodyMd, Map<String, Object> attrs) {
-    WorkspaceContext ctx = requirePersonalWritable();
-    if (boardId == null || date == null) {
-      throw new IllegalArgumentException("boardId and date required");
+      UUID tabId, LocalDate date, String bodyMd, Map<String, Object> attrs) {
+    SubjectContext ctx = requirePersonalWritable();
+    if (tabId == null || date == null) {
+      throw new IllegalArgumentException("tabId and date required");
     }
     if (bodyMd != null && bodyMd.length() > MAX_BODY_LENGTH) {
       throw new IllegalArgumentException("body_md exceeds " + MAX_BODY_LENGTH + " chars");
     }
 
-    DateMemoId id = new DateMemoId(boardId, ctx.userId(), date);
+    DateMemoId id = new DateMemoId(tabId, ctx.userId(), date);
     DateMemoEntity memo =
         memoRepo
             .findById(id)
@@ -50,7 +50,7 @@ public class DateMemoService {
                 () -> {
                   DateMemoEntity created = new DateMemoEntity();
                   created.setId(id);
-                  created.setWorkspaceId(ctx.workspaceId());
+                  created.setSubjectId(ctx.subjectId());
                   return created;
                 });
     memo.setBodyMd(bodyMd);
@@ -59,32 +59,32 @@ public class DateMemoService {
   }
 
   @Transactional(readOnly = true)
-  public Optional<DateMemoEntity> findByDate(UUID boardId, LocalDate date) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
-    return memoRepo.findById(new DateMemoId(boardId, ctx.userId(), date));
+  public Optional<DateMemoEntity> findByDate(UUID tabId, LocalDate date) {
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
+    return memoRepo.findById(new DateMemoId(tabId, ctx.userId(), date));
   }
 
   @Transactional(readOnly = true)
-  public List<DateMemoEntity> listByBoardDateRange(UUID boardId, LocalDate from, LocalDate to) {
-    WorkspaceContextHolder.requirePersonal();
+  public List<DateMemoEntity> listByTabDateRange(UUID tabId, LocalDate from, LocalDate to) {
+    SubjectContextHolder.requirePersonal();
     if (from == null || to == null) {
       throw new IllegalArgumentException("from and to required");
     }
     if (to.isBefore(from)) {
       throw new IllegalArgumentException("to must be >= from");
     }
-    return memoRepo.findByIdBoardIdAndIdDateBetween(boardId, from, to);
+    return memoRepo.findByIdTabIdAndIdDateBetween(tabId, from, to);
   }
 
   @Transactional
-  public void delete(UUID boardId, LocalDate date) {
-    WorkspaceContext ctx = requirePersonalWritable();
-    memoRepo.findById(new DateMemoId(boardId, ctx.userId(), date)).ifPresent(memoRepo::delete);
+  public void delete(UUID tabId, LocalDate date) {
+    SubjectContext ctx = requirePersonalWritable();
+    memoRepo.findById(new DateMemoId(tabId, ctx.userId(), date)).ifPresent(memoRepo::delete);
   }
 
-  private WorkspaceContext requirePersonalWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+  private SubjectContext requirePersonalWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     if (!ctx.canWrite()) {

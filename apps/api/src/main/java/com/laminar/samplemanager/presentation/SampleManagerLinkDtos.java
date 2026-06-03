@@ -20,7 +20,7 @@ public final class SampleManagerLinkDtos {
 
   public record LinkResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID userId,
       UUID cardId,
       String sampleId,

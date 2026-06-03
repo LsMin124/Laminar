@@ -1,7 +1,7 @@
 package com.laminar.gcal.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.gcal.domain.CardEventLinkEntity;
 import com.laminar.gcal.repository.CardEventLinkRepository;
 import java.time.OffsetDateTime;
@@ -28,21 +28,21 @@ public class CardEventLinkService {
 
   @Transactional
   public CardEventLinkEntity linkOrUpdate(
-      UUID boardCalendarLinkId,
+      UUID tabCalendarLinkId,
       UUID cardId,
       String googleEventId,
       String etag,
       String lastPushedHash) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
 
     CardEventLinkEntity link =
         eventLinkRepo
-            .findByBoardCalendarLinkIdAndCardIdAndDeletedAtIsNull(boardCalendarLinkId, cardId)
+            .findByTabCalendarLinkIdAndCardIdAndDeletedAtIsNull(tabCalendarLinkId, cardId)
             .orElseGet(
                 () -> {
                   CardEventLinkEntity fresh = new CardEventLinkEntity();
-                  fresh.setWorkspaceId(ctx.workspaceId());
-                  fresh.setBoardCalendarLinkId(boardCalendarLinkId);
+                  fresh.setSubjectId(ctx.subjectId());
+                  fresh.setTabCalendarLinkId(tabCalendarLinkId);
                   fresh.setCardId(cardId);
                   return fresh;
                 });
@@ -54,33 +54,33 @@ public class CardEventLinkService {
   }
 
   @Transactional(readOnly = true)
-  public Optional<CardEventLinkEntity> findByCard(UUID boardCalendarLinkId, UUID cardId) {
-    WorkspaceContextHolder.requirePersonal();
-    return eventLinkRepo.findByBoardCalendarLinkIdAndCardIdAndDeletedAtIsNull(
-        boardCalendarLinkId, cardId);
+  public Optional<CardEventLinkEntity> findByCard(UUID tabCalendarLinkId, UUID cardId) {
+    SubjectContextHolder.requirePersonal();
+    return eventLinkRepo.findByTabCalendarLinkIdAndCardIdAndDeletedAtIsNull(
+        tabCalendarLinkId, cardId);
   }
 
   @Transactional(readOnly = true)
   public Optional<CardEventLinkEntity> findByGoogleEventId(
-      UUID boardCalendarLinkId, String googleEventId) {
-    WorkspaceContextHolder.requirePersonal();
-    return eventLinkRepo.findByBoardCalendarLinkIdAndGoogleEventIdAndDeletedAtIsNull(
-        boardCalendarLinkId, googleEventId);
+      UUID tabCalendarLinkId, String googleEventId) {
+    SubjectContextHolder.requirePersonal();
+    return eventLinkRepo.findByTabCalendarLinkIdAndGoogleEventIdAndDeletedAtIsNull(
+        tabCalendarLinkId, googleEventId);
   }
 
   @Transactional(readOnly = true)
-  public List<CardEventLinkEntity> listByLink(UUID boardCalendarLinkId) {
-    WorkspaceContextHolder.requirePersonal();
-    return eventLinkRepo.findByBoardCalendarLinkIdAndDeletedAtIsNull(boardCalendarLinkId);
+  public List<CardEventLinkEntity> listByLink(UUID tabCalendarLinkId) {
+    SubjectContextHolder.requirePersonal();
+    return eventLinkRepo.findByTabCalendarLinkIdAndDeletedAtIsNull(tabCalendarLinkId);
   }
 
   @Transactional
   public void softDelete(UUID linkId) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     eventLinkRepo
         .findById(linkId)
         .filter(l -> l.getDeletedAt() == null)
-        .filter(l -> ctx.ownsShared(l.getWorkspaceId()))
+        .filter(l -> ctx.ownsShared(l.getSubjectId()))
         .ifPresent(
             l -> {
               l.setDeletedAt(OffsetDateTime.now());
@@ -88,12 +88,12 @@ public class CardEventLinkService {
             });
   }
 
-  private WorkspaceContext requireWorkspaceWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required");
+  private SubjectContext requireSubjectWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required");
     }
-    if (ctx.scope() == WorkspaceContext.Scope.PERSONAL && !ctx.canWrite()) {
+    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
       throw new IllegalStateException("VIEWER cannot mutate event links");
     }
     return ctx;

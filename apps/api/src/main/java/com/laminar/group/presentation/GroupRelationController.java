@@ -38,10 +38,10 @@ public class GroupRelationController {
     return ResponseEntity.ok(toResponse(created));
   }
 
-  @GetMapping("/boards/{boardId}/group-relations")
-  public ResponseEntity<List<GroupRelationDtos.GroupRelationResponse>> listByBoard(
-      @PathVariable UUID boardId) {
-    return ResponseEntity.ok(service.listByBoard(boardId).stream().map(this::toResponse).toList());
+  @GetMapping("/boards/{tabId}/group-relations")
+  public ResponseEntity<List<GroupRelationDtos.GroupRelationResponse>> listByTab(
+      @PathVariable UUID tabId) {
+    return ResponseEntity.ok(service.listByTab(tabId).stream().map(this::toResponse).toList());
   }
 
   @DeleteMapping("/group-relations/{relationId}")
@@ -53,9 +53,9 @@ public class GroupRelationController {
   private GroupRelationDtos.GroupRelationResponse toResponse(GroupRelationEntity r) {
     return new GroupRelationDtos.GroupRelationResponse(
         r.getId(),
-        r.getWorkspaceId(),
+        r.getSubjectId(),
         r.getUserId(),
-        r.getBoardId(),
+        r.getTabId(),
         r.getFromGroupId(),
         r.getToGroupId(),
         r.getRelationKind(),

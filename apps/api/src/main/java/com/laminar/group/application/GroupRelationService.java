@@ -1,7 +1,7 @@
 package com.laminar.group.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.group.domain.GroupEntity;
 import com.laminar.group.domain.GroupRelationEntity;
 import com.laminar.group.repository.GroupRelationRepository;
@@ -40,7 +40,7 @@ public class GroupRelationService {
       String summary,
       String bodyMd,
       Map<String, Object> attrs) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     if (Objects.equals(fromGroupId, toGroupId)) {
       throw new IllegalArgumentException("from_group_id == to_group_id is not allowed");
     }
@@ -48,23 +48,23 @@ public class GroupRelationService {
         groupRepo
             .findById(fromGroupId)
             .filter(g -> g.getDeletedAt() == null)
-            .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+            .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
             .orElseThrow(() -> new IllegalArgumentException("from group not found"));
     GroupEntity to =
         groupRepo
             .findById(toGroupId)
             .filter(g -> g.getDeletedAt() == null)
-            .filter(g -> ctx.ownsPersonal(g.getWorkspaceId(), g.getUserId()))
+            .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
             .orElseThrow(() -> new IllegalArgumentException("to group not found"));
-    if (!Objects.equals(from.getBoardId(), to.getBoardId())) {
-      throw new IllegalArgumentException("from/to groups must belong to the same board");
+    if (!Objects.equals(from.getTabId(), to.getTabId())) {
+      throw new IllegalArgumentException("from/to groups must belong to the same tab");
     }
 
     GroupRelationEntity relation = new GroupRelationEntity();
-    relation.setWorkspaceId(ctx.workspaceId());
+    relation.setSubjectId(ctx.subjectId());
     relation.setUserId(ctx.userId());
     relation.setCreatedBy(ctx.userId());
-    relation.setBoardId(from.getBoardId());
+    relation.setTabId(from.getTabId());
     relation.setFromGroupId(fromGroupId);
     relation.setToGroupId(toGroupId);
     relation.setRelationKind(
@@ -76,18 +76,18 @@ public class GroupRelationService {
   }
 
   @Transactional(readOnly = true)
-  public List<GroupRelationEntity> listByBoard(UUID boardId) {
-    WorkspaceContextHolder.requirePersonal();
-    return relationRepo.findByBoardIdAndDeletedAtIsNull(boardId);
+  public List<GroupRelationEntity> listByTab(UUID tabId) {
+    SubjectContextHolder.requirePersonal();
+    return relationRepo.findByTabIdAndDeletedAtIsNull(tabId);
   }
 
   @Transactional
   public void softDelete(UUID relationId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     relationRepo
         .findById(relationId)
         .filter(r -> r.getDeletedAt() == null)
-        .filter(r -> ctx.ownsPersonal(r.getWorkspaceId(), r.getUserId()))
+        .filter(r -> ctx.ownsPersonal(r.getSubjectId(), r.getUserId()))
         .ifPresent(
             r -> {
               r.setDeletedAt(OffsetDateTime.now());
@@ -95,9 +95,9 @@ public class GroupRelationService {
             });
   }
 
-  private WorkspaceContext requirePersonalWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+  private SubjectContext requirePersonalWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     if (!ctx.canWrite()) {

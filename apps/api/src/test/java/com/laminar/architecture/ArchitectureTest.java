@@ -25,7 +25,7 @@ public class ArchitectureTest {
   /**
    * 1.10.2 — @RestController는 system 패키지를 직접 import 금지 (3계층 컨텍스트 우회 방지).
    *
-   * <p>컨트롤러는 서비스 경유만 — system 패키지(격리 우회 표면)에 직접 의존하면 WorkspaceContext 검증을 건너뛸 수 있다. 컨트롤러가 도메인별
+   * <p>컨트롤러는 서비스 경유만 — system 패키지(격리 우회 표면)에 직접 의존하면 SubjectContext 검증을 건너뛸 수 있다. 컨트롤러가 도메인별
    * presentation에 분산되므로 위치가 아닌 애너테이션 기반으로 강제한다.
    */
   @ArchTest
@@ -39,7 +39,7 @@ public class ArchitectureTest {
           .allowEmptyShould(true);
 
   /**
-   * 1.10.3 — raw EntityManager는 system 패키지 외부 사용 금지 (WorkspaceContext / HibernateFilterActivator만
+   * 1.10.3 — raw EntityManager는 system 패키지 외부 사용 금지 (SubjectContext / HibernateFilterActivator만
    * 허용).
    *
    * <p>HibernateFilterActivator는 Session unwrap → enableFilter 호출이 책무라 EntityManager 직접 접근 필요.
@@ -50,7 +50,7 @@ public class ArchitectureTest {
           .that()
           .resideOutsideOfPackage("com.laminar.system..")
           .and()
-          .haveSimpleNameNotContaining("WorkspaceContext")
+          .haveSimpleNameNotContaining("SubjectContext")
           .and()
           .haveSimpleNameNotContaining("HibernateFilterActivator")
           .should()
@@ -102,7 +102,7 @@ public class ArchitectureTest {
   /**
    * N-3 — web 레이어(컨트롤러)는 Repository에 직접 의존 금지.
    *
-   * <p>모든 데이터 접근은 @Transactional 서비스를 경유해야 한다. WorkspaceFilterAspect는 서비스 트랜잭션 경계 안에서만 격리 필터를
+   * <p>모든 데이터 접근은 @Transactional 서비스를 경유해야 한다. SubjectFilterAspect는 서비스 트랜잭션 경계 안에서만 격리 필터를
    * 활성화하므로(활성 트랜잭션 없으면 skip), 비-트랜잭션 컨텍스트(컨트롤러가 리포지토리를 직접 호출)의 list/derived 쿼리는 필터가 적용되지 않아 교차 테넌트
    * 누출 위험이 있다. 본 룰로 그 회귀 벡터를 차단한다. (리포지토리 호출자 전반의 트랜잭션 보장은 PostgreSQL RLS를 최종 방어선으로 — 별도 과제.)
    *

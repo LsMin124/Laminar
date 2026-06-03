@@ -2,23 +2,23 @@ package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.laminar.board.application.BoardService;
 import com.laminar.card.application.CardService;
 import com.laminar.card.domain.CardEntity;
 import com.laminar.card.domain.CardImportance;
 import com.laminar.context.HibernateFilterActivator;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.group.application.GroupService;
 import com.laminar.group.domain.GroupEntity;
+import com.laminar.subject.domain.SubjectEntity;
+import com.laminar.subject.domain.SubjectMemberEntity;
+import com.laminar.subject.domain.SubjectMemberId;
+import com.laminar.subject.domain.SubjectRole;
+import com.laminar.subject.repository.SubjectMemberRepository;
+import com.laminar.subject.repository.SubjectRepository;
 import com.laminar.system.UserSystemRepository;
+import com.laminar.tab.application.TabService;
 import com.laminar.user.domain.UserEntity;
-import com.laminar.workspace.domain.WorkspaceEntity;
-import com.laminar.workspace.domain.WorkspaceMemberEntity;
-import com.laminar.workspace.domain.WorkspaceMemberId;
-import com.laminar.workspace.domain.WorkspaceRole;
-import com.laminar.workspace.repository.WorkspaceMemberRepository;
-import com.laminar.workspace.repository.WorkspaceRepository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -30,55 +30,55 @@ import org.springframework.transaction.annotation.Transactional;
 
 class GroupServiceIT extends IsolationIntegrationBase {
 
-  @Autowired BoardService boardService;
+  @Autowired TabService tabService;
   @Autowired GroupService groupService;
   @Autowired CardService cardService;
   @Autowired UserSystemRepository userRepo;
-  @Autowired WorkspaceRepository workspaceRepo;
-  @Autowired WorkspaceMemberRepository memberRepo;
+  @Autowired SubjectRepository subjectRepo;
+  @Autowired SubjectMemberRepository memberRepo;
   @Autowired HibernateFilterActivator filterActivator;
 
-  private UUID workspaceId;
+  private UUID subjectId;
   private UUID userA;
-  private UUID boardId;
+  private UUID tabId;
 
   @BeforeEach
   void seed() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
     UserEntity a = new UserEntity();
     a.setEmail("group-a-" + UUID.randomUUID() + "@test.local");
     userA = userRepo.save(a).getId();
 
-    WorkspaceEntity ws = new WorkspaceEntity();
+    SubjectEntity ws = new SubjectEntity();
     ws.setName("Group WS");
     ws.setSlug("group-ws-" + UUID.randomUUID());
     ws.setOwnerUserId(userA);
     ws.setDefaultTimezone("Asia/Seoul");
     ws.setSettings(new HashMap<>());
-    workspaceId = workspaceRepo.save(ws).getId();
+    subjectId = subjectRepo.save(ws).getId();
 
-    WorkspaceMemberEntity m = new WorkspaceMemberEntity();
-    m.setId(new WorkspaceMemberId(workspaceId, userA));
-    m.setRole(WorkspaceRole.OWNER);
+    SubjectMemberEntity m = new SubjectMemberEntity();
+    m.setId(new SubjectMemberId(subjectId, userA));
+    m.setRole(SubjectRole.OWNER);
     memberRepo.save(m);
 
-    WorkspaceContextHolder.set(WorkspaceContext.personal(workspaceId, userA, WorkspaceRole.OWNER));
+    SubjectContextHolder.set(SubjectContext.personal(subjectId, userA, SubjectRole.OWNER));
     filterActivator.activate();
-    boardId = boardService.create("B", "b-" + UUID.randomUUID(), null, null, null, null).getId();
+    tabId = tabService.create("B", "b-" + UUID.randomUUID(), null, null, null, null).getId();
   }
 
   @AfterEach
   void cleanup() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
   }
 
   @Test
   @Transactional
   void create_and_list_by_board() {
-    groupService.create(boardId, "G1", "#ff0000", null);
-    groupService.create(boardId, "G2", "#00ff00", null);
+    groupService.create(tabId, "G1", "#ff0000", null);
+    groupService.create(tabId, "G2", "#00ff00", null);
 
-    List<GroupEntity> groups = groupService.listByBoard(boardId);
+    List<GroupEntity> groups = groupService.listByTab(tabId);
 
     assertThat(groups).hasSize(2);
     assertThat(groups.get(0).getPriority()).isEqualTo(100);
@@ -88,11 +88,11 @@ class GroupServiceIT extends IsolationIntegrationBase {
   @Test
   @Transactional
   void add_member_links_card_to_group() {
-    GroupEntity group = groupService.create(boardId, "G", null, null);
+    GroupEntity group = groupService.create(tabId, "G", null, null);
     CardEntity card =
         cardService.create(
             new CardService.CreateInput(
-                boardId,
+                tabId,
                 "C",
                 null,
                 null,
@@ -115,11 +115,11 @@ class GroupServiceIT extends IsolationIntegrationBase {
   @Test
   @Transactional
   void remove_member_clears_link() {
-    GroupEntity group = groupService.create(boardId, "G", null, null);
+    GroupEntity group = groupService.create(tabId, "G", null, null);
     CardEntity card =
         cardService.create(
             new CardService.CreateInput(
-                boardId,
+                tabId,
                 "C",
                 null,
                 null,

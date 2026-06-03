@@ -24,7 +24,7 @@ public final class AttachmentDtos {
 
   public record AttachmentResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID userId,
       UUID uploadedBy,
       AttachmentParentType parentType,

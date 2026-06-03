@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "import_jobs")
 @Filter(
     name = "personalFirstFilter",
-    condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+    condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
 public class ImportJobEntity extends PersonalBaseEntity {

@@ -14,14 +14,14 @@ import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "sample_manager_api_keys")
-@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
 public class SampleManagerApiKeyEntity {
 
   @Id
-  @Column(name = "workspace_id", nullable = false)
-  private UUID workspaceId;
+  @Column(name = "subject_id", nullable = false)
+  private UUID subjectId;
 
   @Column(name = "key_hash", nullable = false)
   private String keyHash;
@@ -43,11 +43,11 @@ public class SampleManagerApiKeyEntity {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof SampleManagerApiKeyEntity that)) return false;
-    return workspaceId != null && Objects.equals(workspaceId, that.workspaceId);
+    return subjectId != null && Objects.equals(subjectId, that.subjectId);
   }
 
   @Override
   public int hashCode() {
-    return workspaceId != null ? workspaceId.hashCode() : getClass().hashCode();
+    return subjectId != null ? subjectId.hashCode() : getClass().hashCode();
   }
 }

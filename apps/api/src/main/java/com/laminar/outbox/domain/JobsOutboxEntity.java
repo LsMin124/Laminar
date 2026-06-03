@@ -28,8 +28,8 @@ public class JobsOutboxEntity {
   @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
-  @Column(name = "workspace_id")
-  private UUID workspaceId;
+  @Column(name = "subject_id")
+  private UUID subjectId;
 
   @Column(name = "kind", nullable = false)
   private String kind;

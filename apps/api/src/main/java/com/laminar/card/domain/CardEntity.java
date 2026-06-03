@@ -21,7 +21,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "cards")
 @Filter(
     name = "personalFirstFilter",
-    condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+    condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
 public class CardEntity extends PersonalBaseEntity {
@@ -29,8 +29,12 @@ public class CardEntity extends PersonalBaseEntity {
   @Column(name = "created_by")
   private UUID createdBy;
 
-  @Column(name = "board_id")
-  private UUID boardId;
+  @Column(name = "tab_id")
+  private UUID tabId;
+
+  /** DAG 캔버스 자유 y좌표 (x는 시간 속성에서 파생, NULL = 미배치). */
+  @Column(name = "canvas_y")
+  private Double canvasY;
 
   @Column(name = "title", nullable = false)
   private String title;

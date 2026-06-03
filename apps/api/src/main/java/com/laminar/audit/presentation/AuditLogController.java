@@ -37,7 +37,7 @@ public class AuditLogController {
   private AuditLogDtos.AuditLogResponse toResponse(AuditLogEntity e) {
     return new AuditLogDtos.AuditLogResponse(
         e.getId(),
-        e.getWorkspaceId(),
+        e.getSubjectId(),
         e.getActorUserId(),
         e.getAction(),
         e.getTargetType(),

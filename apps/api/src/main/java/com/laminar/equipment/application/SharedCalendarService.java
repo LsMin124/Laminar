@@ -1,11 +1,11 @@
 package com.laminar.equipment.application;
 
-import com.laminar.board.domain.BoardDefaultView;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.SharedCalendarEntity;
 import com.laminar.equipment.repository.SharedCalendarRepository;
 import com.laminar.error.ConflictException;
+import com.laminar.tab.domain.TabDefaultView;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -32,16 +32,16 @@ public class SharedCalendarService {
       UUID equipmentId,
       String name,
       String color,
-      BoardDefaultView defaultView,
+      TabDefaultView defaultView,
       boolean announcementOnly) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     if (equipmentId != null
         && calendarRepo.findByEquipmentIdAndDeletedAtIsNull(equipmentId).isPresent()) {
       throw new ConflictException("equipment already has a shared calendar");
     }
 
     SharedCalendarEntity cal = new SharedCalendarEntity();
-    cal.setWorkspaceId(ctx.workspaceId());
+    cal.setSubjectId(ctx.subjectId());
     cal.setCreatedBy(ctx.userId());
     cal.setEquipmentId(equipmentId);
     cal.setName(name);
@@ -53,23 +53,23 @@ public class SharedCalendarService {
 
   @Transactional(readOnly = true)
   public List<SharedCalendarEntity> listAll() {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return calendarRepo.findByDeletedAtIsNullOrderByName();
   }
 
   @Transactional(readOnly = true)
   public Optional<SharedCalendarEntity> findByEquipment(UUID equipmentId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return calendarRepo.findByEquipmentIdAndDeletedAtIsNull(equipmentId);
   }
 
   @Transactional
   public void softDelete(UUID calendarId) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     calendarRepo
         .findById(calendarId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsShared(c.getWorkspaceId()))
+        .filter(c -> ctx.ownsShared(c.getSubjectId()))
         .ifPresent(
             c -> {
               c.setDeletedAt(OffsetDateTime.now());
@@ -77,12 +77,12 @@ public class SharedCalendarService {
             });
   }
 
-  private WorkspaceContext requireWorkspaceWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required");
+  private SubjectContext requireSubjectWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required");
     }
-    if (ctx.scope() == WorkspaceContext.Scope.PERSONAL && !ctx.canWrite()) {
+    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
       throw new IllegalStateException("VIEWER cannot mutate shared calendars");
     }
     return ctx;

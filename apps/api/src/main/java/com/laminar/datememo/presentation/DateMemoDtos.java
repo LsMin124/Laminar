@@ -12,13 +12,13 @@ public final class DateMemoDtos {
   private DateMemoDtos() {}
 
   public record UpsertRequest(
-      @NotNull UUID boardId,
+      @NotNull UUID tabId,
       @NotNull LocalDate date,
       @Size(max = 10000) String bodyMd,
       Map<String, Object> attrs) {}
 
   public record DateMemoResponse(
-      UUID boardId,
+      UUID tabId,
       UUID userId,
       LocalDate date,
       String bodyMd,

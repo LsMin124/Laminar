@@ -8,10 +8,10 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * date_memos Repository — Personal-First (workspace_id + user_id 자동 필터). 캘린더 뷰에서 month/week range
- * 조회가 hot path.
+ * date_memos Repository — Personal-First (subject_id + user_id 자동 필터). 캘린더 뷰에서 month/week range 조회가
+ * hot path.
  */
 public interface DateMemoRepository extends JpaRepository<DateMemoEntity, DateMemoId> {
 
-  List<DateMemoEntity> findByIdBoardIdAndIdDateBetween(UUID boardId, LocalDate from, LocalDate to);
+  List<DateMemoEntity> findByIdTabIdAndIdDateBetween(UUID tabId, LocalDate from, LocalDate to);
 }

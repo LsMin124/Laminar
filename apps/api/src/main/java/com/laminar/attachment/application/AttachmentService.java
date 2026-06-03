@@ -4,8 +4,8 @@ import com.laminar.attachment.domain.AttachmentEntity;
 import com.laminar.attachment.domain.AttachmentParentType;
 import com.laminar.attachment.infrastructure.R2StorageService;
 import com.laminar.attachment.repository.AttachmentRepository;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +41,7 @@ public class AttachmentService {
       String mime,
       Long sizeBytes,
       String sha256) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     if (parentType == null) {
       throw new IllegalArgumentException("parent_type required");
     }
@@ -56,7 +56,7 @@ public class AttachmentService {
     }
 
     AttachmentEntity attachment = new AttachmentEntity();
-    attachment.setWorkspaceId(ctx.workspaceId());
+    attachment.setSubjectId(ctx.subjectId());
     attachment.setUserId(ctx.userId());
     attachment.setUploadedBy(ctx.userId());
     attachment.setParentType(parentType);
@@ -74,12 +74,12 @@ public class AttachmentService {
   @Transactional
   public AttachmentEntity finalizeUpload(
       UUID attachmentId, Long actualSizeBytes, String actualSha256) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     AttachmentEntity attachment =
         attachmentRepo
             .findById(attachmentId)
             .filter(a -> a.getDeletedAt() == null)
-            .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()))
+            .filter(a -> ctx.ownsPersonal(a.getSubjectId(), a.getUserId()))
             .orElseThrow(() -> new IllegalArgumentException("attachment not found"));
     // N-4: 클라이언트 자칭 크기(actualSizeBytes)는 위조 가능 → R2의 실제 객체 크기를 HEAD로
     // 검증한다. 한도 초과 시 R2StorageService가 객체를 삭제하고 거부(스토리지 고갈 차단).
@@ -92,26 +92,26 @@ public class AttachmentService {
 
   @Transactional(readOnly = true)
   public Optional<AttachmentEntity> findById(UUID attachmentId) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
     return attachmentRepo
         .findById(attachmentId)
         .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()));
+        .filter(a -> ctx.ownsPersonal(a.getSubjectId(), a.getUserId()));
   }
 
   @Transactional(readOnly = true)
   public List<AttachmentEntity> listByParent(AttachmentParentType parentType, UUID parentId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return attachmentRepo.findByParentTypeAndParentIdAndDeletedAtIsNull(parentType, parentId);
   }
 
   @Transactional
   public void softDelete(UUID attachmentId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     attachmentRepo
         .findById(attachmentId)
         .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsPersonal(a.getWorkspaceId(), a.getUserId()))
+        .filter(a -> ctx.ownsPersonal(a.getSubjectId(), a.getUserId()))
         .ifPresent(
             a -> {
               a.setDeletedAt(OffsetDateTime.now());
@@ -119,9 +119,9 @@ public class AttachmentService {
             });
   }
 
-  private WorkspaceContext requirePersonalWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+  private SubjectContext requirePersonalWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     if (!ctx.canWrite()) {

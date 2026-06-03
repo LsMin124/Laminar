@@ -4,8 +4,8 @@ import com.laminar.card.domain.CardEntity;
 import com.laminar.card.domain.CardImportance;
 import com.laminar.card.domain.CardOrigin;
 import com.laminar.card.repository.CardRepository;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -41,22 +41,22 @@ public class CardService {
 
   @Transactional
   public CardEntity create(CreateInput input) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     validateInvariants(input);
 
     int nextPriority =
-        input.boardId() == null
+        input.tabId() == null
             ? PRIORITY_STEP
             : cardRepo
-                .findFirstByBoardIdAndDeletedAtIsNullOrderByPriorityDesc(input.boardId())
+                .findFirstByTabIdAndDeletedAtIsNullOrderByPriorityDesc(input.tabId())
                 .map(c -> c.getPriority() + PRIORITY_STEP)
                 .orElse(PRIORITY_STEP);
 
     CardEntity card = new CardEntity();
-    card.setWorkspaceId(ctx.workspaceId());
+    card.setSubjectId(ctx.subjectId());
     card.setUserId(ctx.userId());
     card.setCreatedBy(ctx.userId());
-    card.setBoardId(input.boardId());
+    card.setTabId(input.tabId());
     card.setTitle(input.title());
     card.setSlug(input.slug());
     card.setBodyMd(input.bodyMd());
@@ -74,34 +74,34 @@ public class CardService {
   }
 
   @Transactional(readOnly = true)
-  public List<CardEntity> listByBoard(UUID boardId) {
-    WorkspaceContextHolder.requirePersonal();
-    return cardRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(boardId);
+  public List<CardEntity> listByTab(UUID tabId) {
+    SubjectContextHolder.requirePersonal();
+    return cardRepo.findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(tabId);
   }
 
   @Transactional(readOnly = true)
-  public List<CardEntity> listByBoardAndDateRange(UUID boardId, LocalDate from, LocalDate to) {
-    WorkspaceContextHolder.requirePersonal();
-    return cardRepo.findByBoardIdAndStartDateBetweenAndDeletedAtIsNull(boardId, from, to);
+  public List<CardEntity> listByTabAndDateRange(UUID tabId, LocalDate from, LocalDate to) {
+    SubjectContextHolder.requirePersonal();
+    return cardRepo.findByTabIdAndStartDateBetweenAndDeletedAtIsNull(tabId, from, to);
   }
 
   @Transactional(readOnly = true)
   public Optional<CardEntity> findById(UUID cardId) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
     return cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()));
+        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()));
   }
 
   @Transactional
   public CardEntity update(UUID cardId, UpdateInput input) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     CardEntity card =
         cardRepo
             .findById(cardId)
             .filter(c -> c.getDeletedAt() == null)
-            .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
+            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
             .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
 
     if (input.title() != null && !input.title().isBlank()) card.setTitle(input.title());
@@ -120,10 +120,10 @@ public class CardService {
     return cardRepo.save(card);
   }
 
-  /** DnD reorder — boardId 일치 검증 + priority = (index+1) * 100 배치. */
+  /** DnD reorder — tabId 일치 검증 + priority = (index+1) * 100 배치. */
   @Transactional
-  public List<CardEntity> reorder(UUID boardId, List<UUID> orderedCardIds) {
-    WorkspaceContext ctx = requirePersonalWritable();
+  public List<CardEntity> reorder(UUID tabId, List<UUID> orderedCardIds) {
+    SubjectContext ctx = requirePersonalWritable();
     if (orderedCardIds == null || orderedCardIds.isEmpty()) {
       return List.of();
     }
@@ -134,8 +134,8 @@ public class CardService {
       cardRepo
           .findById(cardId)
           .filter(c -> c.getDeletedAt() == null)
-          .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
-          .filter(c -> boardId == null || boardId.equals(c.getBoardId()))
+          .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
+          .filter(c -> tabId == null || tabId.equals(c.getTabId()))
           .ifPresent(
               c -> {
                 c.setPriority(newPriority);
@@ -147,11 +147,11 @@ public class CardService {
 
   @Transactional
   public void archive(UUID cardId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
+        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
         .filter(c -> c.getArchivedAt() == null)
         .ifPresent(
             card -> {
@@ -162,11 +162,11 @@ public class CardService {
 
   @Transactional
   public void softDelete(UUID cardId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getWorkspaceId(), c.getUserId()))
+        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
         .ifPresent(
             card -> {
               card.setDeletedAt(OffsetDateTime.now());
@@ -174,9 +174,9 @@ public class CardService {
             });
   }
 
-  private WorkspaceContext requirePersonalWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+  private SubjectContext requirePersonalWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     if (!ctx.canWrite()) {
@@ -215,7 +215,7 @@ public class CardService {
   }
 
   public record CreateInput(
-      UUID boardId,
+      UUID tabId,
       String title,
       String slug,
       String bodyMd,

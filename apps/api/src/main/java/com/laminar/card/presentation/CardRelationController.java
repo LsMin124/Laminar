@@ -38,10 +38,10 @@ public class CardRelationController {
     return ResponseEntity.ok(toResponse(created));
   }
 
-  @GetMapping("/boards/{boardId}/card-relations")
-  public ResponseEntity<List<CardRelationDtos.CardRelationResponse>> listByBoard(
-      @PathVariable UUID boardId) {
-    return ResponseEntity.ok(service.listByBoard(boardId).stream().map(this::toResponse).toList());
+  @GetMapping("/boards/{tabId}/card-relations")
+  public ResponseEntity<List<CardRelationDtos.CardRelationResponse>> listByTab(
+      @PathVariable UUID tabId) {
+    return ResponseEntity.ok(service.listByTab(tabId).stream().map(this::toResponse).toList());
   }
 
   @DeleteMapping("/card-relations/{relationId}")
@@ -53,9 +53,9 @@ public class CardRelationController {
   private CardRelationDtos.CardRelationResponse toResponse(CardRelationEntity r) {
     return new CardRelationDtos.CardRelationResponse(
         r.getId(),
-        r.getWorkspaceId(),
+        r.getSubjectId(),
         r.getUserId(),
-        r.getBoardId(),
+        r.getTabId(),
         r.getFromCardId(),
         r.getToCardId(),
         r.getRelationKind(),

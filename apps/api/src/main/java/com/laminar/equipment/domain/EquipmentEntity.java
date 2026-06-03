@@ -1,6 +1,6 @@
 package com.laminar.equipment.domain;
 
-import com.laminar.common.domain.WorkspaceScopedBaseEntity;
+import com.laminar.common.domain.SubjectScopedBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -17,10 +17,10 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "equipment")
-@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
-public class EquipmentEntity extends WorkspaceScopedBaseEntity {
+public class EquipmentEntity extends SubjectScopedBaseEntity {
 
   @Column(name = "created_by")
   private UUID createdBy;

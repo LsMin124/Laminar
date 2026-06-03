@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * /api/equipment — 공용 자원 (장비) CRUD.
  *
- * <p>workspace-shared. 모든 멤버 read·write, 삭제는 OWNER만 (service에서 강제).
+ * <p>subject-shared. 모든 멤버 read·write, 삭제는 OWNER만 (service에서 강제).
  */
 @RestController
 @RequestMapping("/api/equipment")
@@ -105,7 +105,7 @@ public class EquipmentController {
 
   public record EquipmentResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID createdBy,
       String name,
       String description,
@@ -118,7 +118,7 @@ public class EquipmentController {
   private static EquipmentResponse toResponse(EquipmentEntity e) {
     return new EquipmentResponse(
         e.getId(),
-        e.getWorkspaceId(),
+        e.getSubjectId(),
         e.getCreatedBy(),
         e.getName(),
         e.getDescription(),

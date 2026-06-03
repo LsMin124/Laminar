@@ -1,7 +1,7 @@
 package com.laminar.equipment.domain;
 
-import com.laminar.board.domain.BoardDefaultView;
-import com.laminar.common.domain.WorkspaceScopedBaseEntity;
+import com.laminar.common.domain.SubjectScopedBaseEntity;
+import com.laminar.tab.domain.TabDefaultView;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -13,10 +13,10 @@ import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "shared_calendars")
-@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
-public class SharedCalendarEntity extends WorkspaceScopedBaseEntity {
+public class SharedCalendarEntity extends SubjectScopedBaseEntity {
 
   @Column(name = "created_by")
   private UUID createdBy;
@@ -31,7 +31,7 @@ public class SharedCalendarEntity extends WorkspaceScopedBaseEntity {
   private String color;
 
   @Column(name = "default_view")
-  private BoardDefaultView defaultView;
+  private TabDefaultView defaultView;
 
   @Column(name = "is_announcement_only", nullable = false)
   private boolean announcementOnly;

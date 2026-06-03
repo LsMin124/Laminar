@@ -1,7 +1,7 @@
 package com.laminar.admin.presentation;
 
-import com.laminar.admin.application.AdminWorkspaceService;
-import com.laminar.board.domain.BoardEntity;
+import com.laminar.admin.application.AdminSubjectService;
+import com.laminar.tab.domain.TabEntity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -19,28 +19,28 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * /api/admin/** — 운영 콘솔. OWNER 강제 + audit 자동.
  *
- * <p>엔드포인트: GET /boards (cross-user 메타 목록) GET /boards/{boardId}/cards (메타만, body 제외) POST
+ * <p>엔드포인트: GET /boards (cross-user 메타 목록) GET /boards/{tabId}/cards (메타만, body 제외) POST
  * /cards/{cardId}/reveal-body (escape hatch — reason 필수, audit 강한 기록)
  */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
-  private final AdminWorkspaceService adminService;
+  private final AdminSubjectService adminService;
 
-  public AdminController(AdminWorkspaceService adminService) {
+  public AdminController(AdminSubjectService adminService) {
     this.adminService = adminService;
   }
 
   @GetMapping("/boards")
-  public ResponseEntity<List<BoardSummaryResponse>> listAllBoards() {
+  public ResponseEntity<List<TabSummaryResponse>> listAllTabs() {
     return ResponseEntity.ok(
-        adminService.listAllBoards().stream().map(AdminController::toBoardSummary).toList());
+        adminService.listAllTabs().stream().map(AdminController::toTabSummary).toList());
   }
 
-  @GetMapping("/boards/{boardId}/cards")
-  public ResponseEntity<List<Map<String, Object>>> listCardMetadata(@PathVariable UUID boardId) {
-    return ResponseEntity.ok(adminService.listCardMetadataByBoard(boardId));
+  @GetMapping("/boards/{tabId}/cards")
+  public ResponseEntity<List<Map<String, Object>>> listCardMetadata(@PathVariable UUID tabId) {
+    return ResponseEntity.ok(adminService.listCardMetadataByTab(tabId));
   }
 
   @PostMapping("/cards/{cardId}/reveal-body")
@@ -58,13 +58,13 @@ public class AdminController {
 
   public record RevealBodyRequest(@NotBlank @Size(min = 10, max = 1000) String reason) {}
 
-  public record BoardSummaryResponse(
-      UUID id, UUID workspaceId, UUID userId, String name, String slug, int priority) {}
+  public record TabSummaryResponse(
+      UUID id, UUID subjectId, UUID userId, String name, String slug, int priority) {}
 
   public record CardBodyRevealResponse(UUID cardId, UUID userId, String title, String bodyMd) {}
 
-  private static BoardSummaryResponse toBoardSummary(BoardEntity b) {
-    return new BoardSummaryResponse(
-        b.getId(), b.getWorkspaceId(), b.getUserId(), b.getName(), b.getSlug(), b.getPriority());
+  private static TabSummaryResponse toTabSummary(TabEntity b) {
+    return new TabSummaryResponse(
+        b.getId(), b.getSubjectId(), b.getUserId(), b.getName(), b.getSlug(), b.getPriority());
   }
 }

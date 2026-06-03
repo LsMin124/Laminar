@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class SpaForwardController {
 
-  /** 단일 세그먼트(<code>/board</code>) + 다중 세그먼트(<code>/workspace/abc/board/xyz</code>) 모두 매칭. */
+  /** 단일 세그먼트(<code>/tab</code>) + 다중 세그먼트(<code>/subject/abc/tab/xyz</code>) 모두 매칭. */
   @GetMapping(value = {"/{path:[^\\.]*}", "/**/{path:[^\\.]*}"})
   public String spaFallback() {
     return "forward:/index.html";

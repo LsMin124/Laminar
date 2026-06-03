@@ -3,25 +3,25 @@ package com.laminar.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.laminar.board.application.BoardService;
 import com.laminar.card.application.CardRelationService;
 import com.laminar.card.application.CardService;
 import com.laminar.card.domain.CardEntity;
 import com.laminar.card.domain.CardImportance;
 import com.laminar.context.HibernateFilterActivator;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.group.application.GroupRelationService;
 import com.laminar.group.application.GroupService;
 import com.laminar.group.domain.GroupEntity;
+import com.laminar.subject.domain.SubjectEntity;
+import com.laminar.subject.domain.SubjectMemberEntity;
+import com.laminar.subject.domain.SubjectMemberId;
+import com.laminar.subject.domain.SubjectRole;
+import com.laminar.subject.repository.SubjectMemberRepository;
+import com.laminar.subject.repository.SubjectRepository;
 import com.laminar.system.UserSystemRepository;
+import com.laminar.tab.application.TabService;
 import com.laminar.user.domain.UserEntity;
-import com.laminar.workspace.domain.WorkspaceEntity;
-import com.laminar.workspace.domain.WorkspaceMemberEntity;
-import com.laminar.workspace.domain.WorkspaceMemberId;
-import com.laminar.workspace.domain.WorkspaceRole;
-import com.laminar.workspace.repository.WorkspaceMemberRepository;
-import com.laminar.workspace.repository.WorkspaceRepository;
 import java.util.HashMap;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -32,48 +32,48 @@ import org.springframework.transaction.annotation.Transactional;
 
 class RelationServiceIT extends IsolationIntegrationBase {
 
-  @Autowired BoardService boardService;
+  @Autowired TabService tabService;
   @Autowired CardService cardService;
   @Autowired GroupService groupService;
   @Autowired CardRelationService cardRelationService;
   @Autowired GroupRelationService groupRelationService;
   @Autowired UserSystemRepository userRepo;
-  @Autowired WorkspaceRepository workspaceRepo;
-  @Autowired WorkspaceMemberRepository memberRepo;
+  @Autowired SubjectRepository subjectRepo;
+  @Autowired SubjectMemberRepository memberRepo;
   @Autowired HibernateFilterActivator filterActivator;
 
   private UUID userA;
-  private UUID workspaceId;
-  private UUID boardId;
+  private UUID subjectId;
+  private UUID tabId;
 
   @BeforeEach
   void seed() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
     UserEntity a = new UserEntity();
     a.setEmail("rel-a-" + UUID.randomUUID() + "@test.local");
     userA = userRepo.save(a).getId();
 
-    WorkspaceEntity ws = new WorkspaceEntity();
+    SubjectEntity ws = new SubjectEntity();
     ws.setName("Rel WS");
     ws.setSlug("rel-ws-" + UUID.randomUUID());
     ws.setOwnerUserId(userA);
     ws.setDefaultTimezone("Asia/Seoul");
     ws.setSettings(new HashMap<>());
-    workspaceId = workspaceRepo.save(ws).getId();
+    subjectId = subjectRepo.save(ws).getId();
 
-    WorkspaceMemberEntity m = new WorkspaceMemberEntity();
-    m.setId(new WorkspaceMemberId(workspaceId, userA));
-    m.setRole(WorkspaceRole.OWNER);
+    SubjectMemberEntity m = new SubjectMemberEntity();
+    m.setId(new SubjectMemberId(subjectId, userA));
+    m.setRole(SubjectRole.OWNER);
     memberRepo.save(m);
 
-    WorkspaceContextHolder.set(WorkspaceContext.personal(workspaceId, userA, WorkspaceRole.OWNER));
+    SubjectContextHolder.set(SubjectContext.personal(subjectId, userA, SubjectRole.OWNER));
     filterActivator.activate();
-    boardId = boardService.create("B", "b-" + UUID.randomUUID(), null, null, null, null).getId();
+    tabId = tabService.create("B", "b-" + UUID.randomUUID(), null, null, null, null).getId();
   }
 
   @AfterEach
   void cleanup() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
   }
 
   @Test
@@ -82,7 +82,7 @@ class RelationServiceIT extends IsolationIntegrationBase {
     CardEntity c =
         cardService.create(
             new CardService.CreateInput(
-                boardId,
+                tabId,
                 "C",
                 null,
                 null,
@@ -110,26 +110,26 @@ class RelationServiceIT extends IsolationIntegrationBase {
 
     cardRelationService.create(c1.getId(), c2.getId(), "implements", "summary", null, null);
 
-    assertThat(cardRelationService.listByBoard(boardId)).hasSize(1);
+    assertThat(cardRelationService.listByTab(tabId)).hasSize(1);
   }
 
   @Test
   @Transactional
   void group_relation_requires_same_board() {
-    GroupEntity g1 = groupService.create(boardId, "G1", null, null);
-    UUID otherBoardId =
-        boardService.create("B2", "b2-" + UUID.randomUUID(), null, null, null, null).getId();
-    GroupEntity g2 = groupService.create(otherBoardId, "G2", null, null);
+    GroupEntity g1 = groupService.create(tabId, "G1", null, null);
+    UUID otherTabId =
+        tabService.create("B2", "b2-" + UUID.randomUUID(), null, null, null, null).getId();
+    GroupEntity g2 = groupService.create(otherTabId, "G2", null, null);
 
     assertThatThrownBy(
             () -> groupRelationService.create(g1.getId(), g2.getId(), null, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("same board");
+        .hasMessageContaining("same tab");
   }
 
   private CardService.CreateInput simpleCard(String title) {
     return new CardService.CreateInput(
-        boardId,
+        tabId,
         title,
         null,
         null,

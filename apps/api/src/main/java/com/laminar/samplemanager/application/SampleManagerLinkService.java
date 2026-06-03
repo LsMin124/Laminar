@@ -1,7 +1,7 @@
 package com.laminar.samplemanager.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.samplemanager.domain.SampleManagerLinkEntity;
 import com.laminar.samplemanager.repository.SampleManagerLinkRepository;
 import java.time.OffsetDateTime;
@@ -38,7 +38,7 @@ public class SampleManagerLinkService {
       String stepId,
       String sampleManagerUrl,
       Map<String, Object> payloadSnapshot) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     if (cardId == null || sampleId == null || stepId == null) {
       throw new IllegalArgumentException("cardId/sampleId/stepId required");
     }
@@ -49,7 +49,7 @@ public class SampleManagerLinkService {
             .orElseGet(
                 () -> {
                   SampleManagerLinkEntity fresh = new SampleManagerLinkEntity();
-                  fresh.setWorkspaceId(ctx.workspaceId());
+                  fresh.setSubjectId(ctx.subjectId());
                   fresh.setUserId(ctx.userId());
                   fresh.setCreatedBy(ctx.userId());
                   fresh.setCardId(cardId);
@@ -65,12 +65,12 @@ public class SampleManagerLinkService {
   /** SM 동기화 완료 마킹 — synced_at = NOW. */
   @Transactional
   public SampleManagerLinkEntity markSynced(UUID linkId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     SampleManagerLinkEntity link =
         linkRepo
             .findById(linkId)
             .filter(l -> l.getDeletedAt() == null)
-            .filter(l -> ctx.ownsPersonal(l.getWorkspaceId(), l.getUserId()))
+            .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()))
             .orElseThrow(() -> new IllegalArgumentException("link not found"));
     link.setSyncedAt(OffsetDateTime.now());
     return linkRepo.save(link);
@@ -78,26 +78,26 @@ public class SampleManagerLinkService {
 
   @Transactional(readOnly = true)
   public List<SampleManagerLinkEntity> listByCard(UUID cardId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return linkRepo.findByCardIdAndDeletedAtIsNull(cardId);
   }
 
   @Transactional(readOnly = true)
   public Optional<SampleManagerLinkEntity> findById(UUID linkId) {
-    WorkspaceContext ctx = WorkspaceContextHolder.requirePersonal();
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
     return linkRepo
         .findById(linkId)
         .filter(l -> l.getDeletedAt() == null)
-        .filter(l -> ctx.ownsPersonal(l.getWorkspaceId(), l.getUserId()));
+        .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()));
   }
 
   @Transactional
   public void softDelete(UUID linkId) {
-    WorkspaceContext ctx = requirePersonalWritable();
+    SubjectContext ctx = requirePersonalWritable();
     linkRepo
         .findById(linkId)
         .filter(l -> l.getDeletedAt() == null)
-        .filter(l -> ctx.ownsPersonal(l.getWorkspaceId(), l.getUserId()))
+        .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()))
         .ifPresent(
             l -> {
               l.setDeletedAt(OffsetDateTime.now());
@@ -105,9 +105,9 @@ public class SampleManagerLinkService {
             });
   }
 
-  private WorkspaceContext requirePersonalWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.scope() != WorkspaceContext.Scope.PERSONAL) {
+  private SubjectContext requirePersonalWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
       throw new IllegalStateException("PERSONAL scope required");
     }
     if (!ctx.canWrite()) {

@@ -14,7 +14,7 @@ public final class GroupDtos {
   private GroupDtos() {}
 
   public record CreateRequest(
-      @NotNull UUID boardId,
+      @NotNull UUID tabId,
       @NotBlank @Size(max = 200) String name,
       @Size(max = 30) String color,
       Map<String, Object> attrs) {}
@@ -22,13 +22,13 @@ public final class GroupDtos {
   public record UpdateRequest(
       @Size(max = 200) String name, @Size(max = 30) String color, Map<String, Object> attrs) {}
 
-  public record ReorderRequest(@NotNull UUID boardId, @NotEmpty List<UUID> orderedIds) {}
+  public record ReorderRequest(@NotNull UUID tabId, @NotEmpty List<UUID> orderedIds) {}
 
   public record GroupResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID userId,
-      UUID boardId,
+      UUID tabId,
       String name,
       String color,
       int priority,

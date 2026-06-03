@@ -2,8 +2,8 @@ package com.laminar.audit.application;
 
 import com.laminar.audit.domain.AuditLogEntity;
 import com.laminar.audit.repository.AuditLogRepository;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -32,26 +32,24 @@ public class AuditLogService {
   }
 
   /**
-   * 감사 이벤트 append. workspace 격리는 context.workspaceId() 명시 set. SYSTEM scope 호출 시 workspaceId 파라미터
-   * 명시 필요.
+   * 감사 이벤트 append. subject 격리는 context.subjectId() 명시 set. SYSTEM scope 호출 시 subjectId 파라미터 명시 필요.
    */
   @Transactional
   public AuditLogEntity append(
-      UUID workspaceId,
+      UUID subjectId,
       String action,
       String targetType,
       UUID targetId,
       String summary,
       Map<String, Object> payload) {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    UUID resolvedWorkspaceId = workspaceId != null ? workspaceId : ctx.workspaceId();
-    if (resolvedWorkspaceId == null) {
-      throw new IllegalArgumentException(
-          "workspaceId required (or PERSONAL/WORKSPACE_SHARED scope)");
+    SubjectContext ctx = SubjectContextHolder.require();
+    UUID resolvedSubjectId = subjectId != null ? subjectId : ctx.subjectId();
+    if (resolvedSubjectId == null) {
+      throw new IllegalArgumentException("subjectId required (or PERSONAL/SUBJECT_SHARED scope)");
     }
 
     AuditLogEntity entry = new AuditLogEntity();
-    entry.setWorkspaceId(resolvedWorkspaceId);
+    entry.setSubjectId(resolvedSubjectId);
     entry.setActorUserId(ctx.userId());
     entry.setAction(action);
     entry.setTargetType(targetType);
@@ -63,22 +61,22 @@ public class AuditLogService {
 
   @Transactional(readOnly = true)
   public List<AuditLogEntity> listRecent(int limit) {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required for audit list");
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required for audit list");
     }
-    return auditRepo.findByWorkspaceIdOrderByOccurredAtDesc(
-        ctx.workspaceId(), PageRequest.of(0, Math.min(limit, 500)));
+    return auditRepo.findBySubjectIdOrderByOccurredAtDesc(
+        ctx.subjectId(), PageRequest.of(0, Math.min(limit, 500)));
   }
 
   @Transactional(readOnly = true)
   public List<AuditLogEntity> listInRange(OffsetDateTime from, OffsetDateTime to) {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required for audit list");
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required for audit list");
     }
-    return auditRepo.findByWorkspaceIdAndOccurredAtBetweenOrderByOccurredAtDesc(
-        ctx.workspaceId(), from, to);
+    return auditRepo.findBySubjectIdAndOccurredAtBetweenOrderByOccurredAtDesc(
+        ctx.subjectId(), from, to);
   }
 
   /** Cleanup cron — 90일 이전 hard delete (Spec §11.9.1). */

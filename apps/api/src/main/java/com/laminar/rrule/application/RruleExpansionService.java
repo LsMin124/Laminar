@@ -59,10 +59,10 @@ public class RruleExpansionService {
     List<LocalDate> occurrences = rrule.expand(master.getStartDate(), windowStart, windowEnd);
     if (occurrences.isEmpty()) return 0;
 
-    // 같은 board+master 기존 인스턴스의 occurrence_date 수집 — 중복 방지
+    // 같은 tab+master 기존 인스턴스의 occurrence_date 수집 — 중복 방지
     Set<String> existingDates = new HashSet<>();
     for (CardEntity existing :
-        cardRepo.findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(master.getBoardId())) {
+        cardRepo.findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(master.getTabId())) {
       if (existing.getOrigin() != CardOrigin.RRULE_EXPANSION) continue;
       Map<String, Object> attrs = existing.getAttrs();
       if (attrs == null) continue;
@@ -97,10 +97,10 @@ public class RruleExpansionService {
 
   private CardEntity cloneFromMaster(CardEntity master, LocalDate occurrence) {
     CardEntity instance = new CardEntity();
-    instance.setWorkspaceId(master.getWorkspaceId());
+    instance.setSubjectId(master.getSubjectId());
     instance.setUserId(master.getUserId());
     instance.setCreatedBy(master.getUserId());
-    instance.setBoardId(master.getBoardId());
+    instance.setTabId(master.getTabId());
     instance.setTitle(master.getTitle());
     instance.setBodyMd(master.getBodyMd());
     instance.setStartDate(occurrence);

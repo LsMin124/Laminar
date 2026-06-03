@@ -20,7 +20,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "audit_log")
-@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
 public class AuditLogEntity {
@@ -30,8 +30,8 @@ public class AuditLogEntity {
   @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
-  @Column(name = "workspace_id", nullable = false)
-  private UUID workspaceId;
+  @Column(name = "subject_id", nullable = false)
+  private UUID subjectId;
 
   @Column(name = "actor_user_id")
   private UUID actorUserId;

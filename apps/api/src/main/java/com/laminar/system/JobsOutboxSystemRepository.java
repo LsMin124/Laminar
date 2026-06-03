@@ -15,8 +15,7 @@ import org.springframework.data.repository.query.Param;
 /**
  * jobs_outbox 시스템 Repository — 워커 polling (SKIP LOCKED).
  *
- * <p>workspace_id nullable + @Filter 미부착 → SYSTEM scope에서만 사용. SKIP LOCKED 힌트로 동시 워커가 같은 job 가져가지
- * 않게.
+ * <p>subject_id nullable + @Filter 미부착 → SYSTEM scope에서만 사용. SKIP LOCKED 힌트로 동시 워커가 같은 job 가져가지 않게.
  */
 public interface JobsOutboxSystemRepository
     extends JpaRepository<JobsOutboxEntity, UUID>, SystemRepository {

@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
- * 장비 예약 Repository — workspace-shared (@Filter 자동).
+ * 장비 예약 Repository — subject-shared (@Filter 자동).
  *
  * <p>overlap 쿼리는 service pre-check + DB EXCLUDE (V11 partial constraint). DB constraint는 rrule IS
  * NULL인 단일 예약만 적용 — RRULE은 인스턴스 확장 후 별도.

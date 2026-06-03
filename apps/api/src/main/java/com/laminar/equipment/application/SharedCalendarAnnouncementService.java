@@ -1,7 +1,7 @@
 package com.laminar.equipment.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.SharedCalendarAnnouncementEntity;
 import com.laminar.equipment.repository.SharedCalendarAnnouncementRepository;
 import com.laminar.equipment.repository.SharedCalendarRepository;
@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 공용 캘린더 공지 — workspace-shared. */
+/** 공용 캘린더 공지 — subject-shared. */
 @Service
 public class SharedCalendarAnnouncementService {
 
@@ -32,7 +32,7 @@ public class SharedCalendarAnnouncementService {
       OffsetDateTime endAt,
       String title,
       String bodyMd) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     if (startAt == null) {
       throw new IllegalArgumentException("start_at required");
     }
@@ -42,11 +42,11 @@ public class SharedCalendarAnnouncementService {
     calendarRepo
         .findById(sharedCalendarId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsShared(c.getWorkspaceId()))
+        .filter(c -> ctx.ownsShared(c.getSubjectId()))
         .orElseThrow(() -> new IllegalArgumentException("shared calendar not found"));
 
     SharedCalendarAnnouncementEntity announcement = new SharedCalendarAnnouncementEntity();
-    announcement.setWorkspaceId(ctx.workspaceId());
+    announcement.setSubjectId(ctx.subjectId());
     announcement.setSharedCalendarId(sharedCalendarId);
     announcement.setPostedBy(ctx.userId());
     announcement.setStartAt(startAt);
@@ -59,7 +59,7 @@ public class SharedCalendarAnnouncementService {
   @Transactional(readOnly = true)
   public List<SharedCalendarAnnouncementEntity> listInRange(
       UUID sharedCalendarId, OffsetDateTime from, OffsetDateTime to) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return announcementRepo
         .findBySharedCalendarIdAndStartAtBetweenAndDeletedAtIsNullOrderByStartAtAsc(
             sharedCalendarId, from, to);
@@ -67,11 +67,11 @@ public class SharedCalendarAnnouncementService {
 
   @Transactional
   public void softDelete(UUID announcementId) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     announcementRepo
         .findById(announcementId)
         .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsShared(a.getWorkspaceId()))
+        .filter(a -> ctx.ownsShared(a.getSubjectId()))
         .ifPresent(
             a -> {
               if (!ctx.isOwner() && !a.getPostedBy().equals(ctx.userId())) {
@@ -83,12 +83,12 @@ public class SharedCalendarAnnouncementService {
             });
   }
 
-  private WorkspaceContext requireWorkspaceWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required");
+  private SubjectContext requireSubjectWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required");
     }
-    if (ctx.scope() == WorkspaceContext.Scope.PERSONAL && !ctx.canWrite()) {
+    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
       throw new IllegalStateException("VIEWER cannot post announcements");
     }
     return ctx;

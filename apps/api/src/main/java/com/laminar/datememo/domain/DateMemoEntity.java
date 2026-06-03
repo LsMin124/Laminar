@@ -20,15 +20,15 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "date_memos")
 @Filter(
     name = "personalFirstFilter",
-    condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+    condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
 public class DateMemoEntity {
 
   @EmbeddedId private DateMemoId id;
 
-  @Column(name = "workspace_id", nullable = false)
-  private UUID workspaceId;
+  @Column(name = "subject_id", nullable = false)
+  private UUID subjectId;
 
   @Column(name = "body_md")
   private String bodyMd;

@@ -102,7 +102,7 @@ public class AttachmentController {
   private AttachmentDtos.AttachmentResponse toResponse(AttachmentEntity a) {
     return new AttachmentDtos.AttachmentResponse(
         a.getId(),
-        a.getWorkspaceId(),
+        a.getSubjectId(),
         a.getUserId(),
         a.getUploadedBy(),
         a.getParentType(),

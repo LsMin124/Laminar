@@ -7,16 +7,16 @@ import com.laminar.attachment.application.AttachmentService;
 import com.laminar.attachment.domain.AttachmentEntity;
 import com.laminar.attachment.domain.AttachmentParentType;
 import com.laminar.context.HibernateFilterActivator;
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
+import com.laminar.subject.domain.SubjectEntity;
+import com.laminar.subject.domain.SubjectMemberEntity;
+import com.laminar.subject.domain.SubjectMemberId;
+import com.laminar.subject.domain.SubjectRole;
+import com.laminar.subject.repository.SubjectMemberRepository;
+import com.laminar.subject.repository.SubjectRepository;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.user.domain.UserEntity;
-import com.laminar.workspace.domain.WorkspaceEntity;
-import com.laminar.workspace.domain.WorkspaceMemberEntity;
-import com.laminar.workspace.domain.WorkspaceMemberId;
-import com.laminar.workspace.domain.WorkspaceRole;
-import com.laminar.workspace.repository.WorkspaceMemberRepository;
-import com.laminar.workspace.repository.WorkspaceRepository;
 import java.util.HashMap;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -29,40 +29,40 @@ class AttachmentServiceIT extends IsolationIntegrationBase {
 
   @Autowired AttachmentService attachmentService;
   @Autowired UserSystemRepository userRepo;
-  @Autowired WorkspaceRepository workspaceRepo;
-  @Autowired WorkspaceMemberRepository memberRepo;
+  @Autowired SubjectRepository subjectRepo;
+  @Autowired SubjectMemberRepository memberRepo;
   @Autowired HibernateFilterActivator filterActivator;
 
-  private UUID workspaceId;
+  private UUID subjectId;
   private UUID userA;
 
   @BeforeEach
   void seed() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
     UserEntity a = new UserEntity();
     a.setEmail("att-a-" + UUID.randomUUID() + "@test.local");
     userA = userRepo.save(a).getId();
 
-    WorkspaceEntity ws = new WorkspaceEntity();
+    SubjectEntity ws = new SubjectEntity();
     ws.setName("Att WS");
     ws.setSlug("att-ws-" + UUID.randomUUID());
     ws.setOwnerUserId(userA);
     ws.setDefaultTimezone("Asia/Seoul");
     ws.setSettings(new HashMap<>());
-    workspaceId = workspaceRepo.save(ws).getId();
+    subjectId = subjectRepo.save(ws).getId();
 
-    WorkspaceMemberEntity m = new WorkspaceMemberEntity();
-    m.setId(new WorkspaceMemberId(workspaceId, userA));
-    m.setRole(WorkspaceRole.OWNER);
+    SubjectMemberEntity m = new SubjectMemberEntity();
+    m.setId(new SubjectMemberId(subjectId, userA));
+    m.setRole(SubjectRole.OWNER);
     memberRepo.save(m);
 
-    WorkspaceContextHolder.set(WorkspaceContext.personal(workspaceId, userA, WorkspaceRole.OWNER));
+    SubjectContextHolder.set(SubjectContext.personal(subjectId, userA, SubjectRole.OWNER));
     filterActivator.activate();
   }
 
   @AfterEach
   void cleanup() {
-    WorkspaceContextHolder.clear();
+    SubjectContextHolder.clear();
   }
 
   @Test
@@ -74,7 +74,7 @@ class AttachmentServiceIT extends IsolationIntegrationBase {
             AttachmentParentType.CARD,
             parentId,
             "workspaces/"
-                + workspaceId
+                + subjectId
                 + "/users/"
                 + userA
                 + "/attachments/"

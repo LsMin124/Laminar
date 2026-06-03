@@ -17,7 +17,7 @@ public final class CardDtos {
   private CardDtos() {}
 
   public record CreateRequest(
-      UUID boardId,
+      UUID tabId,
       @NotBlank @Size(max = 200) String title,
       @Size(max = 100) String slug,
       String bodyMd,
@@ -50,9 +50,9 @@ public final class CardDtos {
 
   public record CardResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID userId,
-      UUID boardId,
+      UUID tabId,
       String title,
       String slug,
       String bodyMd,

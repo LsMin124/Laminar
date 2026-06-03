@@ -20,9 +20,9 @@ public final class CardRelationDtos {
 
   public record CardRelationResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID userId,
-      UUID boardId,
+      UUID tabId,
       UUID fromCardId,
       UUID toCardId,
       String relationKind,

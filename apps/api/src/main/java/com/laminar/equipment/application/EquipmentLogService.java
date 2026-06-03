@@ -1,7 +1,7 @@
 package com.laminar.equipment.application;
 
-import com.laminar.context.WorkspaceContext;
-import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.context.SubjectContext;
+import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.EquipmentLogColumnEntity;
 import com.laminar.equipment.domain.EquipmentLogColumnType;
 import com.laminar.equipment.domain.EquipmentLogEntity;
@@ -51,11 +51,11 @@ public class EquipmentLogService {
       List<String> enumValues,
       boolean required,
       String defaultValue) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     if (columnRepo
         .findByEquipmentIdAndColumnKeyAndDeletedAtIsNull(equipmentId, columnKey)
@@ -73,7 +73,7 @@ public class EquipmentLogService {
             .orElse(PRIORITY_STEP);
 
     EquipmentLogColumnEntity column = new EquipmentLogColumnEntity();
-    column.setWorkspaceId(ctx.workspaceId());
+    column.setSubjectId(ctx.subjectId());
     column.setEquipmentId(equipmentId);
     column.setColumnKey(columnKey);
     column.setColumnLabel(columnLabel);
@@ -87,17 +87,17 @@ public class EquipmentLogService {
 
   @Transactional(readOnly = true)
   public List<EquipmentLogColumnEntity> listColumns(UUID equipmentId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return columnRepo.findByEquipmentIdAndDeletedAtIsNullOrderByPriorityAsc(equipmentId);
   }
 
   @Transactional
   public void softDeleteColumn(UUID columnId) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     columnRepo
         .findById(columnId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsShared(c.getWorkspaceId()))
+        .filter(c -> ctx.ownsShared(c.getSubjectId()))
         .ifPresent(
             c -> {
               c.setDeletedAt(OffsetDateTime.now());
@@ -112,16 +112,16 @@ public class EquipmentLogService {
       UUID reservationId,
       Map<String, Object> values,
       String notes) {
-    WorkspaceContext ctx = requireWorkspaceWritable();
+    SubjectContext ctx = requireSubjectWritable();
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getWorkspaceId()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     validateValues(equipmentId, values);
 
     EquipmentLogEntity entry = new EquipmentLogEntity();
-    entry.setWorkspaceId(ctx.workspaceId());
+    entry.setSubjectId(ctx.subjectId());
     entry.setEquipmentId(equipmentId);
     entry.setLoggedBy(ctx.userId());
     entry.setLoggedAt(loggedAt == null ? OffsetDateTime.now() : loggedAt);
@@ -133,14 +133,14 @@ public class EquipmentLogService {
 
   @Transactional(readOnly = true)
   public List<EquipmentLogEntity> listLogs(UUID equipmentId) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return logRepo.findByEquipmentIdAndDeletedAtIsNullOrderByLoggedAtDesc(equipmentId);
   }
 
   @Transactional(readOnly = true)
   public List<EquipmentLogEntity> listLogsInRange(
       UUID equipmentId, OffsetDateTime from, OffsetDateTime to) {
-    WorkspaceContextHolder.requirePersonal();
+    SubjectContextHolder.requirePersonal();
     return logRepo.findByEquipmentIdAndLoggedAtBetweenAndDeletedAtIsNull(equipmentId, from, to);
   }
 
@@ -195,12 +195,12 @@ public class EquipmentLogService {
     }
   }
 
-  private WorkspaceContext requireWorkspaceWritable() {
-    WorkspaceContext ctx = WorkspaceContextHolder.require();
-    if (ctx.workspaceId() == null) {
-      throw new IllegalStateException("workspace scope required");
+  private SubjectContext requireSubjectWritable() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.subjectId() == null) {
+      throw new IllegalStateException("subject scope required");
     }
-    if (ctx.scope() == WorkspaceContext.Scope.PERSONAL && !ctx.canWrite()) {
+    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
       throw new IllegalStateException("VIEWER cannot mutate equipment logs");
     }
     return ctx;

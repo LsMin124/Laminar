@@ -10,8 +10,8 @@ import java.util.UUID;
 @Embeddable
 public class DateMemoId implements Serializable {
 
-  @Column(name = "board_id", nullable = false)
-  private UUID boardId;
+  @Column(name = "tab_id", nullable = false)
+  private UUID tabId;
 
   @Column(name = "user_id", nullable = false)
   private UUID userId;
@@ -21,18 +21,18 @@ public class DateMemoId implements Serializable {
 
   public DateMemoId() {}
 
-  public DateMemoId(UUID boardId, UUID userId, LocalDate date) {
-    this.boardId = boardId;
+  public DateMemoId(UUID tabId, UUID userId, LocalDate date) {
+    this.tabId = tabId;
     this.userId = userId;
     this.date = date;
   }
 
-  public UUID getBoardId() {
-    return boardId;
+  public UUID getTabId() {
+    return tabId;
   }
 
-  public void setBoardId(UUID boardId) {
-    this.boardId = boardId;
+  public void setTabId(UUID tabId) {
+    this.tabId = tabId;
   }
 
   public UUID getUserId() {
@@ -55,13 +55,13 @@ public class DateMemoId implements Serializable {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof DateMemoId that)) return false;
-    return Objects.equals(boardId, that.boardId)
+    return Objects.equals(tabId, that.tabId)
         && Objects.equals(userId, that.userId)
         && Objects.equals(date, that.date);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(boardId, userId, date);
+    return Objects.hash(tabId, userId, date);
   }
 }

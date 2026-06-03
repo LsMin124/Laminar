@@ -1,6 +1,6 @@
 package com.laminar.equipment.domain;
 
-import com.laminar.common.domain.WorkspaceScopedBaseEntity;
+import com.laminar.common.domain.SubjectScopedBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -12,10 +12,10 @@ import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "shared_calendar_announcements")
-@Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
-public class SharedCalendarAnnouncementEntity extends WorkspaceScopedBaseEntity {
+public class SharedCalendarAnnouncementEntity extends SubjectScopedBaseEntity {
 
   @Column(name = "shared_calendar_id", nullable = false)
   private UUID sharedCalendarId;

@@ -15,13 +15,12 @@ import org.springframework.data.repository.query.Param;
  */
 public interface CardRepository extends JpaRepository<CardEntity, UUID> {
 
-  List<CardEntity> findByBoardIdAndDeletedAtIsNullOrderByPriorityAsc(UUID boardId);
+  List<CardEntity> findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(UUID tabId);
 
-  List<CardEntity> findByBoardIdAndStartDateBetweenAndDeletedAtIsNull(
-      UUID boardId, LocalDate from, LocalDate to);
+  List<CardEntity> findByTabIdAndStartDateBetweenAndDeletedAtIsNull(
+      UUID tabId, LocalDate from, LocalDate to);
 
-  java.util.Optional<CardEntity> findFirstByBoardIdAndDeletedAtIsNullOrderByPriorityDesc(
-      UUID boardId);
+  java.util.Optional<CardEntity> findFirstByTabIdAndDeletedAtIsNullOrderByPriorityDesc(UUID tabId);
 
   /**
    * 멀티데이 카드 overlap 쿼리 — 시작일이 to 이전이고, (종료일이 from 이후 또는 종료일 없이 시작일이 from 이후). 미지정 카드 (start_date
@@ -30,7 +29,7 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID> {
   @Query(
       """
             SELECT c FROM CardEntity c
-            WHERE c.boardId = :boardId
+            WHERE c.tabId = :tabId
               AND c.deletedAt IS NULL
               AND c.startDate IS NOT NULL
               AND c.startDate <= :to
@@ -38,8 +37,8 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID> {
                    OR (c.endDate IS NULL AND c.startDate >= :from))
             ORDER BY c.startDate ASC, c.priority ASC
             """)
-  List<CardEntity> findOverlappingByBoardId(
-      @Param("boardId") UUID boardId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+  List<CardEntity> findOverlappingByTabId(
+      @Param("tabId") UUID tabId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
   /**
    * RRULE 마스터 카드 — origin=MANUAL이면서 rrule 있는 활성 카드. SYSTEM scope에서 호출 시 모든 user의 마스터 조회 (cron

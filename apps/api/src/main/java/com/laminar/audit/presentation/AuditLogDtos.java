@@ -10,7 +10,7 @@ public final class AuditLogDtos {
 
   public record AuditLogResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID actorUserId,
       String action,
       String targetType,

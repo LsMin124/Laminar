@@ -77,7 +77,7 @@ public class EquipmentReservationController {
 
   public record ReservationResponse(
       UUID id,
-      UUID workspaceId,
+      UUID subjectId,
       UUID equipmentId,
       UUID reservedBy,
       OffsetDateTime startAt,
@@ -91,7 +91,7 @@ public class EquipmentReservationController {
   private static ReservationResponse toResponse(EquipmentReservationEntity r) {
     return new ReservationResponse(
         r.getId(),
-        r.getWorkspaceId(),
+        r.getSubjectId(),
         r.getEquipmentId(),
         r.getReservedBy(),
         r.getStartAt(),

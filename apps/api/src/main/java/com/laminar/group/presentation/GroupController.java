@@ -29,14 +29,13 @@ public class GroupController {
   public ResponseEntity<GroupDtos.GroupResponse> create(
       @Valid @RequestBody GroupDtos.CreateRequest request) {
     GroupEntity group =
-        groupService.create(request.boardId(), request.name(), request.color(), request.attrs());
+        groupService.create(request.tabId(), request.name(), request.color(), request.attrs());
     return ResponseEntity.ok(toResponse(group));
   }
 
-  @GetMapping("/boards/{boardId}/groups")
-  public ResponseEntity<List<GroupDtos.GroupResponse>> listByBoard(@PathVariable UUID boardId) {
-    return ResponseEntity.ok(
-        groupService.listByBoard(boardId).stream().map(this::toResponse).toList());
+  @GetMapping("/boards/{tabId}/groups")
+  public ResponseEntity<List<GroupDtos.GroupResponse>> listByTab(@PathVariable UUID tabId) {
+    return ResponseEntity.ok(groupService.listByTab(tabId).stream().map(this::toResponse).toList());
   }
 
   @GetMapping("/groups/{groupId}")
@@ -60,7 +59,7 @@ public class GroupController {
   public ResponseEntity<List<GroupDtos.GroupResponse>> reorder(
       @Valid @RequestBody GroupDtos.ReorderRequest request) {
     return ResponseEntity.ok(
-        groupService.reorder(request.boardId(), request.orderedIds()).stream()
+        groupService.reorder(request.tabId(), request.orderedIds()).stream()
             .map(this::toResponse)
             .toList());
   }
@@ -96,9 +95,9 @@ public class GroupController {
   private GroupDtos.GroupResponse toResponse(GroupEntity g) {
     return new GroupDtos.GroupResponse(
         g.getId(),
-        g.getWorkspaceId(),
+        g.getSubjectId(),
         g.getUserId(),
-        g.getBoardId(),
+        g.getTabId(),
         g.getName(),
         g.getColor(),
         g.getPriority(),

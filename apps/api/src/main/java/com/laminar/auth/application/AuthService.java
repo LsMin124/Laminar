@@ -1,10 +1,10 @@
 package com.laminar.auth.application;
 
 import com.laminar.security.JwtService;
+import com.laminar.subject.application.SubjectService;
 import com.laminar.user.application.SessionService;
 import com.laminar.user.application.UserService;
 import com.laminar.user.domain.UserEntity;
-import com.laminar.workspace.application.WorkspaceService;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -21,17 +21,17 @@ public class AuthService {
 
   private final UserService userService;
   private final SessionService sessionService;
-  private final WorkspaceService workspaceService;
+  private final SubjectService subjectService;
   private final JwtService jwtService;
 
   public AuthService(
       UserService userService,
       SessionService sessionService,
-      WorkspaceService workspaceService,
+      SubjectService subjectService,
       JwtService jwtService) {
     this.userService = userService;
     this.sessionService = sessionService;
-    this.workspaceService = workspaceService;
+    this.subjectService = subjectService;
     this.jwtService = jwtService;
   }
 
@@ -42,7 +42,7 @@ public class AuthService {
   @Transactional
   public Tokens register(String email, String password, String displayName) {
     UserEntity user = userService.signup(email, password, displayName);
-    workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
+    subjectService.createPersonalSubject(user.getId(), user.getDisplayName());
     return issueFor(user);
   }
 
@@ -79,8 +79,8 @@ public class AuthService {
   @Transactional
   public Tokens oauthLogin(String email, String displayName) {
     UserEntity user = userService.findOrCreateOAuthUser(email, displayName);
-    if (workspaceService.listForUser(user.getId()).isEmpty()) {
-      workspaceService.createPersonalWorkspace(user.getId(), user.getDisplayName());
+    if (subjectService.listForUser(user.getId()).isEmpty()) {
+      subjectService.createPersonalSubject(user.getId(), user.getDisplayName());
     }
     return issueFor(user);
   }

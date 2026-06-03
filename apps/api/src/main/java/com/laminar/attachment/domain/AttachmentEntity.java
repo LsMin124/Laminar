@@ -14,7 +14,7 @@ import org.hibernate.annotations.Filter;
 @Table(name = "attachments")
 @Filter(
     name = "personalFirstFilter",
-    condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
+    condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
 public class AttachmentEntity extends PersonalBaseEntity {

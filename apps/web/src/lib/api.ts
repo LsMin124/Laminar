@@ -83,7 +83,7 @@ async function request<T>(
   };
   const workspaceId = getCurrentWorkspaceId();
   if (workspaceId) {
-    headers["X-Laminar-Workspace-Id"] = workspaceId;
+    headers["X-Laminar-Subject-Id"] = workspaceId;
   }
 
   const serializedBody = body === undefined ? undefined : JSON.stringify(body);

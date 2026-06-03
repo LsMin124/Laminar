@@ -1,0 +1,136 @@
+.dag {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.dag-toolbar {
+  padding: 8px 12px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 12px;
+  color: #aaa;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.dag-toolbar button {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #ccc;
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.dag-canvas {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  background: #0e0e0e;
+}
+.dag-surface {
+  position: relative;
+}
+.dag-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #191919;
+}
+.dag-axis-label {
+  position: absolute;
+  top: 2px;
+  font-size: 10px;
+  color: #666;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.dag-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #2e7d5b;
+  opacity: 0.6;
+}
+.dag-backlog-label {
+  position: absolute;
+  left: 6px;
+  top: 22px;
+  font-size: 10px;
+  color: #555;
+}
+.dag-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.dag-edge {
+  stroke: #4a90c2;
+  stroke-width: 1.5;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.dag-edge:hover {
+  stroke: #6cf;
+  stroke-width: 2.5;
+}
+.dag-node {
+  position: absolute;
+  width: 180px;
+  box-sizing: border-box;
+  background: #1b1b1b;
+  border: 1px solid #3a3a3a;
+  border-radius: 2px;
+  padding: 8px 8px 6px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.dag-node.completed {
+  opacity: 0.5;
+}
+.dag-node.link-src {
+  border-color: #6cf;
+  box-shadow: 0 0 0 1px #6cf;
+}
+.dag .linking .dag-node {
+  cursor: crosshair;
+}
+.dag-node-title {
+  font-size: 13px;
+  color: #e8e8e8;
+  margin-bottom: 5px;
+  word-break: break-word;
+  line-height: 1.3;
+}
+.dag-node-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #888;
+}
+.dag-node-actions {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: none;
+  gap: 1px;
+}
+.dag-node:hover .dag-node-actions {
+  display: flex;
+}
+.dag-node-actions button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 3px;
+}
+.dag-node-actions button:hover {
+  color: #fff;
+}

@@ -1,7 +1,12 @@
-package com.laminar.group;
+package com.laminar.group.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.group.domain.GroupEntity;
+import com.laminar.group.domain.GroupMemberEntity;
+import com.laminar.group.domain.GroupMemberId;
+import com.laminar.group.repository.GroupMemberRepository;
+import com.laminar.group.repository.GroupRepository;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;

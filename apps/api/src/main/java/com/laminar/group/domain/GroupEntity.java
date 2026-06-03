@@ -1,4 +1,4 @@
-package com.laminar.group;
+package com.laminar.group.domain;
 
 import com.laminar.common.domain.PersonalBaseEntity;
 import jakarta.persistence.Column;

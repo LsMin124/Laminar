@@ -1,4 +1,4 @@
-package com.laminar.group;
+package com.laminar.group.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

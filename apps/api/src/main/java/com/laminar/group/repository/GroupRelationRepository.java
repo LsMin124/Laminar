@@ -1,5 +1,6 @@
-package com.laminar.group;
+package com.laminar.group.repository;
 
+import com.laminar.group.domain.GroupRelationEntity;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

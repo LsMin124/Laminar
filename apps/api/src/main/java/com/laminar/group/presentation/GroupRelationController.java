@@ -1,7 +1,7 @@
-package com.laminar.web.group;
+package com.laminar.group.presentation;
 
-import com.laminar.group.GroupRelationEntity;
-import com.laminar.group.GroupRelationService;
+import com.laminar.group.application.GroupRelationService;
+import com.laminar.group.domain.GroupRelationEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

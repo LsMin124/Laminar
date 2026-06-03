@@ -1,5 +1,6 @@
-package com.laminar.group;
+package com.laminar.group.repository;
 
+import com.laminar.group.domain.GroupEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

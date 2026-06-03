@@ -1,4 +1,4 @@
-package com.laminar.web.group;
+package com.laminar.group.presentation;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

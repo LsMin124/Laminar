@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
-import com.laminar.outbox.JobsOutboxEntity;
-import com.laminar.outbox.JobsOutboxService;
+import com.laminar.outbox.application.JobsOutboxService;
+import com.laminar.outbox.domain.JobsOutboxEntity;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;

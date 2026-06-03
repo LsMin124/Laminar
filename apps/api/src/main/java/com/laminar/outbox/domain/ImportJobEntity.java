@@ -1,4 +1,4 @@
-package com.laminar.outbox;
+package com.laminar.outbox.domain;
 
 import com.laminar.common.domain.PersonalBaseEntity;
 import jakarta.persistence.Column;

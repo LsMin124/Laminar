@@ -1,6 +1,6 @@
 package com.laminar.system;
 
-import com.laminar.outbox.JobsOutboxEntity;
+import com.laminar.outbox.domain.JobsOutboxEntity;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import java.time.OffsetDateTime;

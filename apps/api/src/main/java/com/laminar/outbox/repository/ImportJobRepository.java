@@ -1,5 +1,7 @@
-package com.laminar.outbox;
+package com.laminar.outbox.repository;
 
+import com.laminar.outbox.domain.ImportJobEntity;
+import com.laminar.outbox.domain.ImportJobStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

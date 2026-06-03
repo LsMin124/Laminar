@@ -1,7 +1,7 @@
 package com.laminar.cron;
 
-import com.laminar.outbox.JobsOutboxEntity;
-import com.laminar.outbox.JobsOutboxService;
+import com.laminar.outbox.application.JobsOutboxService;
+import com.laminar.outbox.domain.JobsOutboxEntity;
 import java.util.List;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;

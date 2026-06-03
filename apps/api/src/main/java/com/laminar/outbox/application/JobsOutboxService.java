@@ -1,5 +1,6 @@
-package com.laminar.outbox;
+package com.laminar.outbox.application;
 
+import com.laminar.outbox.domain.JobsOutboxEntity;
 import com.laminar.system.JobsOutboxSystemRepository;
 import java.time.OffsetDateTime;
 import java.util.HashMap;

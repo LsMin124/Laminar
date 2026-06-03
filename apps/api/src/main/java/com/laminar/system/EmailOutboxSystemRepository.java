@@ -1,6 +1,6 @@
 package com.laminar.system;
 
-import com.laminar.outbox.EmailOutboxEntity;
+import com.laminar.outbox.domain.EmailOutboxEntity;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,6 +1,6 @@
 package com.laminar.cron;
 
-import com.laminar.outbox.EmailOutboxEntity;
+import com.laminar.outbox.domain.EmailOutboxEntity;
 import com.laminar.system.EmailOutboxSystemRepository;
 import java.time.OffsetDateTime;
 import java.util.List;

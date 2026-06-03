@@ -1,7 +1,7 @@
 package com.laminar.workspace;
 
 import com.laminar.context.WorkspaceContextHolder;
-import com.laminar.outbox.EmailOutboxEntity;
+import com.laminar.outbox.domain.EmailOutboxEntity;
 import com.laminar.system.EmailOutboxSystemRepository;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.user.UserEntity;

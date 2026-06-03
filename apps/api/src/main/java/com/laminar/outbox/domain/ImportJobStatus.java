@@ -1,4 +1,4 @@
-package com.laminar.outbox;
+package com.laminar.outbox.domain;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

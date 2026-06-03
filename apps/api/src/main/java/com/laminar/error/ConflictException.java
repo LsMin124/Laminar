@@ -1,4 +1,4 @@
-package com.laminar.web.error;
+package com.laminar.error;
 
 /**
  * 도메인 충돌(중복 등록·예약 겹침·상태 전이 위반) — HTTP 409로 매핑 (N-2).

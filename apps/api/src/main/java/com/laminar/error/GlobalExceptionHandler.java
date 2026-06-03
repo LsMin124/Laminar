@@ -1,4 +1,4 @@
-package com.laminar.web.error;
+package com.laminar.error;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;

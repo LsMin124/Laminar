@@ -6,7 +6,7 @@ import com.laminar.equipment.domain.EquipmentEntity;
 import com.laminar.equipment.domain.EquipmentReservationEntity;
 import com.laminar.equipment.repository.EquipmentRepository;
 import com.laminar.equipment.repository.EquipmentReservationRepository;
-import com.laminar.web.error.ConflictException;
+import com.laminar.error.ConflictException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;

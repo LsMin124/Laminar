@@ -1,8 +1,8 @@
 package com.laminar.user.application;
 
+import com.laminar.error.ConflictException;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.user.domain.UserEntity;
-import com.laminar.web.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;

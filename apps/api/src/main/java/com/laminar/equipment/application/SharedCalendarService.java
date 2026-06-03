@@ -5,7 +5,7 @@ import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.equipment.domain.SharedCalendarEntity;
 import com.laminar.equipment.repository.SharedCalendarRepository;
-import com.laminar.web.error.ConflictException;
+import com.laminar.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;

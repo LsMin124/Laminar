@@ -8,7 +8,7 @@ import com.laminar.equipment.domain.EquipmentLogEntity;
 import com.laminar.equipment.repository.EquipmentLogColumnRepository;
 import com.laminar.equipment.repository.EquipmentLogRepository;
 import com.laminar.equipment.repository.EquipmentRepository;
-import com.laminar.web.error.ConflictException;
+import com.laminar.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;

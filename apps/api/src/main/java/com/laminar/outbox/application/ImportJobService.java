@@ -2,10 +2,10 @@ package com.laminar.outbox.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.error.ConflictException;
 import com.laminar.outbox.domain.ImportJobEntity;
 import com.laminar.outbox.domain.ImportJobStatus;
 import com.laminar.outbox.repository.ImportJobRepository;
-import com.laminar.web.error.ConflictException;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Base64;

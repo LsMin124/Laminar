@@ -4,7 +4,7 @@ import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.equipment.domain.EquipmentEntity;
 import com.laminar.equipment.repository.EquipmentRepository;
-import com.laminar.web.error.ConflictException;
+import com.laminar.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;

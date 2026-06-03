@@ -1,4 +1,4 @@
-package com.laminar.web.error;
+package com.laminar.error;
 
 import java.time.OffsetDateTime;
 

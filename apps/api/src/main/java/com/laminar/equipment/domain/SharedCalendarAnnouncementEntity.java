@@ -1,15 +1,11 @@
 package com.laminar.equipment.domain;
 
+import com.laminar.common.domain.WorkspaceScopedBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
-import java.util.Objects;
 import java.util.UUID;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
@@ -19,15 +15,7 @@ import org.hibernate.annotations.Filter;
 @Filter(name = "workspaceSharedFilter", condition = "workspace_id = :ctxWorkspaceId")
 @Getter
 @Setter
-public class SharedCalendarAnnouncementEntity {
-
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  @Column(name = "id", updatable = false, nullable = false)
-  private UUID id;
-
-  @Column(name = "workspace_id", nullable = false)
-  private UUID workspaceId;
+public class SharedCalendarAnnouncementEntity extends WorkspaceScopedBaseEntity {
 
   @Column(name = "shared_calendar_id", nullable = false)
   private UUID sharedCalendarId;
@@ -47,26 +35,6 @@ public class SharedCalendarAnnouncementEntity {
   @Column(name = "body_md")
   private String bodyMd;
 
-  @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-  @Setter(AccessLevel.NONE)
-  private OffsetDateTime createdAt;
-
-  @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
-  @Setter(AccessLevel.NONE)
-  private OffsetDateTime updatedAt;
-
   @Column(name = "deleted_at")
   private OffsetDateTime deletedAt;
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof SharedCalendarAnnouncementEntity that)) return false;
-    return id != null && Objects.equals(id, that.id);
-  }
-
-  @Override
-  public int hashCode() {
-    return id != null ? id.hashCode() : getClass().hashCode();
-  }
 }

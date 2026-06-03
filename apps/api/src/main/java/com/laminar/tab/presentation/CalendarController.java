@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** /api/boards/{tabId}/calendar — 월/주 range + 멀티데이 + date_memos 통합 응답. */
+/** /api/tabs/{tabId}/calendar — 월/주 range + 멀티데이 + date_memos 통합 응답. */
 @RestController
-@RequestMapping("/api/boards")
+@RequestMapping("/api/tabs")
 public class CalendarController {
 
   private final CalendarService calendarService;
@@ -74,7 +74,8 @@ public class CalendarController {
         c.getAttrs(),
         c.getArchivedAt(),
         c.getCreatedAt(),
-        c.getUpdatedAt());
+        c.getUpdatedAt(),
+        c.getCanvasY());
   }
 
   private static DateMemoResponse toDateMemoResponse(DateMemoEntity m) {

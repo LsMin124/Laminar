@@ -21,12 +21,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * /api/workspaces/current/members — 멤버 조회/역할 변경/제거.
+ * /api/subjects/current/members — 멤버 조회/역할 변경/제거.
  *
  * <p>모두 워크스페이스 진입 후 호출 (X-Laminar-Subject-Id 헤더 필수). 변경 작업은 OWNER (canWrite) 만 — owner 제거 차단.
  */
 @RestController
-@RequestMapping("/api/workspaces/current/members")
+@RequestMapping("/api/subjects/current/members")
 public class SubjectMemberController {
 
   private final SubjectMemberService memberService;

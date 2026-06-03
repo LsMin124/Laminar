@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * /api/workspaces/current/invitations + /api/auth/invitations/accept.
+ * /api/subjects/current/invitations + /api/auth/invitations/accept.
  *
  * <p>invite는 워크스페이스 진입 후 (PERSONAL scope) OWNER/MEMBER만 (canWrite). accept는 인증 후 SYSTEM scope에서 호출
  * (워크스페이스 미선택 상태에서 토큰 제출).
@@ -31,7 +31,7 @@ public class InvitationController {
     this.invitationService = invitationService;
   }
 
-  @PostMapping("/api/workspaces/current/invitations")
+  @PostMapping("/api/subjects/current/invitations")
   public ResponseEntity<InvitationDtos.InviteResponse> invite(
       Authentication authentication, @Valid @RequestBody InvitationDtos.InviteRequest request) {
     LaminarPrincipal principal = requirePrincipal(authentication);
@@ -49,7 +49,7 @@ public class InvitationController {
             issue.invitationId(), issue.rawToken(), request.email(), request.role()));
   }
 
-  @GetMapping("/api/workspaces/current/invitations")
+  @GetMapping("/api/subjects/current/invitations")
   public ResponseEntity<List<PendingInvitationResponse>> listPending() {
     return ResponseEntity.ok(
         invitationService.listPendingForCurrentSubject().stream()
@@ -65,7 +65,7 @@ public class InvitationController {
             .toList());
   }
 
-  @DeleteMapping("/api/workspaces/current/invitations/{invitationId}")
+  @DeleteMapping("/api/subjects/current/invitations/{invitationId}")
   public ResponseEntity<Void> revoke(@PathVariable UUID invitationId) {
     if (!SubjectContextHolder.require().canWrite()) {
       return ResponseEntity.status(403).build();

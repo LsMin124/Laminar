@@ -118,6 +118,7 @@ public class CardService {
     if (input.rrule() != null) card.setRrule(input.rrule());
     if (input.completed() != null) card.setCompleted(input.completed());
     if (input.attrs() != null) card.setAttrs(input.attrs());
+    if (input.canvasY() != null) card.setCanvasY(input.canvasY());
 
     validateInvariants(card);
 
@@ -259,5 +260,6 @@ public class CardService {
       CardImportance importance,
       String rrule,
       Boolean completed,
-      Map<String, Object> attrs) {}
+      Map<String, Object> attrs,
+      Double canvasY) {}
 }

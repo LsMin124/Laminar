@@ -38,7 +38,7 @@ public class GroupRelationController {
     return ResponseEntity.ok(toResponse(created));
   }
 
-  @GetMapping("/boards/{tabId}/group-relations")
+  @GetMapping("/tabs/{tabId}/group-relations")
   public ResponseEntity<List<GroupRelationDtos.GroupRelationResponse>> listByTab(
       @PathVariable UUID tabId) {
     return ResponseEntity.ok(service.listByTab(tabId).stream().map(this::toResponse).toList());

@@ -166,7 +166,18 @@ class RelationServiceIT extends IsolationIntegrationBase {
     cardService.update(
         c1.getId(),
         new CardService.UpdateInput(
-            null, null, LocalDate.of(2026, 6, 5), null, null, null, null, null, null, null, null));
+            null,
+            null,
+            LocalDate.of(2026, 6, 5),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null));
 
     assertThat(cardService.findById(c2.getId()).orElseThrow().getStartDate())
         .isEqualTo(LocalDate.of(2026, 6, 5));
@@ -187,6 +198,7 @@ class RelationServiceIT extends IsolationIntegrationBase {
                         null,
                         null,
                         LocalDate.of(2026, 6, 1),
+                        null,
                         null,
                         null,
                         null,

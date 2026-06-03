@@ -23,15 +23,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * SecurityContext에 LaminarPrincipal을 채운 다음 본 필터가 워크스페이스 진입 여부를 결정.
  *
  * <p>scope 결정 매트릭스: - 비인증 + subjectId 없음 → SYSTEM (health/login 등) - 인증 + subjectId 없음 → SYSTEM
- * (워크스페이스 미선택, /api/workspaces 등 글로벌) - 인증 + subjectId 있고 활성 멤버 → PERSONAL (subjectId·userId·role)
- * - 인증 + subjectId 있는데 멤버 아님 → 403 Forbidden (격리 위반 시도) - 비인증 + subjectId 있음 → 401 Unauthorized
+ * (워크스페이스 미선택, /api/subjects 등 글로벌) - 인증 + subjectId 있고 활성 멤버 → PERSONAL (subjectId·userId·role) -
+ * 인증 + subjectId 있는데 멤버 아님 → 403 Forbidden (격리 위반 시도) - 비인증 + subjectId 있음 → 401 Unauthorized
  */
 @Component
 @Order(50)
 public class SubjectContextRequestFilter extends OncePerRequestFilter {
 
-  // Phase 3(API 정리)까지 기존 요청 헤더 계약 유지 — 구 워크스페이스 선택 헤더(프론트가 송신).
-  private static final String HEADER_WORKSPACE_ID = "X-Laminar-Workspace-Id";
+  // 활성 주제(Subject) 선택 헤더 — 프론트가 송신, 본 필터가 SubjectContext 도출에 사용.
+  private static final String HEADER_SUBJECT_ID = "X-Laminar-Subject-Id";
 
   private final SubjectMemberRepository memberRepo;
 
@@ -43,7 +43,7 @@ public class SubjectContextRequestFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    UUID subjectId = parseUuid(request.getHeader(HEADER_WORKSPACE_ID));
+    UUID subjectId = parseUuid(request.getHeader(HEADER_SUBJECT_ID));
     Optional<LaminarPrincipal> maybePrincipal = currentPrincipal();
 
     if (subjectId != null && maybePrincipal.isEmpty()) {

@@ -42,7 +42,8 @@ public final class CardDtos {
       CardImportance importance,
       @Size(max = 500) String rrule,
       Boolean completed,
-      Map<String, Object> attrs) {}
+      Map<String, Object> attrs,
+      Double canvasY) {}
 
   public record ReorderRequest(@NotEmpty List<UUID> orderedIds) {}
 
@@ -69,5 +70,6 @@ public final class CardDtos {
       Map<String, Object> attrs,
       OffsetDateTime archivedAt,
       OffsetDateTime createdAt,
-      OffsetDateTime updatedAt) {}
+      OffsetDateTime updatedAt,
+      Double canvasY) {}
 }

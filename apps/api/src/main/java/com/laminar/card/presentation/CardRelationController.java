@@ -38,7 +38,7 @@ public class CardRelationController {
     return ResponseEntity.ok(toResponse(created));
   }
 
-  @GetMapping("/boards/{tabId}/card-relations")
+  @GetMapping("/tabs/{tabId}/card-relations")
   public ResponseEntity<List<CardRelationDtos.CardRelationResponse>> listByTab(
       @PathVariable UUID tabId) {
     return ResponseEntity.ok(service.listByTab(tabId).stream().map(this::toResponse).toList());

@@ -53,7 +53,7 @@ public class CardController {
     return ResponseEntity.ok(toResponse(card));
   }
 
-  @GetMapping("/boards/{tabId}/cards")
+  @GetMapping("/tabs/{tabId}/cards")
   public ResponseEntity<List<CardDtos.CardResponse>> listByTab(
       @PathVariable UUID tabId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -91,7 +91,8 @@ public class CardController {
                 request.importance(),
                 request.rrule(),
                 request.completed(),
-                request.attrs()));
+                request.attrs(),
+                request.canvasY()));
     return ResponseEntity.ok(toResponse(updated));
   }
 
@@ -107,7 +108,7 @@ public class CardController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/boards/{tabId}/cards/reorder")
+  @PatchMapping("/tabs/{tabId}/cards/reorder")
   public ResponseEntity<List<CardDtos.CardResponse>> reorder(
       @PathVariable UUID tabId, @Valid @RequestBody CardDtos.ReorderRequest request) {
     return ResponseEntity.ok(
@@ -145,6 +146,7 @@ public class CardController {
         c.getAttrs(),
         c.getArchivedAt(),
         c.getCreatedAt(),
-        c.getUpdatedAt());
+        c.getUpdatedAt(),
+        c.getCanvasY());
   }
 }

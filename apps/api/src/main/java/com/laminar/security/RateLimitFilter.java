@@ -33,7 +33,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
           new Rule("POST", "/api/auth/login", 10),
           new Rule("POST", "/api/auth/signup", 5),
           new Rule("POST", "/api/attachments/upload-url", 30),
-          new Rule("POST", "/api/workspaces/current/invitations", 20));
+          new Rule("POST", "/api/subjects/current/invitations", 20));
 
   private static final int MAX_TRACKED_KEYS = 50_000;
 

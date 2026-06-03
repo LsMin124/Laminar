@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * /api/admin/** — 운영 콘솔. OWNER 강제 + audit 자동.
  *
- * <p>엔드포인트: GET /boards (cross-user 메타 목록) GET /boards/{tabId}/cards (메타만, body 제외) POST
+ * <p>엔드포인트: GET /tabs (cross-user 메타 목록) GET /tabs/{tabId}/cards (메타만, body 제외) POST
  * /cards/{cardId}/reveal-body (escape hatch — reason 필수, audit 강한 기록)
  */
 @RestController
@@ -32,13 +32,13 @@ public class AdminController {
     this.adminService = adminService;
   }
 
-  @GetMapping("/boards")
+  @GetMapping("/tabs")
   public ResponseEntity<List<TabSummaryResponse>> listAllTabs() {
     return ResponseEntity.ok(
         adminService.listAllTabs().stream().map(AdminController::toTabSummary).toList());
   }
 
-  @GetMapping("/boards/{tabId}/cards")
+  @GetMapping("/tabs/{tabId}/cards")
   public ResponseEntity<List<Map<String, Object>>> listCardMetadata(@PathVariable UUID tabId) {
     return ResponseEntity.ok(adminService.listCardMetadataByTab(tabId));
   }

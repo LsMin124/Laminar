@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** /api/boards — 보드 CRUD. PERSONAL scope 진입 후 호출 (X-Laminar-Subject-Id 헤더 필수). */
+/** /api/tabs — 보드 CRUD. PERSONAL scope 진입 후 호출 (X-Laminar-Subject-Id 헤더 필수). */
 @RestController
-@RequestMapping("/api/boards")
+@RequestMapping("/api/tabs")
 public class TabController {
 
   private final TabService tabService;

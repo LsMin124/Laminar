@@ -6,7 +6,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-/** /api/workspaces/** 요청·응답 DTO 모음. */
+/** /api/subjects/** 요청·응답 DTO 모음. */
 public final class SubjectDtos {
 
   private SubjectDtos() {}

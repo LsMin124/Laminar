@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** /api/boards/{id}/graph — 보드 전체 그래프 (노드 + 엣지) 1회 fetch. */
+/** /api/tabs/{id}/graph — 보드 전체 그래프 (노드 + 엣지) 1회 fetch. */
 @RestController
-@RequestMapping("/api/boards")
+@RequestMapping("/api/tabs")
 public class TabGraphController {
 
   private final TabGraphService graphService;
@@ -72,7 +72,8 @@ public class TabGraphController {
         c.getAttrs(),
         c.getArchivedAt(),
         c.getCreatedAt(),
-        c.getUpdatedAt());
+        c.getUpdatedAt(),
+        c.getCanvasY());
   }
 
   private static GroupDtos.GroupResponse toGroup(GroupEntity g) {

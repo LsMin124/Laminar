@@ -1,9 +1,9 @@
 package com.laminar.rrule.application;
 
-import com.laminar.card.CardEntity;
-import com.laminar.card.CardImportance;
-import com.laminar.card.CardOrigin;
-import com.laminar.card.CardRepository;
+import com.laminar.card.domain.CardEntity;
+import com.laminar.card.domain.CardImportance;
+import com.laminar.card.domain.CardOrigin;
+import com.laminar.card.repository.CardRepository;
 import com.laminar.rrule.domain.Rrule;
 import com.laminar.rrule.domain.RruleParser;
 import java.time.LocalDate;

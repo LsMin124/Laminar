@@ -1,4 +1,4 @@
-package com.laminar.web.card;
+package com.laminar.card.presentation;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

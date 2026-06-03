@@ -1,5 +1,9 @@
-package com.laminar.card;
+package com.laminar.card.application;
 
+import com.laminar.card.domain.CardEntity;
+import com.laminar.card.domain.CardImportance;
+import com.laminar.card.domain.CardOrigin;
+import com.laminar.card.repository.CardRepository;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import java.time.LocalDate;

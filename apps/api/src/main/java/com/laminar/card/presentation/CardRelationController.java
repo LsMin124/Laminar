@@ -1,7 +1,7 @@
-package com.laminar.web.card;
+package com.laminar.card.presentation;
 
-import com.laminar.card.CardRelationEntity;
-import com.laminar.card.CardRelationService;
+import com.laminar.card.application.CardRelationService;
+import com.laminar.card.domain.CardRelationEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

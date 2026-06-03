@@ -1,14 +1,14 @@
 package com.laminar.board.presentation;
 
 import com.laminar.board.application.BoardGraphService;
-import com.laminar.card.CardEntity;
-import com.laminar.card.CardRelationEntity;
+import com.laminar.card.domain.CardEntity;
+import com.laminar.card.domain.CardRelationEntity;
+import com.laminar.card.presentation.CardDtos;
+import com.laminar.card.presentation.CardRelationDtos;
 import com.laminar.group.domain.GroupEntity;
 import com.laminar.group.domain.GroupRelationEntity;
 import com.laminar.group.presentation.GroupDtos;
 import com.laminar.group.presentation.GroupRelationDtos;
-import com.laminar.web.card.CardDtos;
-import com.laminar.web.card.CardRelationDtos;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;

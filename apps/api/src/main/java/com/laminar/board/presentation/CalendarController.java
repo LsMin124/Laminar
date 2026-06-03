@@ -1,9 +1,9 @@
 package com.laminar.board.presentation;
 
 import com.laminar.board.application.CalendarService;
-import com.laminar.card.CardEntity;
+import com.laminar.card.domain.CardEntity;
+import com.laminar.card.presentation.CardDtos;
 import com.laminar.datememo.domain.DateMemoEntity;
-import com.laminar.web.card.CardDtos;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;

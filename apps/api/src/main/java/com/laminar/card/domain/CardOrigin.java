@@ -1,4 +1,4 @@
-package com.laminar.card;
+package com.laminar.card.domain;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

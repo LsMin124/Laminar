@@ -37,14 +37,14 @@ public class TabService {
 
   private final TabRepository tabRepo;
   private final TabMemberRepository memberRepo;
-  private final com.laminar.card.CardRepository cardRepo;
+  private final com.laminar.card.repository.CardRepository cardRepo;
   private final com.laminar.group.repository.GroupRepository groupRepo;
   private final TabGroupMemberRepository tabGroupRepo;
 
   public TabService(
       TabRepository tabRepo,
       TabMemberRepository memberRepo,
-      com.laminar.card.CardRepository cardRepo,
+      com.laminar.card.repository.CardRepository cardRepo,
       com.laminar.group.repository.GroupRepository groupRepo,
       TabGroupMemberRepository tabGroupRepo) {
     this.tabRepo = tabRepo;

@@ -1,5 +1,6 @@
-package com.laminar.card;
+package com.laminar.card.repository;
 
+import com.laminar.card.domain.CardEntity;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;

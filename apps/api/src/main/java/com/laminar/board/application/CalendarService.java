@@ -1,7 +1,7 @@
 package com.laminar.board.application;
 
-import com.laminar.card.CardEntity;
-import com.laminar.card.CardRepository;
+import com.laminar.card.domain.CardEntity;
+import com.laminar.card.repository.CardRepository;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
 import com.laminar.datememo.domain.DateMemoEntity;

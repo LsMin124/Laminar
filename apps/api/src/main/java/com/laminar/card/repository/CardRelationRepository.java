@@ -1,5 +1,6 @@
-package com.laminar.card;
+package com.laminar.card.repository;
 
+import com.laminar.card.domain.CardRelationEntity;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -29,12 +29,12 @@ public class GroupService {
 
   private final GroupRepository groupRepo;
   private final GroupMemberRepository memberRepo;
-  private final com.laminar.card.CardRepository cardRepo;
+  private final com.laminar.card.repository.CardRepository cardRepo;
 
   public GroupService(
       GroupRepository groupRepo,
       GroupMemberRepository memberRepo,
-      com.laminar.card.CardRepository cardRepo) {
+      com.laminar.card.repository.CardRepository cardRepo) {
     this.groupRepo = groupRepo;
     this.memberRepo = memberRepo;
     this.cardRepo = cardRepo;

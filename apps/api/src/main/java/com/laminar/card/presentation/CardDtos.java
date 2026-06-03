@@ -1,7 +1,7 @@
-package com.laminar.web.card;
+package com.laminar.card.presentation;
 
-import com.laminar.card.CardImportance;
-import com.laminar.card.CardOrigin;
+import com.laminar.card.domain.CardImportance;
+import com.laminar.card.domain.CardOrigin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;

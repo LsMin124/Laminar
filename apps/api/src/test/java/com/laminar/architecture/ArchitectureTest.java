@@ -60,7 +60,8 @@ public class ArchitectureTest {
   /**
    * 3.5.1 — @Entity는 com.laminar 1-depth 하위 도메인 패키지에만 위치.
    *
-   * <p>예: com.laminar.card.CardEntity O, com.laminar.web.SomeEntity X. 도메인 패키지 단위 격리 정책을 enforce.
+   * <p>예: com.laminar.card.domain.CardEntity O, com.laminar.web.SomeEntity X. 도메인 패키지 단위 격리 정책을
+   * enforce.
    */
   @ArchTest
   static final ArchRule entities_in_domain_packages =

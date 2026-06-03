@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.laminar.board.application.BoardService;
-import com.laminar.card.CardEntity;
-import com.laminar.card.CardImportance;
-import com.laminar.card.CardRelationService;
-import com.laminar.card.CardService;
+import com.laminar.card.application.CardRelationService;
+import com.laminar.card.application.CardService;
+import com.laminar.card.domain.CardEntity;
+import com.laminar.card.domain.CardImportance;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;

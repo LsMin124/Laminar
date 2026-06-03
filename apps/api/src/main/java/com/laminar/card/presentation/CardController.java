@@ -1,7 +1,7 @@
-package com.laminar.web.card;
+package com.laminar.card.presentation;
 
-import com.laminar.card.CardEntity;
-import com.laminar.card.CardService;
+import com.laminar.card.application.CardService;
+import com.laminar.card.domain.CardEntity;
 import com.laminar.markdown.MarkdownService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;

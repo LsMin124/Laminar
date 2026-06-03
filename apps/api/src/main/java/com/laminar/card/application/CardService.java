@@ -6,6 +6,7 @@ import com.laminar.card.domain.CardOrigin;
 import com.laminar.card.repository.CardRepository;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.ConflictException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -34,9 +35,11 @@ public class CardService {
   private static final int MAX_SPAN_DAYS = 30;
 
   private final CardRepository cardRepo;
+  private final CardDagService dagService;
 
-  public CardService(CardRepository cardRepo) {
+  public CardService(CardRepository cardRepo, CardDagService dagService) {
     this.cardRepo = cardRepo;
+    this.dagService = dagService;
   }
 
   @Transactional
@@ -117,7 +120,23 @@ public class CardService {
     if (input.attrs() != null) card.setAttrs(input.attrs());
 
     validateInvariants(card);
-    return cardRepo.save(card);
+
+    // 시간 강제 (DAG): startDate 변경 시 선행 카드보다 앞당길 수 없음 (상류 불변식 B.start ≥ A.start)
+    if (input.startDate() != null && card.getTabId() != null && card.getStartDate() != null) {
+      LocalDate maxPredecessorStart = dagService.maxPredecessorStart(card.getTabId(), card.getId());
+      if (maxPredecessorStart != null && card.getStartDate().isBefore(maxPredecessorStart)) {
+        throw new ConflictException(
+            "cannot move card before its predecessor (predecessor starts "
+                + maxPredecessorStart
+                + ")");
+      }
+    }
+    CardEntity saved = cardRepo.save(card);
+    // 후행 노드 연쇄 이동 (B.start ≥ A.start)
+    if (input.startDate() != null && card.getTabId() != null) {
+      dagService.cascadeForward(card.getTabId(), card.getId());
+    }
+    return saved;
   }
 
   /** DnD reorder — tabId 일치 검증 + priority = (index+1) * 100 배치. */

@@ -10,6 +10,7 @@ import com.laminar.card.domain.CardImportance;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.ConflictException;
 import com.laminar.group.application.GroupRelationService;
 import com.laminar.group.application.GroupService;
 import com.laminar.group.domain.GroupEntity;
@@ -22,6 +23,7 @@ import com.laminar.subject.repository.SubjectRepository;
 import com.laminar.system.UserSystemRepository;
 import com.laminar.tab.application.TabService;
 import com.laminar.user.domain.UserEntity;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -125,6 +127,93 @@ class RelationServiceIT extends IsolationIntegrationBase {
             () -> groupRelationService.create(g1.getId(), g2.getId(), null, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("same tab");
+  }
+
+  // ---- DAG 개편 Phase 2: 시간 강제 + 연쇄 이동 + 비순환 ----
+
+  @Test
+  @Transactional
+  void card_relation_cycle_rejected() {
+    CardEntity c1 = cardService.create(simpleCard("c1"));
+    CardEntity c2 = cardService.create(simpleCard("c2"));
+    cardRelationService.create(c1.getId(), c2.getId(), null, null, null, null);
+
+    assertThatThrownBy(
+            () -> cardRelationService.create(c2.getId(), c1.getId(), null, null, null, null))
+        .isInstanceOf(ConflictException.class)
+        .hasMessageContaining("cycle");
+  }
+
+  @Test
+  @Transactional
+  void card_relation_create_cascades_successor_forward() {
+    CardEntity c1 = cardService.create(datedCard("c1", LocalDate.of(2026, 6, 5)));
+    CardEntity c2 = cardService.create(datedCard("c2", LocalDate.of(2026, 6, 3)));
+
+    cardRelationService.create(c1.getId(), c2.getId(), null, null, null, null);
+
+    assertThat(cardService.findById(c2.getId()).orElseThrow().getStartDate())
+        .isEqualTo(LocalDate.of(2026, 6, 5));
+  }
+
+  @Test
+  @Transactional
+  void card_date_update_cascades_successor_forward() {
+    CardEntity c1 = cardService.create(datedCard("c1", LocalDate.of(2026, 6, 1)));
+    CardEntity c2 = cardService.create(datedCard("c2", LocalDate.of(2026, 6, 1)));
+    cardRelationService.create(c1.getId(), c2.getId(), null, null, null, null);
+
+    cardService.update(
+        c1.getId(),
+        new CardService.UpdateInput(
+            null, null, LocalDate.of(2026, 6, 5), null, null, null, null, null, null, null, null));
+
+    assertThat(cardService.findById(c2.getId()).orElseThrow().getStartDate())
+        .isEqualTo(LocalDate.of(2026, 6, 5));
+  }
+
+  @Test
+  @Transactional
+  void card_date_update_before_predecessor_rejected() {
+    CardEntity c1 = cardService.create(datedCard("c1", LocalDate.of(2026, 6, 5)));
+    CardEntity c2 = cardService.create(datedCard("c2", LocalDate.of(2026, 6, 5)));
+    cardRelationService.create(c1.getId(), c2.getId(), null, null, null, null);
+
+    assertThatThrownBy(
+            () ->
+                cardService.update(
+                    c2.getId(),
+                    new CardService.UpdateInput(
+                        null,
+                        null,
+                        LocalDate.of(2026, 6, 1),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)))
+        .isInstanceOf(ConflictException.class)
+        .hasMessageContaining("predecessor");
+  }
+
+  private CardService.CreateInput datedCard(String title, LocalDate start) {
+    return new CardService.CreateInput(
+        tabId,
+        title,
+        null,
+        null,
+        start,
+        null,
+        null,
+        true,
+        null,
+        CardImportance.NORMAL,
+        null,
+        null,
+        null);
   }
 
   private CardService.CreateInput simpleCard(String title) {

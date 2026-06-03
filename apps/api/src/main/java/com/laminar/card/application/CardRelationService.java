@@ -6,6 +6,7 @@ import com.laminar.card.repository.CardRelationRepository;
 import com.laminar.card.repository.CardRepository;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.ConflictException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -26,10 +27,13 @@ public class CardRelationService {
 
   private final CardRelationRepository relationRepo;
   private final CardRepository cardRepo;
+  private final CardDagService dagService;
 
-  public CardRelationService(CardRelationRepository relationRepo, CardRepository cardRepo) {
+  public CardRelationService(
+      CardRelationRepository relationRepo, CardRepository cardRepo, CardDagService dagService) {
     this.relationRepo = relationRepo;
     this.cardRepo = cardRepo;
+    this.dagService = dagService;
   }
 
   @Transactional
@@ -60,6 +64,9 @@ public class CardRelationService {
     if (tabId == null || !Objects.equals(tabId, to.getTabId())) {
       throw new IllegalArgumentException("from/to cards must share a tab");
     }
+    if (dagService.wouldCreateCycle(tabId, fromCardId, toCardId)) {
+      throw new ConflictException("relation would create a cycle");
+    }
 
     CardRelationEntity relation = new CardRelationEntity();
     relation.setSubjectId(ctx.subjectId());
@@ -73,7 +80,10 @@ public class CardRelationService {
     relation.setSummary(summary);
     relation.setBodyMd(bodyMd);
     relation.setAttrs(attrs == null ? new HashMap<>() : attrs);
-    return relationRepo.save(relation);
+    CardRelationEntity saved = relationRepo.save(relation);
+    // 시간 강제: 새 엣지 from→to ⟹ to.start ≥ from.start; 위반 시 to(및 후행) 연쇄 이동
+    dagService.cascadeForward(tabId, fromCardId);
+    return saved;
   }
 
   @Transactional(readOnly = true)

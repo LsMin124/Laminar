@@ -1,5 +1,7 @@
-package com.laminar.tab;
+package com.laminar.tab.repository;
 
+import com.laminar.tab.domain.TabGroupMemberEntity;
+import com.laminar.tab.domain.TabGroupMemberId;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,7 +1,11 @@
-package com.laminar.tab;
+package com.laminar.tab.application;
 
 import com.laminar.context.WorkspaceContext;
 import com.laminar.context.WorkspaceContextHolder;
+import com.laminar.tab.domain.TabEntity;
+import com.laminar.tab.domain.TabRelationEntity;
+import com.laminar.tab.repository.TabRelationRepository;
+import com.laminar.tab.repository.TabRepository;
 import java.time.OffsetDateTime;
 import java.util.ArrayDeque;
 import java.util.Deque;

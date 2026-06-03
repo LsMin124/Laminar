@@ -1,4 +1,4 @@
-package com.laminar.tab;
+package com.laminar.tab.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

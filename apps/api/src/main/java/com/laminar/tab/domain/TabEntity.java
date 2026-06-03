@@ -1,4 +1,4 @@
-package com.laminar.tab;
+package com.laminar.tab.domain;
 
 import com.laminar.common.domain.PersonalBaseEntity;
 import jakarta.persistence.Column;
@@ -15,13 +15,13 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "tab_relations")
+@Table(name = "tabs")
 @Filter(
     name = "personalFirstFilter",
     condition = "workspace_id = :ctxWorkspaceId and user_id = :ctxUserId")
 @Getter
 @Setter
-public class TabRelationEntity extends PersonalBaseEntity {
+public class TabEntity extends PersonalBaseEntity {
 
   @Column(name = "created_by")
   private UUID createdBy;
@@ -29,17 +29,26 @@ public class TabRelationEntity extends PersonalBaseEntity {
   @Column(name = "board_id", nullable = false)
   private UUID boardId;
 
-  @Column(name = "from_tab_id", nullable = false)
-  private UUID fromTabId;
+  @Column(name = "parent_tab_id")
+  private UUID parentTabId;
 
-  @Column(name = "to_tab_id", nullable = false)
-  private UUID toTabId;
+  @Column(name = "name", nullable = false)
+  private String name;
 
-  @Column(name = "summary")
-  private String summary;
+  @Column(name = "priority", nullable = false)
+  private int priority;
 
-  @Column(name = "body_md")
-  private String bodyMd;
+  @Column(name = "is_visible", nullable = false)
+  private boolean visible = true;
+
+  @Column(name = "is_collapsed", nullable = false)
+  private boolean collapsed;
+
+  @Column(name = "show_label", nullable = false)
+  private boolean showLabel;
+
+  @Column(name = "label_color")
+  private String labelColor;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "attrs", nullable = false, columnDefinition = "jsonb")

@@ -1,7 +1,7 @@
-package com.laminar.web.tab;
+package com.laminar.tab.presentation;
 
-import com.laminar.tab.TabEntity;
-import com.laminar.tab.TabService;
+import com.laminar.tab.application.TabService;
+import com.laminar.tab.domain.TabEntity;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

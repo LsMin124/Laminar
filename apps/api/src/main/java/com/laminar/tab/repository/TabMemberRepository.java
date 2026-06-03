@@ -1,5 +1,7 @@
-package com.laminar.tab;
+package com.laminar.tab.repository;
 
+import com.laminar.tab.domain.TabMemberEntity;
+import com.laminar.tab.domain.TabMemberId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

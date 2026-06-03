@@ -1,4 +1,4 @@
-package com.laminar.web.tab;
+package com.laminar.tab.presentation;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

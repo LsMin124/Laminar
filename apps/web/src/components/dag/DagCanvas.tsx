@@ -18,10 +18,10 @@ import { ApiError } from "../../lib/api";
 import { useDialogs } from "../ui/DialogProvider";
 import "./DagCanvas.css";
 
-const PX_PER_DAY = 100;
+const PX_PER_DAY = 130;
 const LEFT_PAD = 80;
 const BACKLOG_W = 180;
-const BAR_H = 46;
+const BAR_H = 60;
 const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
@@ -370,6 +370,33 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     if (ok) deleteGroup.mutate(g.id);
   }
 
+  /** 시간 설정 — HH:MM 입력 시 allDay=false+startTime, 비우면 종일(allDay=true). */
+  async function onSetTime(c: Card) {
+    const current = c.allDay ? "" : (c.startTime?.slice(0, 5) ?? "");
+    const v = await dialogs.prompt({
+      title: "시간 설정",
+      message: "HH:MM 형식 (비우면 종일)",
+      placeholder: "14:00",
+      defaultValue: current,
+    });
+    if (v === null) return;
+    const trimmed = v.trim();
+    if (!trimmed) {
+      updateCard.mutate({ cardId: c.id, allDay: true });
+      return;
+    }
+    const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(trimmed);
+    if (!m) {
+      await dialogs.alert({ title: "형식 오류", message: "HH:MM으로 입력하세요 (예: 09:30, 14:00)" });
+      return;
+    }
+    updateCard.mutate({
+      cardId: c.id,
+      allDay: false,
+      startTime: `${m[1].padStart(2, "0")}:${m[2]}`,
+    });
+  }
+
   return (
     <div className={`dag${linkSource ? " linking" : ""}`}>
       <div className="dag-toolbar">
@@ -539,6 +566,17 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                     title="그룹에 추가/제거"
                   >
                     ▣
+                  </button>
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSetTime(c);
+                    }}
+                    title="시간 설정"
+                  >
+                    ⏱
                   </button>
                   <button
                     type="button"

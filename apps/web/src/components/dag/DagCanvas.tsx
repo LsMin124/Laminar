@@ -280,29 +280,30 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   // 가장자리 자동 스크롤 루프 — 마지막 포인터 위치 기준으로 캔버스를 밀고 드래그 카드를 따라 이동.
   function panStep() {
     const el = canvasRef.current;
-    const pt = lastPtRef.current;
-    if (!el || !dragRef.current || panDirRef.current === 0 || !pt) {
+    if (!el || panDirRef.current === 0) {
       panRafRef.current = null;
       return;
     }
     const maxScroll = el.scrollWidth - el.clientWidth;
-    el.scrollLeft = Math.max(
-      0,
-      Math.min(maxScroll, el.scrollLeft + panDirRef.current * PAN_SPEED),
-    );
-    applyPointerToDrag(pt.x, pt.y);
+    const next = Math.max(0, Math.min(maxScroll, el.scrollLeft + panDirRef.current * PAN_SPEED));
+    if (next === el.scrollLeft) {
+      panRafRef.current = null; // 경계 도달 — 정지
+      return;
+    }
+    el.scrollLeft = next;
+    // 드래그 중이면 카드가 포인터를 따라가도록 재적용(호버 중엔 스크롤만).
+    if (dragRef.current && lastPtRef.current) {
+      applyPointerToDrag(lastPtRef.current.x, lastPtRef.current.y);
+    }
     panRafRef.current = requestAnimationFrame(panStep);
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!drag) return;
-    lastPtRef.current = { x: e.clientX, y: e.clientY };
-    applyPointerToDrag(e.clientX, e.clientY);
-    // 드래그 중 좌우 경계 근처면 자동 스크롤(edge-pan) 시작/중지.
+  // 포인터 X가 좌우 경계 근처면 패닝 방향 설정 + 루프 시작/중지 (드래그·호버 공용).
+  function updateEdgePan(clientX: number) {
     const el = canvasRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const localX = e.clientX - rect.left;
+    const localX = clientX - rect.left;
     if (localX < EDGE_ZONE) panDirRef.current = -1;
     else if (localX > rect.width - EDGE_ZONE) panDirRef.current = 1;
     else panDirRef.current = 0;
@@ -311,6 +312,13 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     } else {
       stopPan();
     }
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!drag) return;
+    lastPtRef.current = { x: e.clientX, y: e.clientY };
+    applyPointerToDrag(e.clientX, e.clientY);
+    updateEdgePan(e.clientX);
   }
 
   async function handleClick(c: Card) {
@@ -479,7 +487,17 @@ export function DagCanvas({ tabId }: { tabId: string }) {
           </span>
         )}
       </div>
-      <div className="dag-canvas" ref={canvasRef} onDoubleClick={onCanvasDoubleClick}>
+      <div
+        className="dag-canvas"
+        ref={canvasRef}
+        onDoubleClick={onCanvasDoubleClick}
+        onPointerMove={(e) => {
+          if (!dragRef.current) updateEdgePan(e.clientX);
+        }}
+        onPointerLeave={() => {
+          if (!dragRef.current) stopPan();
+        }}
+      >
         <div className="dag-surface" style={{ width: maxX, height: maxY }}>
           {Array.from({ length: days }, (_, i) => {
             const x = LEFT_PAD + i * PX_PER_DAY;

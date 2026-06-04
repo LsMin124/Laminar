@@ -149,6 +149,36 @@ export function useMoveCard(tabId: string) {
       if (input.canvasY !== undefined) patch.canvasY = input.canvasY;
       return api.patch<Card>(`/api/cards/${input.cardId}`, patch);
     },
+    // 낙관적 업데이트 — 드롭 즉시 화면에 반영해 "놓은 자리로 안 가고 원위치로 되돌아갔다 점프"하는 깜빡임 제거.
+    onMutate: async (input) => {
+      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
+      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
+        g
+          ? {
+              ...g,
+              cards: g.cards.map((c) =>
+                c.id === input.cardId
+                  ? {
+                      ...c,
+                      ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
+                      ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
+                      ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
+                    }
+                  : c,
+              ),
+              cardRelations: g.cardRelations.filter(
+                (r) => !(input.severRelationIds ?? []).includes(r.id),
+              ),
+            }
+          : g,
+      );
+      await qc.cancelQueries({ queryKey: graphKey(tabId) });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snapshot = ctx as { prev?: TabGraph } | undefined;
+      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
+    },
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }

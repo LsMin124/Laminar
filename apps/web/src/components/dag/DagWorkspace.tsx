@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../../lib/api";
 import { useCreateTab, useTabs } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
+import { CalendarView } from "./CalendarView";
 import { DagCanvas } from "./DagCanvas";
 import "./DagWorkspace.css";
 
@@ -14,6 +15,7 @@ export function DagWorkspace() {
   const createTab = useCreateTab();
   const dialogs = useDialogs();
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [view, setView] = useState<"canvas" | "calendar">("canvas");
 
   const list = tabs.data ?? [];
   const active = activeTab ?? list[0]?.id ?? null;
@@ -54,13 +56,33 @@ export function DagWorkspace() {
             + 탭
           </button>
         </nav>
+        <div className="dw-views">
+          <button
+            type="button"
+            className={`dw-view${view === "canvas" ? " active" : ""}`}
+            onClick={() => setView("canvas")}
+          >
+            캔버스
+          </button>
+          <button
+            type="button"
+            className={`dw-view${view === "calendar" ? " active" : ""}`}
+            onClick={() => setView("calendar")}
+          >
+            캘린더
+          </button>
+        </div>
         <button type="button" className="dw-logout" onClick={onLogout}>
           로그아웃
         </button>
       </header>
       <main className="dw-main">
         {active ? (
-          <DagCanvas key={active} tabId={active} />
+          view === "canvas" ? (
+            <DagCanvas key={active} tabId={active} />
+          ) : (
+            <CalendarView key={active} tabId={active} />
+          )
         ) : (
           <div className="dw-empty">
             {tabs.isLoading

@@ -50,10 +50,19 @@ export interface CardRelation {
   summary: string | null;
 }
 
+export interface Group {
+  id: Uuid;
+  name: string;
+  color: string | null;
+}
+
 export interface TabGraph {
   tabId: Uuid;
   cards: Card[];
   cardRelations: CardRelation[];
+  groups: Group[];
+  /** groupId → 멤버 cardId 목록. */
+  groupMembers: Record<string, string[]>;
 }
 
 const graphKey = (tabId: string) => ["tabGraph", tabId] as const;
@@ -208,6 +217,45 @@ export function useDeleteRelation(tabId: string) {
   return useMutation({
     mutationFn: (relationId: string) =>
       api.delete<void>(`/api/card-relations/${relationId}`),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+export function useCreateGroup(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; color?: string | null }) =>
+      api.post<Group>("/api/groups", {
+        tabId,
+        name: input.name,
+        color: input.color ?? null,
+      }),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+export function useDeleteGroup(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) => api.delete<void>(`/api/groups/${groupId}`),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+export function useAddCardToGroup(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { groupId: string; cardId: string }) =>
+      api.post<void>(`/api/groups/${input.groupId}/cards/${input.cardId}`),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+export function useRemoveCardFromGroup(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { groupId: string; cardId: string }) =>
+      api.delete<void>(`/api/groups/${input.groupId}/cards/${input.cardId}`),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }

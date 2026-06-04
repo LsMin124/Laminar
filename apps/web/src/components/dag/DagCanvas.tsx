@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  useAddCardToGroup,
   useCreateCard,
+  useCreateGroup,
   useCreateRelation,
   useDeleteCard,
+  useDeleteGroup,
   useDeleteRelation,
   useMoveCard,
+  useRemoveCardFromGroup,
   useTabGraph,
   useUpdateCard,
   type Card,
+  type Group,
 } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
 import { useDialogs } from "../ui/DialogProvider";
@@ -61,6 +66,10 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const deleteCard = useDeleteCard(tabId);
   const createRelation = useCreateRelation(tabId);
   const deleteRelation = useDeleteRelation(tabId);
+  const createGroup = useCreateGroup(tabId);
+  const deleteGroup = useDeleteGroup(tabId);
+  const addCardToGroup = useAddCardToGroup(tabId);
+  const removeCardFromGroup = useRemoveCardFromGroup(tabId);
   const dialogs = useDialogs();
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -69,6 +78,8 @@ export function DagCanvas({ tabId }: { tabId: string }) {
 
   const cards = useMemo(() => graph.data?.cards ?? [], [graph.data]);
   const relations = graph.data?.cardRelations ?? [];
+  const groups = graph.data?.groups ?? [];
+  const groupMembers = graph.data?.groupMembers ?? {};
 
   // 시간축 origin은 ref로 한 번 고정한다. 매 렌더마다 카드 최소 날짜로 재계산하면, 한 카드를 더 이른
   // 날짜로 옮길 때 origin이 바뀌어 무관한 다른 카드들의 x좌표가 통째로 재배치된다("하나 옮겼는데 다른
@@ -315,6 +326,36 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     if (ok) deleteRelation.mutate(id);
   }
 
+  /** 그룹명 입력 — 이미 속한 그룹이면 제거, 있는 그룹이면 추가, 없으면 생성+추가(토글). */
+  async function onAssignGroup(card: Card) {
+    const name = await dialogs.prompt({
+      title: "그룹",
+      message: "그룹 이름 — 새 이름이면 생성, 이미 속한 그룹이면 제거",
+      placeholder: "그룹 이름",
+    });
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    const existing = groups.find((g) => g.name === trimmed);
+    if (existing) {
+      const inIt = (groupMembers[existing.id] ?? []).includes(card.id);
+      if (inIt) removeCardFromGroup.mutate({ groupId: existing.id, cardId: card.id });
+      else addCardToGroup.mutate({ groupId: existing.id, cardId: card.id });
+    } else {
+      const created = await createGroup.mutateAsync({ name: trimmed });
+      await addCardToGroup.mutateAsync({ groupId: created.id, cardId: card.id });
+    }
+  }
+
+  async function onDeleteGroup(g: Group) {
+    const ok = await dialogs.confirm({
+      title: "그룹 삭제",
+      message: `"${g.name}" 그룹을 삭제할까요? (카드는 유지됩니다)`,
+      confirmLabel: "삭제",
+      danger: true,
+    });
+    if (ok) deleteGroup.mutate(g.id);
+  }
+
   return (
     <div className={`dag${linkSource ? " linking" : ""}`}>
       <div className="dag-toolbar">
@@ -347,6 +388,48 @@ export function DagCanvas({ tabId }: { tabId: string }) {
           })}
           <div className="dag-today" style={{ left: todayX }} />
           <div className="dag-backlog-label">날짜 미정</div>
+
+          {groups.map((grp) => {
+            const members = (groupMembers[grp.id] ?? [])
+              .map((id) => cards.find((c) => c.id === id))
+              .filter((c): c is Card => !!c);
+            if (members.length === 0) return null;
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
+            for (const m of members) {
+              const gm = nodeGeom(m);
+              minX = Math.min(minX, gm.x);
+              minY = Math.min(minY, gm.y);
+              maxX = Math.max(maxX, gm.x + gm.w);
+              maxY = Math.max(maxY, gm.y + BAR_H);
+            }
+            const pad = 16;
+            const color = grp.color ?? "#5a6a7a";
+            return (
+              <div
+                key={grp.id}
+                className="dag-group"
+                style={{
+                  left: minX - pad,
+                  top: minY - pad - 8,
+                  width: maxX - minX + pad * 2,
+                  height: maxY - minY + pad * 2 + 8,
+                  borderColor: color,
+                }}
+              >
+                <span
+                  className="dag-group-label"
+                  style={{ color }}
+                  onClick={() => onDeleteGroup(grp)}
+                  title="클릭하여 그룹 삭제"
+                >
+                  {grp.name}
+                </span>
+              </div>
+            );
+          })}
 
           <svg className="dag-edges" width={maxX} height={maxY} aria-hidden="true">
             <defs>
@@ -417,6 +500,17 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                     title="다른 카드와 연결"
                   >
                     ⇢
+                  </button>
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAssignGroup(c);
+                    }}
+                    title="그룹에 추가/제거"
+                  >
+                    ▣
                   </button>
                   <button
                     type="button"

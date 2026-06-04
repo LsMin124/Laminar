@@ -172,3 +172,27 @@
 .dag-node:hover .dag-handle {
   background: rgba(108, 204, 255, 0.3);
 }
+
+/* 그룹 경계 박스 — 멤버 카드들의 bounding rect (자동 산출, pointer-events 투과) */
+.dag-group {
+  position: absolute;
+  border: 1.5px dashed #5a6a7a;
+  border-radius: 4px;
+  background: rgba(120, 150, 180, 0.04);
+  pointer-events: none;
+}
+.dag-group-label {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  transform: translateY(-50%);
+  font-size: 11px;
+  padding: 0 6px;
+  background: #0e0e0e;
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dag-group-label:hover {
+  text-decoration: line-through;
+}

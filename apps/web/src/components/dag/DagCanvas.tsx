@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useCreateCard,
   useCreateRelation,
@@ -70,15 +70,37 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const cards = useMemo(() => graph.data?.cards ?? [], [graph.data]);
   const relations = graph.data?.cardRelations ?? [];
 
-  const originMs = useMemo(() => {
-    let min = todayUtc();
-    for (const c of cards) if (c.startDate) min = Math.min(min, parseDate(c.startDate));
-    return min - 2 * MS_DAY;
+  // 시간축 origin은 ref로 한 번 고정한다. 매 렌더마다 카드 최소 날짜로 재계산하면, 한 카드를 더 이른
+  // 날짜로 옮길 때 origin이 바뀌어 무관한 다른 카드들의 x좌표가 통째로 재배치된다("하나 옮겼는데 다른
+  // 카드가 따라 움직임"). 카드가 origin보다 더 왼쪽으로 갈 때만(화면 밖 이탈 방지) 좌측으로 확장한다.
+  const minCardMs = useMemo(() => {
+    let min: number | null = null;
+    for (const c of cards) {
+      if (!c.startDate) continue;
+      const ms = parseDate(c.startDate);
+      if (min === null || ms < min) min = ms;
+    }
+    return min;
   }, [cards]);
+  const originRef = useRef<number | null>(null);
+  const didScrollRef = useRef(false);
+  if (originRef.current === null) {
+    originRef.current = (minCardMs ?? todayUtc()) - 30 * MS_DAY;
+  } else if (minCardMs !== null && minCardMs < originRef.current) {
+    originRef.current = minCardMs - 30 * MS_DAY;
+  }
+  const originMs = originRef.current;
 
   const dateToX = (ms: number) => ((ms - originMs) / MS_DAY) * PX_PER_DAY + LEFT_PAD;
   const xToDateMs = (x: number) =>
     originMs + Math.round((x - LEFT_PAD) / PX_PER_DAY) * MS_DAY;
+
+  // 최초 로드 시 콘텐츠(가장 이른 카드/오늘)가 좌측에 보이도록 스크롤 — origin 좌측 여백을 건너뛴다.
+  useEffect(() => {
+    if (didScrollRef.current || !canvasRef.current || cards.length === 0) return;
+    canvasRef.current.scrollLeft = Math.max(0, dateToX(minCardMs ?? todayUtc()) - 120);
+    didScrollRef.current = true;
+  }, [cards.length, minCardMs]);
 
   const baseY = new Map<string, number>();
   cards.forEach((c, i) => baseY.set(c.id, 60 + i * (BAR_H + 24)));

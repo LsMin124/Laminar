@@ -60,7 +60,7 @@ export function DagWorkspace() {
       </header>
       <main className="dw-main">
         {active ? (
-          <DagCanvas tabId={active} />
+          <DagCanvas key={active} tabId={active} />
         ) : (
           <div className="dw-empty">
             {tabs.isLoading

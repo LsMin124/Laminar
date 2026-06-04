@@ -134,3 +134,41 @@
 .dag-node-actions button:hover {
   color: #fff;
 }
+
+/* 멀티데이 막대 + 리사이즈 핸들 (폭은 인라인 style로 카드별 지정) */
+.dag-node {
+  width: auto;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.dag-node-title {
+  margin-bottom: 0;
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dag-node-actions {
+  right: 12px;
+  z-index: 2;
+}
+.dag-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 1;
+}
+.dag-handle.l {
+  left: 0;
+}
+.dag-handle.r {
+  right: 0;
+}
+.dag-node:hover .dag-handle {
+  background: rgba(108, 204, 255, 0.3);
+}

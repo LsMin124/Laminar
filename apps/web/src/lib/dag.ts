@@ -125,6 +125,34 @@ export function useUpdateCard(tabId: string) {
   });
 }
 
+/**
+ * 카드 geometry 이동/리사이즈 — 이전 일자 이동으로 위반되는 선행 엣지(severRelationIds)를 먼저 삭제한 뒤
+ * startDate/endDate/canvasY를 patch. 삭제+patch를 한 mutation으로 묶어 그래프는 1회만 재조회한다.
+ * 정의된 필드만 전송(undefined는 생략 → 백엔드 무변경).
+ */
+export function useMoveCard(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      cardId: string;
+      startDate?: IsoDate | null;
+      endDate?: IsoDate | null;
+      canvasY?: number | null;
+      severRelationIds?: string[];
+    }) => {
+      for (const id of input.severRelationIds ?? []) {
+        await api.delete<void>(`/api/card-relations/${id}`);
+      }
+      const patch: Record<string, unknown> = {};
+      if (input.startDate !== undefined) patch.startDate = input.startDate;
+      if (input.endDate !== undefined) patch.endDate = input.endDate;
+      if (input.canvasY !== undefined) patch.canvasY = input.canvasY;
+      return api.patch<Card>(`/api/cards/${input.cardId}`, patch);
+    },
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
 export function useDeleteCard(tabId: string) {
   const qc = useQueryClient();
   return useMutation({

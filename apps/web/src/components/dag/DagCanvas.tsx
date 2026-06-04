@@ -25,6 +25,8 @@ const BAR_H = 60;
 const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
+const EDGE_ZONE = 48;
+const PAN_SPEED = 14;
 
 function parseDate(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
@@ -89,11 +91,17 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [linkSource, setLinkSource] = useState<string | null>(null);
+  const [hideCompleted, setHideCompleted] = useState(false);
+  const dragRef = useRef<DragState | null>(null);
+  const lastPtRef = useRef<{ x: number; y: number } | null>(null);
+  const panDirRef = useRef(0);
+  const panRafRef = useRef<number | null>(null);
 
   const cards = useMemo(() => graph.data?.cards ?? [], [graph.data]);
   const relations = graph.data?.cardRelations ?? [];
   const groups = graph.data?.groups ?? [];
   const groupMembers = graph.data?.groupMembers ?? {};
+  const isVisible = (c: Card) => !hideCompleted || !c.completed;
 
   // 시간축 origin은 ref로 한 번 고정한다. 매 렌더마다 카드 최소 날짜로 재계산하면, 한 카드를 더 이른
   // 날짜로 옮길 때 origin이 바뀌어 무관한 다른 카드들의 x좌표가 통째로 재배치된다("하나 옮겼는데 다른
@@ -126,6 +134,12 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     canvasRef.current.scrollLeft = Math.max(0, dateToX(minCardMs ?? todayUtc()) - 120);
     didScrollRef.current = true;
   }, [cards.length, minCardMs]);
+
+  // 드래그 상태 미러(rAF 패닝 루프가 최신 drag를 읽도록) + 언마운트 시 패닝 정리.
+  useEffect(() => {
+    dragRef.current = drag;
+  }, [drag]);
+  useEffect(() => () => stopPan(), []);
 
   const baseY = new Map<string, number>();
   cards.forEach((c, i) => baseY.set(c.id, 60 + i * (BAR_H + 24)));
@@ -232,9 +246,8 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     });
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!drag) return;
-    const p = canvasPoint(e.clientX, e.clientY);
+  function applyPointerToDrag(clientX: number, clientY: number) {
+    const p = canvasPoint(clientX, clientY);
     setDrag((d) => {
       if (!d) return d;
       if (d.mode === "move") {
@@ -251,10 +264,53 @@ export function DagCanvas({ tabId }: { tabId: string }) {
         const nw = Math.max(PX_PER_DAY, p.x - d.x);
         return { ...d, w: nw, moved: true };
       }
-      // resize-l
       const nx = Math.max(0, Math.min(p.x, d.rightX - PX_PER_DAY));
       return { ...d, x: nx, w: d.rightX - nx, moved: true };
     });
+  }
+
+  function stopPan() {
+    if (panRafRef.current != null) {
+      cancelAnimationFrame(panRafRef.current);
+      panRafRef.current = null;
+    }
+    panDirRef.current = 0;
+  }
+
+  // 가장자리 자동 스크롤 루프 — 마지막 포인터 위치 기준으로 캔버스를 밀고 드래그 카드를 따라 이동.
+  function panStep() {
+    const el = canvasRef.current;
+    const pt = lastPtRef.current;
+    if (!el || !dragRef.current || panDirRef.current === 0 || !pt) {
+      panRafRef.current = null;
+      return;
+    }
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = Math.max(
+      0,
+      Math.min(maxScroll, el.scrollLeft + panDirRef.current * PAN_SPEED),
+    );
+    applyPointerToDrag(pt.x, pt.y);
+    panRafRef.current = requestAnimationFrame(panStep);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!drag) return;
+    lastPtRef.current = { x: e.clientX, y: e.clientY };
+    applyPointerToDrag(e.clientX, e.clientY);
+    // 드래그 중 좌우 경계 근처면 자동 스크롤(edge-pan) 시작/중지.
+    const el = canvasRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const localX = e.clientX - rect.left;
+    if (localX < EDGE_ZONE) panDirRef.current = -1;
+    else if (localX > rect.width - EDGE_ZONE) panDirRef.current = 1;
+    else panDirRef.current = 0;
+    if (panDirRef.current !== 0) {
+      if (panRafRef.current == null) panRafRef.current = requestAnimationFrame(panStep);
+    } else {
+      stopPan();
+    }
   }
 
   async function handleClick(c: Card) {
@@ -274,6 +330,8 @@ export function DagCanvas({ tabId }: { tabId: string }) {
 
   async function onPointerUp(c: Card) {
     if (!drag || drag.id !== c.id) return;
+    stopPan();
+    lastPtRef.current = null;
     const d = drag;
     if (!d.moved) {
       setDrag(null);
@@ -404,6 +462,14 @@ export function DagCanvas({ tabId }: { tabId: string }) {
           빈 곳 <strong>더블클릭</strong>=카드 · 막대 드래그=이동 · 양 끝=기간 조절 ·{" "}
           <strong>⇢</strong>=연결 · 선 클릭=연결 삭제
         </span>
+        <label className="dag-toggle">
+          <input
+            type="checkbox"
+            checked={hideCompleted}
+            onChange={(e) => setHideCompleted(e.target.checked)}
+          />
+          완료 숨기기
+        </label>
         {linkSource && (
           <span>
             · <strong>연결 대상 카드를 클릭</strong>{" "}
@@ -433,7 +499,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
           {groups.map((grp) => {
             const members = (groupMembers[grp.id] ?? [])
               .map((id) => cards.find((c) => c.id === id))
-              .filter((c): c is Card => !!c);
+              .filter((c): c is Card => !!c && isVisible(c));
             if (members.length === 0) return null;
             let minX = Infinity;
             let minY = Infinity;
@@ -489,7 +555,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
             {relations.map((rel) => {
               const from = cards.find((c) => c.id === rel.fromCardId);
               const to = cards.find((c) => c.id === rel.toCardId);
-              if (!from || !to) return null;
+              if (!from || !to || !isVisible(from) || !isVisible(to)) return null;
               const fg = nodeGeom(from);
               const tg = nodeGeom(to);
               return (
@@ -507,7 +573,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
             })}
           </svg>
 
-          {cards.map((c) => {
+          {cards.filter(isVisible).map((c) => {
             const g = nodeGeom(c);
             const dated = !!c.startDate;
             return (

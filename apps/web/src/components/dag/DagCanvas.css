@@ -196,3 +196,40 @@
 .dag-group-label:hover {
   text-decoration: line-through;
 }
+
+/* 카드 미리보기 — 완료 체크박스 + (제목 / 날짜·시간) 2줄 본문 */
+.dag-node {
+  padding: 0 10px;
+  gap: 6px;
+}
+.dag-node-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #4a90c2;
+}
+.dag-node-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+.dag-node-title {
+  flex: none;
+}
+.dag-node-meta {
+  display: block;
+  font-size: 10px;
+  color: #8a8a8a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.dag-node.completed .dag-node-title {
+  text-decoration: line-through;
+}

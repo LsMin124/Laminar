@@ -35,6 +35,7 @@ export interface Card {
   bodyMd: string | null;
   startDate: IsoDate | null;
   endDate: IsoDate | null;
+  startTime: string | null;
   allDay: boolean;
   importance: string;
   completed: boolean;
@@ -129,7 +130,34 @@ export function useUpdateCard(tabId: string) {
       const { cardId, ...patch } = input;
       return api.patch<Card>(`/api/cards/${cardId}`, patch);
     },
-    // 연쇄 이동이 다른 카드 날짜를 바꿀 수 있으므로 성공/실패 모두 그래프 재조회(서버 진실로 정렬).
+    // 제목/완료 토글이 즉시 반영되도록 낙관적 업데이트.
+    onMutate: async (input) => {
+      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
+      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
+        g
+          ? {
+              ...g,
+              cards: g.cards.map((c) =>
+                c.id === input.cardId
+                  ? {
+                      ...c,
+                      ...(input.title !== undefined ? { title: input.title } : {}),
+                      ...(input.completed !== undefined ? { completed: input.completed } : {}),
+                      ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
+                      ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
+                    }
+                  : c,
+              ),
+            }
+          : g,
+      );
+      await qc.cancelQueries({ queryKey: graphKey(tabId) });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snapshot = ctx as { prev?: TabGraph } | undefined;
+      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
+    },
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }

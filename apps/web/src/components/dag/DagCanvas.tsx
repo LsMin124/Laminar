@@ -40,6 +40,20 @@ function todayUtc(): number {
   return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
 }
 
+function shortDate(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${Number(m)}/${Number(d)}`;
+}
+
+/** 카드 개략 날짜/시간 — "6/4", "6/4–6/9"(멀티데이), "6/4 14:00"(시간지정), 날짜 없으면 "미정". */
+function cardMeta(c: Card): string {
+  if (!c.startDate) return "미정";
+  let r = shortDate(c.startDate);
+  if (c.endDate && c.endDate !== c.startDate) r += `–${shortDate(c.endDate)}`;
+  if (!c.allDay && c.startTime) r += ` ${c.startTime.slice(0, 5)}`;
+  return r;
+}
+
 type DragMode = "move" | "resize-l" | "resize-r";
 interface DragState {
   id: string;
@@ -488,7 +502,21 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                     onPointerUp={() => onPointerUp(c)}
                   />
                 )}
-                <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
+                <input
+                  type="checkbox"
+                  className="dag-node-check"
+                  checked={c.completed}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) =>
+                    updateCard.mutate({ cardId: c.id, completed: e.target.checked })
+                  }
+                  title="완료 여부"
+                />
+                <div className="dag-node-body">
+                  <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
+                  <div className="dag-node-meta">{cardMeta(c)}</div>
+                </div>
                 <div className="dag-node-actions">
                   <button
                     type="button"

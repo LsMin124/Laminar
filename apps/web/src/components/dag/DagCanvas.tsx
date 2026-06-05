@@ -25,6 +25,8 @@ const BAR_H = 60;
 const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
+// 우측(미래) 무한스크롤 여유 — 좌측은 origin 30일 버퍼로 넉넉하나 우측이 +240px(≈2일)뿐이라 빡빡했다.
+const FORWARD_BUFFER_DAYS = 120;
 const EDGE_ZONE = 48;
 const PAN_SPEED = 14;
 
@@ -162,13 +164,15 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     return { x, y, w: barWidth(c) };
   }
 
-  const maxX = cards.reduce((m, c) => {
+  const todayX = dateToX(todayUtc());
+  // 우측 경계 = (가장 오른쪽 카드 끝 또는 오늘) + 미래 버퍼. 카드를 더 우측으로 끌면 자동으로 더 늘어난다.
+  const contentRightX = cards.reduce((m, c) => {
     const g = nodeGeom(c);
-    return Math.max(m, g.x + g.w + 240);
-  }, 1600);
+    return Math.max(m, g.x + g.w);
+  }, todayX);
+  const maxX = contentRightX + FORWARD_BUFFER_DAYS * PX_PER_DAY;
   const maxY = cards.reduce((m, c) => Math.max(m, nodeGeom(c).y + BAR_H + 240), 800);
   const days = Math.ceil((maxX - LEFT_PAD) / PX_PER_DAY) + 1;
-  const todayX = dateToX(todayUtc());
 
   function canvasPoint(clientX: number, clientY: number) {
     const el = canvasRef.current;

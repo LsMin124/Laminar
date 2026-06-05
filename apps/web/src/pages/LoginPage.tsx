@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useLogin } from "../lib/queries";
+import { useLogin } from "../lib/auth";
 import { ApiError } from "../lib/api";
 import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
 

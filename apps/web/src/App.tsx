@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useMe } from "./lib/queries";
+import { useMe } from "./lib/auth";
 import { setCurrentWorkspaceId, api } from "./lib/api";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";

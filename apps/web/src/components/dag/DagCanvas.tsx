@@ -512,39 +512,69 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   return (
     <div className={`dag${linkSource ? " linking" : ""}`}>
       <div className="dag-toolbar">
-        <button type="button" className="dag-tool" onClick={onAddCard}>
-          + 카드
+        <button type="button" className="dag-tool" onClick={onAddCard} title="새 카드">
+          ＋ 카드
         </button>
-        {sole && (
-          <>
-            <span className="dag-tool-sep" />
-            <button type="button" className="dag-tool" onClick={onToolLink}>
-              연결
-            </button>
-            <button type="button" className="dag-tool" onClick={() => onSetTime(sole)}>
-              시간
-            </button>
-            <button type="button" className="dag-tool" onClick={() => onEditTitle(sole)}>
-              제목
-            </button>
-            {soleInGroup && (
-              <button type="button" className="dag-tool" onClick={onUngroup}>
-                그룹 해제
-              </button>
-            )}
-          </>
-        )}
-        {selCount >= 1 && (
-          <>
-            <span className="dag-tool-sep" />
-            <button type="button" className="dag-tool" onClick={onToolGroup}>
-              그룹화
-            </button>
-            <button type="button" className="dag-tool danger" onClick={onToolDelete}>
-              삭제 ({selCount})
-            </button>
-          </>
-        )}
+        <span className="dag-tool-sep" />
+        <button
+          type="button"
+          className="dag-tool"
+          disabled={!sole}
+          onClick={onToolLink}
+          title="선택 카드에서 연결 시작 (1개 선택)"
+        >
+          ⇢ 연결
+        </button>
+        <button
+          type="button"
+          className="dag-tool"
+          disabled={!sole}
+          onClick={() => {
+            if (sole) onSetTime(sole);
+          }}
+          title="시간 설정 (1개 선택)"
+        >
+          ⏱ 시간
+        </button>
+        <button
+          type="button"
+          className="dag-tool"
+          disabled={!sole}
+          onClick={() => {
+            if (sole) onEditTitle(sole);
+          }}
+          title="제목 편집 (1개 선택)"
+        >
+          ✎ 제목
+        </button>
+        <span className="dag-tool-sep" />
+        <button
+          type="button"
+          className="dag-tool"
+          disabled={selCount < 1}
+          onClick={onToolGroup}
+          title="선택한 카드들을 그룹으로"
+        >
+          ▣ 그룹화
+        </button>
+        <button
+          type="button"
+          className="dag-tool"
+          disabled={!soleInGroup}
+          onClick={onUngroup}
+          title="선택 카드를 그룹에서 제외"
+        >
+          ⊟ 그룹 해제
+        </button>
+        <button
+          type="button"
+          className="dag-tool danger"
+          disabled={selCount < 1}
+          onClick={onToolDelete}
+          title="선택 카드 삭제"
+        >
+          ✕ 삭제{selCount > 0 ? ` (${selCount})` : ""}
+        </button>
         <label className="dag-toggle">
           <input
             type="checkbox"

@@ -281,3 +281,11 @@
   font-size: 11px;
   color: #777;
 }
+.dag-tool:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+.dag-tool:disabled:hover {
+  background: #1f1f1f;
+  color: #ccc;
+}

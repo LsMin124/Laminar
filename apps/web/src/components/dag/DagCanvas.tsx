@@ -25,8 +25,8 @@ const BAR_H = 60;
 const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
-// 우측(미래) 무한스크롤 여유 — 좌측은 origin 30일 버퍼로 넉넉하나 우측이 +240px(≈2일)뿐이라 빡빡했다.
-const FORWARD_BUFFER_DAYS = 120;
+// 우측(미래) 무한스크롤 여유 — 좌측 origin 30일 버퍼에 대응. 끝까지 끌면 자동 확장되므로 휴식 헤드룸만 확보.
+const FORWARD_BUFFER_DAYS = 60;
 const EDGE_ZONE = 48;
 const PAN_SPEED = 14;
 
@@ -173,6 +173,24 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const maxX = contentRightX + FORWARD_BUFFER_DAYS * PX_PER_DAY;
   const maxY = cards.reduce((m, c) => Math.max(m, nodeGeom(c).y + BAR_H + 240), 800);
   const days = Math.ceil((maxX - LEFT_PAD) / PX_PER_DAY) + 1;
+
+  // 날짜축 그리드(선+라벨)는 origin/일수에만 의존 → 메모이즈해 드래그 매 프레임 재렌더에서 제외(부담 제거).
+  const gridCells = useMemo(
+    () =>
+      Array.from({ length: days }, (_, i) => {
+        const x = LEFT_PAD + i * PX_PER_DAY;
+        const d = new Date(originMs + i * MS_DAY);
+        return (
+          <div key={`ax-${i}`}>
+            <div className="dag-gridline" style={{ left: x }} />
+            <div className="dag-axis-label" style={{ left: x }}>
+              {`${d.getUTCMonth() + 1}/${d.getUTCDate()}`}
+            </div>
+          </div>
+        );
+      }),
+    [days, originMs],
+  );
 
   function canvasPoint(clientX: number, clientY: number) {
     const el = canvasRef.current;
@@ -618,18 +636,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
         }}
       >
         <div className="dag-surface" style={{ width: maxX, height: maxY }}>
-          {Array.from({ length: days }, (_, i) => {
-            const x = LEFT_PAD + i * PX_PER_DAY;
-            const d = new Date(originMs + i * MS_DAY);
-            return (
-              <div key={`ax-${i}`}>
-                <div className="dag-gridline" style={{ left: x }} />
-                <div className="dag-axis-label" style={{ left: x }}>
-                  {`${d.getUTCMonth() + 1}/${d.getUTCDate()}`}
-                </div>
-              </div>
-            );
-          })}
+          {gridCells}
           <div className="dag-today" style={{ left: todayX }} />
           <div className="dag-backlog-label">날짜 미정</div>
 

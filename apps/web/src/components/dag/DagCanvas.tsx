@@ -132,12 +132,13 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const xToDateMs = (x: number) =>
     originMs + Math.round((x - LEFT_PAD) / PX_PER_DAY) * MS_DAY;
 
-  // 최초 로드 시 콘텐츠(가장 이른 카드/오늘)가 좌측에 보이도록 스크롤 — origin 좌측 여백을 건너뛴다.
+  // 페이지 진입 시 오늘 날짜가 뷰포트 중심에 오도록 1회 스크롤(그래프 로드 후 origin이 안정된 시점).
   useEffect(() => {
-    if (didScrollRef.current || !canvasRef.current || cards.length === 0) return;
-    canvasRef.current.scrollLeft = Math.max(0, dateToX(minCardMs ?? todayUtc()) - 120);
+    const el = canvasRef.current;
+    if (didScrollRef.current || !el || !graph.data) return;
+    el.scrollLeft = Math.max(0, dateToX(todayUtc()) - el.clientWidth / 2);
     didScrollRef.current = true;
-  }, [cards.length, minCardMs]);
+  }, [graph.data]);
 
   // 드래그 상태 미러(rAF 패닝 루프가 최신 drag를 읽도록) + 언마운트 시 패닝 정리.
   useEffect(() => {

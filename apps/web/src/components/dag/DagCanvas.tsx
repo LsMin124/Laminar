@@ -67,6 +67,7 @@ interface DragState {
   offsetY: number;
   rightX: number;
   moved: boolean;
+  shift: boolean;
 }
 
 /**
@@ -92,6 +93,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const [linkSource, setLinkSource] = useState<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const dragRef = useRef<DragState | null>(null);
   const lastPtRef = useRef<{ x: number; y: number } | null>(null);
   const panDirRef = useRef(0);
@@ -226,6 +228,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
       offsetY: p.y - g.y,
       rightX: g.x + g.w,
       moved: false,
+      shift: e.shiftKey,
     });
   }
 
@@ -243,6 +246,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
       offsetY: 0,
       rightX: g.x + g.w,
       moved: false,
+      shift: false,
     });
   }
 
@@ -321,18 +325,10 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     updateEdgePan(e.clientX);
   }
 
-  async function handleClick(c: Card) {
-    if (linkSource && linkSource !== c.id) {
-      const from = linkSource;
-      setLinkSource(null);
-      createRelation.mutate({ fromCardId: from, toCardId: c.id }, { onError: reportError });
-    } else if (linkSource === c.id) {
-      setLinkSource(null);
-    } else {
-      const title = await dialogs.prompt({ title: "카드 제목 편집", defaultValue: c.title });
-      if (title && title.trim() && title !== c.title) {
-        updateCard.mutate({ cardId: c.id, title: title.trim() });
-      }
+  async function onEditTitle(c: Card) {
+    const title = await dialogs.prompt({ title: "카드 제목 편집", defaultValue: c.title });
+    if (title && title.trim() && title !== c.title) {
+      updateCard.mutate({ cardId: c.id, title: title.trim() });
     }
   }
 
@@ -343,7 +339,26 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     const d = drag;
     if (!d.moved) {
       setDrag(null);
-      if (d.mode === "move") await handleClick(c);
+      if (d.mode === "move") {
+        if (linkSource) {
+          if (linkSource !== c.id) {
+            createRelation.mutate(
+              { fromCardId: linkSource, toCardId: c.id },
+              { onError: reportError },
+            );
+          }
+          setLinkSource(null);
+        } else if (d.shift) {
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(c.id)) next.delete(c.id);
+            else next.add(c.id);
+            return next;
+          });
+        } else {
+          setSelectedIds(new Set([c.id]));
+        }
+      }
       return;
     }
     try {
@@ -391,14 +406,18 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     }
   }
 
-  async function onDeleteCard(c: Card) {
+  async function onToolDelete() {
+    const sel = [...selectedIds];
+    if (sel.length === 0) return;
     const ok = await dialogs.confirm({
       title: "카드 삭제",
-      message: `"${c.title}" 카드를 삭제할까요?`,
+      message: `선택한 ${sel.length}개 카드를 삭제할까요?`,
       confirmLabel: "삭제",
       danger: true,
     });
-    if (ok) deleteCard.mutate(c.id);
+    if (!ok) return;
+    for (const cardId of sel) deleteCard.mutate(cardId);
+    setSelectedIds(new Set());
   }
 
   async function onDeleteRelation(id: string) {
@@ -406,23 +425,45 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     if (ok) deleteRelation.mutate(id);
   }
 
-  /** 그룹명 입력 — 이미 속한 그룹이면 제거, 있는 그룹이면 추가, 없으면 생성+추가(토글). */
-  async function onAssignGroup(card: Card) {
+  async function onAddCard() {
+    const title = await dialogs.prompt({ title: "새 카드", placeholder: "카드 제목" });
+    if (!title || !title.trim()) return;
+    createCard.mutate({ title: title.trim(), startDate: fmtDate(todayUtc()) });
+  }
+
+  function onToolLink() {
+    if (selectedIds.size !== 1) return;
+    const [id] = [...selectedIds];
+    setLinkSource(id);
+    setSelectedIds(new Set());
+  }
+
+  /** 선택한 카드들을 그룹으로 — 기존 이름이면 그 그룹에 추가, 새 이름이면 생성+추가. */
+  async function onToolGroup() {
+    const sel = [...selectedIds];
+    if (sel.length === 0) return;
     const name = await dialogs.prompt({
-      title: "그룹",
-      message: "그룹 이름 — 새 이름이면 생성, 이미 속한 그룹이면 제거",
+      title: "그룹화",
+      message: `선택한 ${sel.length}개 카드를 그룹으로 묶기 (기존 이름이면 그 그룹에 추가)`,
       placeholder: "그룹 이름",
     });
     if (!name || !name.trim()) return;
     const trimmed = name.trim();
     const existing = groups.find((g) => g.name === trimmed);
-    if (existing) {
-      const inIt = (groupMembers[existing.id] ?? []).includes(card.id);
-      if (inIt) removeCardFromGroup.mutate({ groupId: existing.id, cardId: card.id });
-      else addCardToGroup.mutate({ groupId: existing.id, cardId: card.id });
-    } else {
-      const created = await createGroup.mutateAsync({ name: trimmed });
-      await addCardToGroup.mutateAsync({ groupId: created.id, cardId: card.id });
+    const groupId = existing ? existing.id : (await createGroup.mutateAsync({ name: trimmed })).id;
+    for (const cardId of sel) {
+      await addCardToGroup.mutateAsync({ groupId, cardId });
+    }
+  }
+
+  /** 선택한 카드를 속한 모든 그룹에서 제외. */
+  function onUngroup() {
+    for (const cardId of selectedIds) {
+      for (const g of groups) {
+        if ((groupMembers[g.id] ?? []).includes(cardId)) {
+          removeCardFromGroup.mutate({ groupId: g.id, cardId });
+        }
+      }
     }
   }
 
@@ -463,13 +504,47 @@ export function DagCanvas({ tabId }: { tabId: string }) {
     });
   }
 
+  const selCount = selectedIds.size;
+  const sole = selCount === 1 ? (cards.find((c) => selectedIds.has(c.id)) ?? null) : null;
+  const soleInGroup =
+    !!sole && groups.some((g) => (groupMembers[g.id] ?? []).includes(sole.id));
+
   return (
     <div className={`dag${linkSource ? " linking" : ""}`}>
       <div className="dag-toolbar">
-        <span>
-          빈 곳 <strong>더블클릭</strong>=카드 · 막대 드래그=이동 · 양 끝=기간 조절 ·{" "}
-          <strong>⇢</strong>=연결 · 선 클릭=연결 삭제
-        </span>
+        <button type="button" className="dag-tool" onClick={onAddCard}>
+          + 카드
+        </button>
+        {sole && (
+          <>
+            <span className="dag-tool-sep" />
+            <button type="button" className="dag-tool" onClick={onToolLink}>
+              연결
+            </button>
+            <button type="button" className="dag-tool" onClick={() => onSetTime(sole)}>
+              시간
+            </button>
+            <button type="button" className="dag-tool" onClick={() => onEditTitle(sole)}>
+              제목
+            </button>
+            {soleInGroup && (
+              <button type="button" className="dag-tool" onClick={onUngroup}>
+                그룹 해제
+              </button>
+            )}
+          </>
+        )}
+        {selCount >= 1 && (
+          <>
+            <span className="dag-tool-sep" />
+            <button type="button" className="dag-tool" onClick={onToolGroup}>
+              그룹화
+            </button>
+            <button type="button" className="dag-tool danger" onClick={onToolDelete}>
+              삭제 ({selCount})
+            </button>
+          </>
+        )}
         <label className="dag-toggle">
           <input
             type="checkbox"
@@ -478,19 +553,29 @@ export function DagCanvas({ tabId }: { tabId: string }) {
           />
           완료 숨기기
         </label>
-        {linkSource && (
-          <span>
-            · <strong>연결 대상 카드를 클릭</strong>{" "}
-            <button type="button" onClick={() => setLinkSource(null)}>
-              취소
-            </button>
-          </span>
-        )}
+        <span className="dag-hint">
+          {linkSource ? (
+            <>
+              <strong>연결 대상 카드 클릭</strong>{" "}
+              <button type="button" className="dag-tool" onClick={() => setLinkSource(null)}>
+                취소
+              </button>
+            </>
+          ) : selCount > 0 ? (
+            `${selCount}개 선택됨 · Shift+클릭 다중 · 빈 곳 클릭 해제`
+          ) : (
+            "카드 클릭=선택 · 빈 곳 더블클릭=새 카드 · 드래그=이동/기간"
+          )}
+        </span>
       </div>
       <div
         className="dag-canvas"
         ref={canvasRef}
         onDoubleClick={onCanvasDoubleClick}
+        onPointerDown={() => {
+          setSelectedIds(new Set());
+          if (linkSource) setLinkSource(null);
+        }}
         onPointerMove={(e) => {
           if (!dragRef.current) updateEdgePan(e.clientX);
         }}
@@ -599,7 +684,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                 key={c.id}
                 className={`dag-node${c.completed ? " completed" : ""}${
                   linkSource === c.id ? " link-src" : ""
-                }`}
+                }${selectedIds.has(c.id) ? " selected" : ""}`}
                 style={{ left: g.x, top: g.y, width: g.w, height: BAR_H }}
                 onPointerDown={(e) => onBodyDown(e, c)}
                 onPointerMove={onPointerMove}
@@ -627,52 +712,6 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                 <div className="dag-node-body">
                   <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
                   <div className="dag-node-meta">{cardMeta(c)}</div>
-                </div>
-                <div className="dag-node-actions">
-                  <button
-                    type="button"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLinkSource(c.id);
-                    }}
-                    title="다른 카드와 연결"
-                  >
-                    ⇢
-                  </button>
-                  <button
-                    type="button"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAssignGroup(c);
-                    }}
-                    title="그룹에 추가/제거"
-                  >
-                    ▣
-                  </button>
-                  <button
-                    type="button"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSetTime(c);
-                    }}
-                    title="시간 설정"
-                  >
-                    ⏱
-                  </button>
-                  <button
-                    type="button"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteCard(c);
-                    }}
-                    title="카드 삭제"
-                  >
-                    ✕
-                  </button>
                 </div>
                 {dated && (
                   <div

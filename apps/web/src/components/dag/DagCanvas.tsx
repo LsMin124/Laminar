@@ -27,6 +27,8 @@ const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
 // 우측(미래) 무한스크롤 여유 — 좌측 origin 30일 버퍼에 대응. 끝까지 끌면 자동 확장되므로 휴식 헤드룸만 확보.
 const FORWARD_BUFFER_DAYS = 60;
+// 진입 시 오늘을 뷰포트 가로 이 비율 지점에 배치(0.5=중앙, 0.4=살짝 좌측 → 미래 쪽을 더 넓게).
+const TODAY_VIEW_RATIO = 0.4;
 const EDGE_ZONE = 48;
 const PAN_SPEED = 14;
 
@@ -132,11 +134,11 @@ export function DagCanvas({ tabId }: { tabId: string }) {
   const xToDateMs = (x: number) =>
     originMs + Math.round((x - LEFT_PAD) / PX_PER_DAY) * MS_DAY;
 
-  // 페이지 진입 시 오늘 날짜가 뷰포트 중심에 오도록 1회 스크롤(그래프 로드 후 origin이 안정된 시점).
+  // 페이지 진입 시 오늘을 뷰포트 살짝 좌측(미래를 더 넓게)에 두도록 1회 스크롤(그래프 로드 후 origin 안정 시점).
   useEffect(() => {
     const el = canvasRef.current;
     if (didScrollRef.current || !el || !graph.data) return;
-    el.scrollLeft = Math.max(0, dateToX(todayUtc()) - el.clientWidth / 2);
+    el.scrollLeft = Math.max(0, dateToX(todayUtc()) - el.clientWidth * TODAY_VIEW_RATIO);
     didScrollRef.current = true;
   }, [graph.data]);
 

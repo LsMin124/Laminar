@@ -92,6 +92,16 @@ export function useCreateSubject() {
   });
 }
 
+/** 현재(활성) 주제 이름 변경 — 백엔드 PATCH /current는 헤더의 활성 주제를 대상으로 한다. */
+export function useUpdateSubject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      api.patch<Subject>("/api/subjects/current", { name }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
+  });
+}
+
 export function useTabs() {
   return useQuery({
     queryKey: ["tabs"],

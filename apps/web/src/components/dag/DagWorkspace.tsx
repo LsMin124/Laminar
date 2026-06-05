@@ -40,7 +40,6 @@ export function DagWorkspace() {
   return (
     <div className="dw">
       <header className="dw-header">
-        <strong className="dw-brand">LAMINAR</strong>
         <nav className="dw-tabs">
           {list.map((t) => (
             <button

@@ -79,6 +79,19 @@ export function useSubjects() {
   });
 }
 
+export function useCreateSubject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      api.post<Subject>("/api/subjects", {
+        name,
+        slug: slugify(name),
+        defaultTimezone: "Asia/Seoul",
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
+  });
+}
+
 export function useTabs() {
   return useQuery({
     queryKey: ["tabs"],

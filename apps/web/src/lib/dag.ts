@@ -162,6 +162,7 @@ export function useUpdateCard(tabId: string) {
       completed?: boolean;
       startTime?: string | null;
       allDay?: boolean;
+      bodyMd?: string | null;
     }) => {
       const { cardId, ...patch } = input;
       return api.patch<Card>(`/api/cards/${cardId}`, patch);
@@ -183,6 +184,7 @@ export function useUpdateCard(tabId: string) {
                       ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
                       ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
                       ...(input.allDay !== undefined ? { allDay: input.allDay } : {}),
+                      ...(input.bodyMd !== undefined ? { bodyMd: input.bodyMd } : {}),
                     }
                   : c,
               ),

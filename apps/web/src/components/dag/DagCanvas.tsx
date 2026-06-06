@@ -99,7 +99,13 @@ interface DragState {
  * 막대 몸통 드래그=이동(span 보존), 좌/우 끝 핸들=리사이즈(start/end), "⇢"=관계 생성, 더블클릭=카드 생성.
  * 이전 일자로 이동해 선행 관계를 위반하면 그 화살표를 끊을지 확인 후 이동한다.
  */
-export function DagCanvas({ tabId }: { tabId: string }) {
+export function DagCanvas({
+  tabId,
+  onOpenCard,
+}: {
+  tabId: string;
+  onOpenCard?: (cardId: string, title: string) => void;
+}) {
   const graph = useTabGraph(tabId);
   const createCard = useCreateCard(tabId);
   const updateCard = useUpdateCard(tabId);
@@ -758,6 +764,10 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                 onPointerDown={(e) => onBodyDown(e, c)}
                 onPointerMove={onPointerMove}
                 onPointerUp={() => onPointerUp(c)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  onOpenCard?.(c.id, c.title);
+                }}
               >
                 {dated && (
                   <div

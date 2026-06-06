@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { api } from "../../lib/api";
 import { useCreateTab, useTabs } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
@@ -6,6 +6,11 @@ import { CalendarView } from "./CalendarView";
 import { DagCanvas } from "./DagCanvas";
 import { Identicon } from "./Identicon";
 import "./DagWorkspace.css";
+
+// 본문(마크다운+KaTeX)은 무겁고 항상 쓰진 않으므로 지연 로드 — 초기 번들에서 분리.
+const CardBody = lazy(() =>
+  import("./CardBody").then((m) => ({ default: m.CardBody })),
+);
 
 /**
  * DAG 워크스페이스 셸 — 탭 목록/생성 + 선택 탭의 DAG 캔버스 호스트.
@@ -23,6 +28,9 @@ export function DagWorkspace({
   const dialogs = useDialogs();
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [view, setView] = useState<"canvas" | "calendar">("canvas");
+  // 브라우저 탭식 본문 문서 — 열린 카드들 + 활성(activeDoc=null이면 보드 뷰).
+  const [openDocs, setOpenDocs] = useState<{ cardId: string; tabId: string; title: string }[]>([]);
+  const [activeDoc, setActiveDoc] = useState<string | null>(null);
 
   const list = tabs.data ?? [];
   const active = activeTab ?? list[0]?.id ?? null;
@@ -42,6 +50,25 @@ export function DagWorkspace({
     }
     localStorage.removeItem("laminar.workspaceId");
     location.reload();
+  }
+
+  // 카드 본문을 문서 탭으로 열기(이미 열려 있으면 제목 갱신 후 활성화).
+  function openCard(cardId: string, title: string) {
+    if (!active) return;
+    setOpenDocs((prev) =>
+      prev.some((d) => d.cardId === cardId)
+        ? prev.map((d) => (d.cardId === cardId ? { ...d, title } : d))
+        : [...prev, { cardId, tabId: active, title }],
+    );
+    setActiveDoc(cardId);
+  }
+  function closeDoc(cardId: string) {
+    setOpenDocs((prev) => prev.filter((d) => d.cardId !== cardId));
+    setActiveDoc((cur) => (cur === cardId ? null : cur));
+  }
+  function showBoard(nextView?: "canvas" | "calendar") {
+    if (nextView) setView(nextView);
+    setActiveDoc(null);
   }
 
   return (
@@ -69,15 +96,15 @@ export function DagWorkspace({
         <div className="dw-views">
           <button
             type="button"
-            className={`dw-view${view === "canvas" ? " active" : ""}`}
-            onClick={() => setView("canvas")}
+            className={`dw-view${activeDoc === null && view === "canvas" ? " active" : ""}`}
+            onClick={() => showBoard("canvas")}
           >
             캔버스
           </button>
           <button
             type="button"
-            className={`dw-view${view === "calendar" ? " active" : ""}`}
-            onClick={() => setView("calendar")}
+            className={`dw-view${activeDoc === null && view === "calendar" ? " active" : ""}`}
+            onClick={() => showBoard("calendar")}
           >
             캘린더
           </button>
@@ -86,10 +113,52 @@ export function DagWorkspace({
           로그아웃
         </button>
       </header>
+      {openDocs.length > 0 && (
+        <nav className="dw-doctabs">
+          <button
+            type="button"
+            className={`dw-doctab${activeDoc === null ? " active" : ""}`}
+            onClick={() => setActiveDoc(null)}
+          >
+            ◧ 보드
+          </button>
+          {openDocs.map((d) => (
+            <span
+              key={d.cardId}
+              className={`dw-doctab${activeDoc === d.cardId ? " active" : ""}`}
+            >
+              <button
+                type="button"
+                className="dw-doctab-label"
+                onClick={() => setActiveDoc(d.cardId)}
+                title={d.title}
+              >
+                {d.title || "(제목 없음)"}
+              </button>
+              <button
+                type="button"
+                className="dw-doctab-x"
+                onClick={() => closeDoc(d.cardId)}
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </nav>
+      )}
       <main className="dw-main">
-        {active ? (
+        {activeDoc ? (
+          <Suspense fallback={<div className="dw-empty">본문 불러오는 중...</div>}>
+            <CardBody
+              key={activeDoc}
+              cardId={activeDoc}
+              tabId={openDocs.find((d) => d.cardId === activeDoc)?.tabId ?? active ?? ""}
+            />
+          </Suspense>
+        ) : active ? (
           view === "canvas" ? (
-            <DagCanvas key={active} tabId={active} />
+            <DagCanvas key={active} tabId={active} onOpenCard={openCard} />
           ) : (
             <CalendarView key={active} tabId={active} />
           )

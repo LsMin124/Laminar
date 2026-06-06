@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "../../lib/api";
 import {
@@ -10,6 +10,7 @@ import {
 } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
 import { DagWorkspace } from "./DagWorkspace";
+import { Identicon } from "./Identicon";
 import "./SubjectLayout.css";
 
 /**
@@ -102,11 +103,10 @@ export function SubjectLayout() {
               key={s.id}
               type="button"
               className={`rail-tile${s.id === activeId ? " active" : ""}`}
-              style={{ "--tile-hue": tileHue(s.id) } as CSSProperties}
               onClick={() => switchSubject(s.id)}
               title={s.name}
             >
-              {tileGlyph(s.name)}
+              <Identicon seed={s.id} size={28} />
             </button>
           ))}
           <button type="button" className="rail-btn" onClick={onCreateSubject} title="새 주제">
@@ -161,7 +161,7 @@ export function SubjectLayout() {
                     onClick={() => switchSubject(s.id)}
                     title="이 주제로 전환"
                   >
-                    <span className="subj-dot" style={{ "--tile-hue": tileHue(s.id) } as CSSProperties} />
+                    <Identicon seed={s.id} size={18} />
                     {s.name}
                   </button>
                   <button type="button" className="subj-act" onClick={() => onRename(s)}>
@@ -187,15 +187,3 @@ export function SubjectLayout() {
   );
 }
 
-/** 주제 이름 첫 글자(타일 글리프). 비면 가운뎃점. */
-function tileGlyph(name: string): string {
-  const ch = name.trim().charAt(0);
-  return ch ? ch.toUpperCase() : "·";
-}
-
-/** 주제 id에서 식별용 hue 파생(차분한 한색 계열). 정식 디자인 적용 전 임시. */
-function tileHue(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
-  return h;
-}

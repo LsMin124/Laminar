@@ -32,9 +32,9 @@
   font-size: 13px;
 }
 .dw-tab.active {
-  background: #2a2a2a;
+  background: var(--accent-bg);
   color: #fff;
-  border-color: #555;
+  border-color: var(--accent);
 }
 .dw-tab-add {
   background: none;
@@ -74,7 +74,7 @@
   font-size: 12px;
 }
 .dw-view.active {
-  background: #2a2a2a;
+  background: var(--accent-bg);
   color: #fff;
-  border-color: #555;
+  border-color: var(--accent);
 }

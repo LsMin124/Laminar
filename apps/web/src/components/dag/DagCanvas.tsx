@@ -696,7 +696,7 @@ export function DagCanvas({ tabId }: { tabId: string }) {
                 markerHeight="7"
                 orient="auto-start-reverse"
               >
-                <path d="M0,0 L10,5 L0,10 z" fill="#4a90c2" />
+                <path d="M0,0 L10,5 L0,10 z" style={{ fill: "var(--accent-soft)" }} />
               </marker>
             </defs>
             {relations.map((rel) => {

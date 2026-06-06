@@ -1,16 +1,19 @@
 :root {
-  /* 차갑고 건조한 사이버네틱 다크 팔레트 (blue-tinted black + electric cyan) */
-  --bg: #06090e;
-  --surface: #0c121b;
-  --surface-2: #141c28;
-  --rule: #223044;
-  --text: #dce6f2;
-  --text-dim: #74869c;
-  --accent: #0b8aa6;
-  --accent-hover: #15b3d4;
-  --accent-bright: #2ee6ff;
-  --danger: #f43f5e;
-  --grid-line: rgba(110, 160, 210, 0.025);
+  /* Claude Code 풍 웜 다크 팔레트 (warm near-black + coral-orange accent) */
+  --bg: #100d0b;
+  --surface: #1a1613;
+  --surface-2: #241e1a;
+  --rule: #3a302b;
+  --text: #ece7e1;
+  --text-dim: #9a8d83;
+  --accent: #d97757;
+  --accent-hover: #e08a6b;
+  --accent-bright: #f0a487;
+  --accent-soft: #c2693f;
+  --accent-bg: #2a1a12;
+  --accent-border: #4a3328;
+  --danger: #e0564e;
+  --grid-line: rgba(217, 119, 87, 0.022);
 }
 
 * {
@@ -29,10 +32,10 @@ body {
     "Noto Sans KR", sans-serif;
 }
 
-/* 얇은 사이버 스크롤바 — 평소 저채도(거의 안 보임), hover 시 시안. 스크롤 힌트 유지 */
+/* 얇은 스크롤바 — 평소 저채도(거의 안 보임), hover 시 액센트. 스크롤 힌트 유지 */
 * {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(110, 160, 210, 0.22) transparent;
+  scrollbar-color: rgba(200, 150, 122, 0.22) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -45,7 +48,7 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(110, 160, 210, 0.22);
+  background: rgba(200, 150, 122, 0.22);
   background-clip: padding-box;
   border: 3px solid transparent; /* 보이는 막대를 ~3px로 얇게 */
   border-radius: 2px;

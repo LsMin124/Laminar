@@ -35,7 +35,7 @@
   color: #aaa;
 }
 .cal-toggle input {
-  accent-color: #4a90c2;
+  accent-color: var(--accent-soft);
   cursor: pointer;
 }
 .cal-hint {
@@ -79,10 +79,10 @@
   color: #555;
 }
 .cal-cell.today {
-  background: rgba(46, 125, 91, 0.1);
+  background: rgba(217, 119, 87, 0.1);
 }
 .cal-cell.today .cal-date {
-  color: #3fae7e;
+  color: var(--accent);
   font-weight: bold;
 }
 .cal-date {
@@ -100,8 +100,8 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  background: #1c2330;
-  border: 1px solid #2f3a4a;
+  background: #241e1a;
+  border: 1px solid #3a302b;
   border-radius: 2px;
   padding: 1px 4px;
   font-size: 11px;
@@ -118,7 +118,7 @@
   height: 12px;
   margin: 0;
   flex: none;
-  accent-color: #4a90c2;
+  accent-color: var(--accent-soft);
   cursor: pointer;
 }
 .cal-chip-title {
@@ -131,5 +131,5 @@
 .cal-chip-span {
   flex: none;
   font-size: 10px;
-  color: #8898b8;
+  color: #b8a99c;
 }

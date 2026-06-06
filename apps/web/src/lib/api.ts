@@ -74,6 +74,7 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
+  opts?: { skipSubjectHeader?: boolean },
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -82,7 +83,9 @@ async function request<T>(
     "X-Laminar-CSRF": "1",
   };
   const workspaceId = getCurrentWorkspaceId();
-  if (workspaceId) {
+  // 주제 목록 조회(GET /api/subjects)는 SYSTEM scope여야 한다 — 헤더가 있으면 subjectSharedFilter가
+  // 활성 주제 1개로 제한해 새 주제가 목록에서 누락된다. 이 경우만 skipSubjectHeader로 헤더를 생략.
+  if (workspaceId && !opts?.skipSubjectHeader) {
     headers["X-Laminar-Subject-Id"] = workspaceId;
   }
 
@@ -126,7 +129,8 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
+  get: <T>(path: string, opts?: { skipSubjectHeader?: boolean }) =>
+    request<T>("GET", path, undefined, opts),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),

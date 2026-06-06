@@ -75,7 +75,8 @@ function invalidateGraph(qc: QueryClient, tabId: string): Promise<void> {
 export function useSubjects() {
   return useQuery({
     queryKey: ["subjects"],
-    queryFn: () => api.get<Subject[]>("/api/subjects"),
+    // 헤더 생략 → SYSTEM scope로 내 전체 주제 조회(헤더가 있으면 subjectSharedFilter가 활성 주제 1개로 제한).
+    queryFn: () => api.get<Subject[]>("/api/subjects", { skipSubjectHeader: true }),
   });
 }
 

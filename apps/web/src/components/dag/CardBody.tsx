@@ -11,7 +11,7 @@ import "./CardBody.css";
 const REMARK = [remarkGfm, remarkMath];
 const REHYPE = [rehypeKatex];
 
-const AUTOSAVE_MS = 600;
+const AUTOSAVE_MS = 1500;
 
 /** 마크다운 → 이미지·수식(KaTeX)·GFM 렌더 (클라이언트). raw HTML 경로 없음. */
 function MarkdownView({ source }: { source: string }) {
@@ -36,20 +36,38 @@ export function CardBody({ cardId, tabId }: { cardId: string; tabId: string }) {
   const [draft, setDraft] = useState("");
   const [dirty, setDirty] = useState(false);
   const timer = useRef<number | null>(null);
+  const draftRef = useRef("");
+  const dirtyRef = useRef(false);
 
   // 편집 중이 아닐 때만 서버 값으로 draft 동기화.
   useEffect(() => {
-    if (!editing) setDraft(card?.bodyMd ?? "");
-  }, [card?.bodyMd, editing]);
-  // 언마운트 시 대기 중인 자동저장 타이머 정리.
-  useEffect(() => () => clearTimer(), []);
-
-  function clearTimer() {
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
+    if (!editing) {
+      setDraft(card?.bodyMd ?? "");
+      draftRef.current = card?.bodyMd ?? "";
+      dirtyRef.current = false;
     }
-  }
+  }, [card?.bodyMd, editing]);
+
+  // 대기 중 변경분을 즉시 저장(flush) — 변경 없거나 서버값과 동일하면 no-op(요청 절약).
+  const flush = () => {
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    setDirty(false);
+    const v = draftRef.current;
+    if (v === (card?.bodyMd ?? "")) return;
+    updateCard.mutate({ cardId, bodyMd: v });
+  };
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  // 언마운트(탭 전환·닫기 포함) 시 타이머 정리 + 미저장분 flush(데이터 유실 방지).
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+      flushRef.current();
+    },
+    [],
+  );
 
   if (!card) {
     return (
@@ -61,17 +79,15 @@ export function CardBody({ cardId, tabId }: { cardId: string; tabId: string }) {
 
   function onEdit(value: string) {
     setDraft(value);
+    draftRef.current = value;
     setDirty(true);
-    clearTimer();
-    timer.current = window.setTimeout(() => {
-      updateCard.mutate({ cardId, bodyMd: value }, { onSuccess: () => setDirty(false) });
-    }, AUTOSAVE_MS);
+    dirtyRef.current = true;
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => flushRef.current(), AUTOSAVE_MS);
   }
   function done() {
-    clearTimer();
-    if (dirty) {
-      updateCard.mutate({ cardId, bodyMd: draft }, { onSuccess: () => setDirty(false) });
-    }
+    if (timer.current) clearTimeout(timer.current);
+    flushRef.current();
     setEditing(false);
   }
 
@@ -101,6 +117,7 @@ export function CardBody({ cardId, tabId }: { cardId: string; tabId: string }) {
             className="cb-editor"
             value={draft}
             onChange={(e) => onEdit(e.target.value)}
+            onBlur={() => flushRef.current()}
             placeholder="마크다운 본문 — 이미지 ![alt](url), 수식 인라인 $E=mc^2$ / 블록 $$ ... $$"
             autoFocus
           />

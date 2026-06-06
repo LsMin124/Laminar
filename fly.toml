@@ -15,10 +15,12 @@ primary_region = "nrt"  # Tokyo — Neon ap-southeast-1과 가장 가까움 (~50
 [http_service]
   internal_port = 8080
   force_https = true
-  # cron job(@Scheduled)이 동작해야 하므로 머신을 항상 가동 (idle 시 stop 금지)
-  auto_stop_machines = false
+  # 비용 절감: 유휴 시 suspend(RAM 스냅샷→빠른 재개), 요청 시 자동 기동. min 0.
+  # ⚠️ suspend 중에는 @Scheduled 크론(cleanup/rrule/outbox/email)이 돌지 않음 — 현재
+  #    반복카드·임포트·메일 미사용이라 무방. 정기 크론이 필수가 되면 always-on으로 되돌릴 것.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
   processes = ["app"]
 
   [http_service.concurrency]

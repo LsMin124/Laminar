@@ -343,3 +343,37 @@
   background: var(--danger);
   opacity: 0.85;
 }
+
+/* 연결 핸들(nub) — 우측 돌출, 드래그로 화살표 생성 + 드래그 임시 라인 */
+.dag-node {
+  overflow: visible;
+}
+.dag-link-nub {
+  position: absolute;
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  cursor: crosshair;
+  display: none;
+  z-index: 3;
+  touch-action: none;
+}
+.dag-node:hover .dag-link-nub,
+.dag-node.selected .dag-link-nub {
+  display: block;
+}
+.dag-link-nub:hover {
+  background: var(--accent);
+}
+.dag-link-temp {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  fill: none;
+  pointer-events: none;
+}

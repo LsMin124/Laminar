@@ -122,6 +122,14 @@ export function DagCanvas({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [linkSource, setLinkSource] = useState<string | null>(null);
+  // 연결 핸들(nub) 드래그 — 임시 라인 좌표(sx,sy=출발 앵커, x,y=커서) + 출발 카드 id.
+  const [linkLine, setLinkLine] = useState<{
+    sx: number;
+    sy: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const linkFromRef = useRef<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const dragRef = useRef<DragState | null>(null);
@@ -563,6 +571,38 @@ export function DagCanvas({
     });
   }
 
+  // 연결 핸들 nub: pointer capture로 드래그하다 다른 카드 위에서 놓으면 from→target 관계 생성.
+  function onNubDown(e: React.PointerEvent<HTMLSpanElement>, c: Card) {
+    e.stopPropagation();
+    e.preventDefault();
+    const g = nodeGeom(c);
+    linkFromRef.current = c.id;
+    setLinkLine({ sx: g.x + g.w, sy: g.y + BAR_H / 2, x: g.x + g.w, y: g.y + BAR_H / 2 });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onNubMove(e: React.PointerEvent<HTMLSpanElement>) {
+    if (!linkFromRef.current) return;
+    const p = canvasPoint(e.clientX, e.clientY);
+    setLinkLine((l) => (l ? { ...l, x: p.x, y: p.y } : l));
+  }
+  function onNubUp(e: React.PointerEvent<HTMLSpanElement>) {
+    const from = linkFromRef.current;
+    linkFromRef.current = null;
+    setLinkLine(null);
+    if (!from) return;
+    const p = canvasPoint(e.clientX, e.clientY);
+    const target = cards.find((t) => {
+      const tg = nodeGeom(t);
+      return p.x >= tg.x && p.x <= tg.x + tg.w && p.y >= tg.y && p.y <= tg.y + BAR_H;
+    });
+    if (target && target.id !== from) {
+      createRelation.mutate(
+        { fromCardId: from, toCardId: target.id },
+        { onError: reportError },
+      );
+    }
+  }
+
   const selCount = selectedIds.size;
   const sole = selCount === 1 ? (cards.find((c) => selectedIds.has(c.id)) ?? null) : null;
   const soleInGroup =
@@ -768,6 +808,15 @@ export function DagCanvas({
                 />
               );
             })}
+            {linkLine && (
+              <line
+                className="dag-link-temp"
+                x1={linkLine.sx}
+                y1={linkLine.sy}
+                x2={linkLine.x}
+                y2={linkLine.y}
+              />
+            )}
           </svg>
 
           {cards.filter(isVisible).map((c) => {
@@ -847,6 +896,13 @@ export function DagCanvas({
                     onPointerUp={() => onPointerUp(c)}
                   />
                 )}
+                <span
+                  className="dag-link-nub"
+                  title="드래그해 다음 카드로 연결"
+                  onPointerDown={(e) => onNubDown(e, c)}
+                  onPointerMove={onNubMove}
+                  onPointerUp={onNubUp}
+                />
               </div>
             );
           })}

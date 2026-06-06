@@ -660,7 +660,9 @@ export function DagCanvas({ tabId }: { tabId: string }) {
       >
         <div className="dag-surface" style={{ width: maxX, height: maxY }}>
           {gridCells}
-          <div className="dag-today" style={{ left: todayX }} />
+          <div className="dag-today" style={{ left: todayX, width: PX_PER_DAY }}>
+            <span className="dag-today-label">오늘</span>
+          </div>
           <div className="dag-backlog-label">날짜 미정</div>
 
           {groups.map((grp) => {

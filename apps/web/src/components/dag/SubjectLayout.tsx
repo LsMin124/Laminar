@@ -129,7 +129,11 @@ export function SubjectLayout() {
 
       <main className="lay-main">
         {activeValid ? (
-          <DagWorkspace key={activeId} />
+          <DagWorkspace
+            key={activeId}
+            subjectId={activeId ?? ""}
+            subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
+          />
         ) : (
           <div className="lay-empty">
             {subjects.isLoading ? "불러오는 중..." : "연구 주제를 만들어 시작하세요 (좌측 ＋)."}

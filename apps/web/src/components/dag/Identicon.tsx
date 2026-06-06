@@ -9,9 +9,9 @@ interface Props {
 
 export function Identicon({ seed, size = 28 }: Props) {
   const h = hashSeed(seed);
-  // 색조는 웜 대역(앰버 12° ~ 코랄 44°)으로 한정해 Claude 테마와 결을 맞춘다.
-  const hue = 12 + ((h >>> 15) % 33);
-  const fill = `hsl(${hue} 54% 58%)`;
+  // 색조는 전체 대역에서 자유롭게(주제 구분용). 채도/명도만 다크 UI에 맞게 절제.
+  const hue = (h >>> 9) % 360;
+  const fill = `hsl(${hue} 58% 60%)`;
 
   const blocks: { x: number; y: number }[] = [];
   for (let col = 0; col < 3; col++) {

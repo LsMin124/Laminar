@@ -4,13 +4,20 @@ import { useCreateTab, useTabs } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
 import { CalendarView } from "./CalendarView";
 import { DagCanvas } from "./DagCanvas";
+import { Identicon } from "./Identicon";
 import "./DagWorkspace.css";
 
 /**
  * DAG 워크스페이스 셸 — 탭 목록/생성 + 선택 탭의 DAG 캔버스 호스트.
  * (장비·멤버·관리자 등 부차 페이지는 Phase 4 범위에서 제외)
  */
-export function DagWorkspace() {
+export function DagWorkspace({
+  subjectId,
+  subjectName,
+}: {
+  subjectId: string;
+  subjectName: string;
+}) {
   const tabs = useTabs();
   const createTab = useCreateTab();
   const dialogs = useDialogs();
@@ -40,6 +47,10 @@ export function DagWorkspace() {
   return (
     <div className="dw">
       <header className="dw-header">
+        <div className="dw-subject" title={subjectName}>
+          <Identicon seed={subjectId} size={18} />
+          <span className="dw-subject-name">{subjectName}</span>
+        </div>
         <nav className="dw-tabs">
           {list.map((t) => (
             <button

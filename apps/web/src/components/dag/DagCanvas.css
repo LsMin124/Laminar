@@ -68,6 +68,7 @@
   pointer-events: none;
 }
 .dag-edge {
+  fill: none;
   stroke: var(--accent-soft);
   stroke-width: 1.5;
   pointer-events: stroke;

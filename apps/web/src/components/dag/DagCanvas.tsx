@@ -705,14 +705,17 @@ export function DagCanvas({ tabId }: { tabId: string }) {
               if (!from || !to || !isVisible(from) || !isVisible(to)) return null;
               const fg = nodeGeom(from);
               const tg = nodeGeom(to);
+              // 직각(가로→세로→가로) 꺾인 경로 — 대각선 금지. A 우측끝 → 중간 x에서 수직 → B 좌측끝.
+              const sx = fg.x + fg.w;
+              const sy = fg.y + BAR_H / 2;
+              const ex = tg.x;
+              const ey = tg.y + BAR_H / 2;
+              const midX = (sx + ex) / 2;
               return (
-                <line
+                <path
                   key={rel.id}
                   className="dag-edge"
-                  x1={fg.x + fg.w}
-                  y1={fg.y + BAR_H / 2}
-                  x2={tg.x}
-                  y2={tg.y + BAR_H / 2}
+                  d={`M ${sx} ${sy} H ${midX} V ${ey} H ${ex}`}
                   markerEnd="url(#dag-arrow)"
                   onClick={() => onDeleteRelation(rel.id)}
                 />

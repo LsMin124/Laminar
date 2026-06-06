@@ -92,6 +92,23 @@
   border-color: #555;
 }
 
+/* 레일 아이콘 즉시 툴팁 — fixed로 레일 overflow 클리핑 회피 */
+.rail-tip {
+  position: fixed;
+  left: 58px;
+  transform: translateY(-50%);
+  z-index: 60;
+  background: #241e1a;
+  border: 1px solid var(--accent-border);
+  color: #ece7e1;
+  padding: 4px 9px;
+  font-size: 12px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
 .lay-main {
   flex: 1;
   min-width: 0;

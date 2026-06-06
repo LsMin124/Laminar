@@ -28,6 +28,7 @@ export function SubjectLayout() {
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(() => getCurrentWorkspaceId());
   const [manageOpen, setManageOpen] = useState(false);
+  const [hoverTip, setHoverTip] = useState<{ name: string; y: number } | null>(null);
 
   const list = subjects.data ?? [];
 
@@ -104,7 +105,12 @@ export function SubjectLayout() {
               type="button"
               className={`rail-tile${s.id === activeId ? " active" : ""}`}
               onClick={() => switchSubject(s.id)}
-              title={s.name}
+              onMouseEnter={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setHoverTip({ name: s.name, y: r.top + r.height / 2 });
+              }}
+              onMouseLeave={() => setHoverTip(null)}
+              aria-label={s.name}
             >
               <Identicon seed={s.id} size={28} />
             </button>
@@ -140,6 +146,12 @@ export function SubjectLayout() {
           </div>
         )}
       </main>
+
+      {hoverTip && (
+        <div className="rail-tip" style={{ top: hoverTip.y }}>
+          {hoverTip.name}
+        </div>
+      )}
 
       {manageOpen && (
         <div className="subj-overlay" onClick={() => setManageOpen(false)}>

@@ -598,6 +598,17 @@ export function DagCanvas({
         >
           ✎ 제목
         </button>
+        <button
+          type="button"
+          className="dag-tool"
+          disabled={!sole}
+          onClick={() => {
+            if (sole) onOpenCard?.(sole.id, sole.title);
+          }}
+          title="본문 열기 (1개 선택 · 카드 더블클릭도 가능)"
+        >
+          ▤ 본문
+        </button>
         <span className="dag-tool-sep" />
         <button
           type="button"

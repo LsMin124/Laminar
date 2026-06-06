@@ -8,6 +8,9 @@ const MS_DAY = 86400000;
 const MAX_SPAN_DAYS = 30;
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+/** 한 날짜 셀에서의 카드 표시 구간 — 단일일/멀티데이 시작·중간·끝. */
+type DaySeg = { card: Card; kind: "single" | "start" | "mid" | "end" };
+
 function parseDate(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
@@ -47,15 +50,26 @@ export function CalendarView({ tabId }: { tabId: string }) {
     return Array.from({ length: 42 }, (_, i) => gridStart + i * MS_DAY);
   }, [monthMs]);
 
-  // startDate 기준 셀 매핑(멀티데이는 시작일 셀에 표시 + 스팬 표시).
+  // 멀티데이 카드는 시작~종료 사이 모든 날 셀에 배치(시작=전체 칩, 이후 날=연속 바). 단일일은 그대로.
   const byDay = useMemo(() => {
-    const map = new Map<number, Card[]>();
+    const map = new Map<number, DaySeg[]>();
+    const push = (day: number, seg: DaySeg) => {
+      const arr = map.get(day) ?? [];
+      arr.push(seg);
+      map.set(day, arr);
+    };
     for (const c of cards) {
       if (!c.startDate || (hideCompleted && c.completed)) continue;
-      const k = parseDate(c.startDate);
-      const arr = map.get(k) ?? [];
-      arr.push(c);
-      map.set(k, arr);
+      const start = parseDate(c.startDate);
+      const end = c.endDate ? parseDate(c.endDate) : start;
+      if (end <= start) {
+        push(start, { card: c, kind: "single" });
+        continue;
+      }
+      let i = 0;
+      for (let d = start; d <= end && i < 366; d += MS_DAY, i++) {
+        push(d, { card: c, kind: d === start ? "start" : d === end ? "end" : "mid" });
+      }
     }
     return map;
   }, [cards, hideCompleted]);
@@ -143,34 +157,45 @@ export function CalendarView({ tabId }: { tabId: string }) {
             >
               <div className="cal-date">{d.getUTCDate()}</div>
               <div className="cal-cell-cards">
-                {dayCards.map((c) => (
-                  <div
-                    key={c.id}
-                    className={`cal-chip${c.completed ? " completed" : ""}`}
-                    draggable
-                    onDragStart={(e) => e.dataTransfer.setData("text/plain", c.id)}
-                    title={c.title}
-                  >
-                    <input
-                      type="checkbox"
-                      className="cal-chip-check"
-                      checked={c.completed}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) =>
-                        updateCard.mutate({ cardId: c.id, completed: e.target.checked })
-                      }
-                    />
-                    <span className="cal-chip-title">{c.title || "(제목 없음)"}</span>
-                    {!c.allDay && c.startTime && (
-                      <span className="cal-chip-time">{c.startTime.slice(0, 5)}</span>
-                    )}
-                    {c.endDate && c.endDate !== c.startDate && (
-                      <span className="cal-chip-span" title="멀티데이">
-                        ›
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {dayCards.map(({ card: c, kind }) => {
+                  const lead = kind === "single" || kind === "start";
+                  return (
+                    <div
+                      key={c.id}
+                      className={`cal-chip${c.completed ? " completed" : ""}${lead ? "" : " cont"}`}
+                      draggable={lead}
+                      onDragStart={(e) => {
+                        if (lead) e.dataTransfer.setData("text/plain", c.id);
+                      }}
+                      title={c.title}
+                    >
+                      {lead ? (
+                        <>
+                          <input
+                            type="checkbox"
+                            className="cal-chip-check"
+                            checked={c.completed}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) =>
+                              updateCard.mutate({ cardId: c.id, completed: e.target.checked })
+                            }
+                          />
+                          <span className="cal-chip-title">{c.title || "(제목 없음)"}</span>
+                          {!c.allDay && c.startTime && (
+                            <span className="cal-chip-time">{c.startTime.slice(0, 5)}</span>
+                          )}
+                          {c.endDate && c.endDate !== c.startDate && (
+                            <span className="cal-chip-span" title="멀티데이">
+                              ›
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="cal-chip-title">{c.title || "(제목 없음)"}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

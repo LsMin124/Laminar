@@ -8,9 +8,6 @@ const MS_DAY = 86400000;
 const MAX_SPAN_DAYS = 30;
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-/** 한 날짜 셀에서의 카드 표시 구간 — 단일일/멀티데이 시작·중간·끝. */
-type DaySeg = { card: Card; kind: "single" | "start" | "mid" | "end" };
-
 function parseDate(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
@@ -29,9 +26,19 @@ function startOfMonth(ms: number): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
 }
 
+/** 한 주(7칸) 안에서 카드가 차지하는 막대 세그먼트 — 칸 범위 + 주 경계 연속 여부 + 적층 레인. */
+type Seg = {
+  card: Card;
+  startCol: number;
+  endCol: number;
+  isStart: boolean; // 카드 시작일이 이 주 안 (false면 이전 주에서 이어짐)
+  isEnd: boolean; // 카드 종료일이 이 주 안 (false면 다음 주로 이어짐)
+  lane: number;
+};
+
 /**
  * 캘린더 투영 — DAG 캔버스와 같은 탭 데이터(useTabGraph 캐시 공유)를 월 그리드에 투영.
- * 카드를 다른 날짜 셀로 드래그하면 startDate 변경(멀티데이는 span 보존) → 캔버스에도 자동 반영(양방향).
+ * 멀티데이 카드는 주 단위 가로 스팬 막대로 그린다. 막대를 다른 날로 드래그하면 startDate 변경(span 보존).
  */
 export function CalendarView({ tabId }: { tabId: string }) {
   const graph = useTabGraph(tabId);
@@ -50,29 +57,39 @@ export function CalendarView({ tabId }: { tabId: string }) {
     return Array.from({ length: 42 }, (_, i) => gridStart + i * MS_DAY);
   }, [monthMs]);
 
-  // 멀티데이 카드는 시작~종료 사이 모든 날 셀에 배치(시작=전체 칩, 이후 날=연속 바). 단일일은 그대로.
-  const byDay = useMemo(() => {
-    const map = new Map<number, DaySeg[]>();
-    const push = (day: number, seg: DaySeg) => {
-      const arr = map.get(day) ?? [];
-      arr.push(seg);
-      map.set(day, arr);
-    };
-    for (const c of cards) {
-      if (!c.startDate || (hideCompleted && c.completed)) continue;
-      const start = parseDate(c.startDate);
-      const end = c.endDate ? parseDate(c.endDate) : start;
-      if (end <= start) {
-        push(start, { card: c, kind: "single" });
-        continue;
+  // 6개 주 행. 각 주에서 카드가 차지하는 칸 범위를 막대 세그먼트로 산출 + 겹침은 레인으로 적층.
+  const weeks = useMemo(() => {
+    const out: { weekStart: number; days: number[]; segs: Seg[]; lanes: number }[] = [];
+    for (let w = 0; w < 6; w++) {
+      const weekDays = days.slice(w * 7, w * 7 + 7);
+      const weekStart = weekDays[0];
+      const weekEnd = weekDays[6];
+      const raw: Omit<Seg, "lane">[] = [];
+      for (const c of cards) {
+        if (!c.startDate || (hideCompleted && c.completed)) continue;
+        const cs = parseDate(c.startDate);
+        const ce = c.endDate ? Math.max(cs, parseDate(c.endDate)) : cs;
+        if (ce < weekStart || cs > weekEnd) continue;
+        raw.push({
+          card: c,
+          startCol: Math.max(0, Math.round((cs - weekStart) / MS_DAY)),
+          endCol: Math.min(6, Math.round((ce - weekStart) / MS_DAY)),
+          isStart: cs >= weekStart,
+          isEnd: ce <= weekEnd,
+        });
       }
-      let i = 0;
-      for (let d = start; d <= end && i < 366; d += MS_DAY, i++) {
-        push(d, { card: c, kind: d === start ? "start" : d === end ? "end" : "mid" });
-      }
+      raw.sort((a, b) => a.startCol - b.startCol || a.endCol - b.endCol);
+      const laneEnd: number[] = [];
+      const segs: Seg[] = raw.map((s) => {
+        let lane = laneEnd.findIndex((end) => end < s.startCol);
+        if (lane === -1) lane = laneEnd.length;
+        laneEnd[lane] = s.endCol;
+        return { ...s, lane };
+      });
+      out.push({ weekStart, days: weekDays, segs, lanes: laneEnd.length });
     }
-    return map;
-  }, [cards, hideCompleted]);
+    return out;
+  }, [days, cards, hideCompleted]);
 
   async function reportError(err: unknown) {
     let msg = "작업에 실패했습니다.";
@@ -130,7 +147,7 @@ export function CalendarView({ tabId }: { tabId: string }) {
           />
           완료 숨기기
         </label>
-        <span className="cal-hint">카드를 다른 날짜로 드래그해 일정 변경</span>
+        <span className="cal-hint">막대를 다른 날짜로 드래그해 일정 변경</span>
       </div>
       <div className="cal-weekdays">
         {WEEKDAYS.map((w) => (
@@ -140,66 +157,75 @@ export function CalendarView({ tabId }: { tabId: string }) {
         ))}
       </div>
       <div className="cal-grid">
-        {days.map((dayMs) => {
-          const d = new Date(dayMs);
-          const otherMonth = d.getUTCMonth() !== monthIndex;
-          const dayCards = byDay.get(dayMs) ?? [];
-          return (
-            <div
-              key={dayMs}
-              className={`cal-cell${otherMonth ? " other" : ""}${dayMs === today ? " today" : ""}`}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const id = e.dataTransfer.getData("text/plain");
-                if (id) reschedule(id, dayMs);
-              }}
-            >
-              <div className="cal-date">{d.getUTCDate()}</div>
-              <div className="cal-cell-cards">
-                {dayCards.map(({ card: c, kind }) => {
-                  const lead = kind === "single" || kind === "start";
-                  return (
-                    <div
-                      key={c.id}
-                      className={`cal-chip${c.completed ? " completed" : ""}${lead ? "" : " cont"}`}
-                      draggable={lead}
-                      onDragStart={(e) => {
-                        if (lead) e.dataTransfer.setData("text/plain", c.id);
-                      }}
-                      title={c.title}
-                    >
-                      {lead ? (
-                        <>
-                          <input
-                            type="checkbox"
-                            className="cal-chip-check"
-                            checked={c.completed}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              updateCard.mutate({ cardId: c.id, completed: e.target.checked })
-                            }
-                          />
-                          <span className="cal-chip-title">{c.title || "(제목 없음)"}</span>
-                          {!c.allDay && c.startTime && (
-                            <span className="cal-chip-time">{c.startTime.slice(0, 5)}</span>
-                          )}
-                          {c.endDate && c.endDate !== c.startDate && (
-                            <span className="cal-chip-span" title="멀티데이">
-                              ›
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="cal-chip-title">{c.title || "(제목 없음)"}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+        {weeks.map((week, wi) => (
+          <div
+            key={wi}
+            className="cal-week"
+            style={{ minHeight: Math.max(84, 26 + week.lanes * 20) }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData("text/plain");
+              if (!id) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const col = Math.min(
+                6,
+                Math.max(0, Math.floor((e.clientX - rect.left) / (rect.width / 7))),
+              );
+              reschedule(id, week.weekStart + col * MS_DAY);
+            }}
+          >
+            {week.days.map((dayMs) => {
+              const d = new Date(dayMs);
+              const otherMonth = d.getUTCMonth() !== monthIndex;
+              return (
+                <div
+                  key={dayMs}
+                  className={`cal-cell${otherMonth ? " other" : ""}${dayMs === today ? " today" : ""}`}
+                >
+                  <div className="cal-date">{d.getUTCDate()}</div>
+                </div>
+              );
+            })}
+            <div className="cal-bars">
+              {week.segs.map((s) => {
+                const span = s.endCol - s.startCol + 1;
+                return (
+                  <div
+                    key={s.card.id}
+                    className={`cal-bar${s.card.completed ? " completed" : ""}${
+                      s.isStart ? "" : " cont-left"
+                    }${s.isEnd ? "" : " cont-right"}`}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", s.card.id)}
+                    title={s.card.title}
+                    style={{
+                      left: `calc(${((s.startCol / 7) * 100).toFixed(4)}% + 2px)`,
+                      width: `calc(${((span / 7) * 100).toFixed(4)}% - 4px)`,
+                      top: 24 + s.lane * 20,
+                    }}
+                  >
+                    {s.isStart && (
+                      <input
+                        type="checkbox"
+                        className="cal-bar-check"
+                        checked={s.card.completed}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          updateCard.mutate({ cardId: s.card.id, completed: e.target.checked })
+                        }
+                      />
+                    )}
+                    <span className="cal-bar-title">{s.card.title || "(제목 없음)"}</span>
+                    {s.isStart && !s.card.allDay && s.card.startTime && (
+                      <span className="cal-bar-time">{s.card.startTime.slice(0, 5)}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
       {graph.isLoading && <p className="loading">불러오는 중...</p>}
     </div>

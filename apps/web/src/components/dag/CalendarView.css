@@ -54,22 +54,24 @@
   font-size: 11px;
   color: #888;
 }
+
+/* 주 행(6) — 각 행은 7칸 그리드 + 막대 절대배치 레이어를 겹친다. */
 .cal-grid {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.cal-week {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 1fr;
-  overflow: auto;
+  border-bottom: 1px solid #1a1a1a;
 }
 .cal-cell {
   border-right: 1px solid #1a1a1a;
-  border-bottom: 1px solid #1a1a1a;
   padding: 2px 3px;
-  min-height: 84px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   overflow: hidden;
 }
 .cal-cell.other {
@@ -90,54 +92,61 @@
   color: #999;
   padding: 1px 2px;
 }
-.cal-cell-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow: auto;
+
+/* 멀티데이 가로 스팬 막대 — 주 단위 절대배치, 레인 적층, 주 경계는 점선으로 이어짐 표시 */
+.cal-bars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.cal-chip {
+.cal-bar {
+  position: absolute;
+  height: 18px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 3px;
-  background: #241e1a;
-  border: 1px solid #3a302b;
+  gap: 4px;
+  padding: 0 5px;
+  background: #3a2417;
+  border: 1px solid var(--accent-soft);
   border-radius: 2px;
-  padding: 1px 4px;
   font-size: 11px;
+  color: #ece7e1;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: auto;
   cursor: grab;
 }
-.cal-chip.completed {
+.cal-bar.cont-left {
+  border-left-style: dashed;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.cal-bar.cont-right {
+  border-right-style: dashed;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.cal-bar.completed {
   opacity: 0.5;
 }
-.cal-chip.completed .cal-chip-title {
+.cal-bar.completed .cal-bar-title {
   text-decoration: line-through;
 }
-.cal-chip.cont {
-  background: #1f1a16;
-  border-color: #2f2620;
-  border-left: 2px solid var(--accent-soft);
-  cursor: default;
-}
-.cal-chip.cont .cal-chip-title {
-  color: #b8a99c;
-}
-.cal-chip-check {
-  width: 12px;
-  height: 12px;
+.cal-bar-check {
+  width: 11px;
+  height: 11px;
   margin: 0;
   flex: none;
   accent-color: var(--accent-soft);
   cursor: pointer;
 }
-.cal-chip-title {
+.cal-bar-title {
   flex: 1;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cal-chip-time,
-.cal-chip-span {
+.cal-bar-time {
   flex: none;
   font-size: 10px;
   color: #b8a99c;

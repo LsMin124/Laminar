@@ -203,6 +203,10 @@
   color: #4a4a4a;
   cursor: default;
 }
+.subj-act.danger:hover:not(:disabled) {
+  color: #fdd;
+  background: #5a1f1f;
+}
 .subj-empty {
   color: #666;
   padding: 10px;

@@ -119,6 +119,19 @@ public class SubjectService {
     return subjectRepo.save(subject);
   }
 
+  /**
+   * 현재(활성) 주제 영구 삭제 — 소유자만. 자식(탭·카드·관계·그룹·멤버 등)은 FK ON DELETE CASCADE로 DB에서 함께 제거된다. 관례상 소유권 위반은
+   * IllegalStateException → 403.
+   */
+  @Transactional
+  public void deleteCurrent(UUID userId) {
+    SubjectEntity subject = requireCurrent();
+    if (!subject.getOwnerUserId().equals(userId)) {
+      throw new IllegalStateException("only owner can delete subject");
+    }
+    subjectRepo.delete(subject);
+  }
+
   private String resolveUniqueSlug(String baseSlug) {
     String candidate = baseSlug;
     for (int attempt = 1; attempt <= MAX_SLUG_RETRY; attempt++) {

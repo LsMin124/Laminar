@@ -102,6 +102,16 @@ export function useUpdateSubject() {
   });
 }
 
+/**
+ * 현재(활성) 주제 삭제 — 자식(탭·카드·관계·그룹) 전부 영구 삭제(백엔드 FK CASCADE).
+ * 헤더 초기화·활성 주제 재선정·캐시 무효화는 호출부(SubjectLayout)가 순서대로 처리한다.
+ */
+export function useDeleteSubject() {
+  return useMutation({
+    mutationFn: () => api.delete<void>("/api/subjects/current"),
+  });
+}
+
 export function useTabs() {
   return useQuery({
     queryKey: ["tabs"],

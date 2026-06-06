@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "../../lib/api";
 import {
   useCreateSubject,
+  useDeleteSubject,
   useSubjects,
   useUpdateSubject,
   type Subject,
@@ -21,6 +22,7 @@ export function SubjectLayout() {
   const subjects = useSubjects();
   const createSubject = useCreateSubject();
   const updateSubject = useUpdateSubject();
+  const deleteSubject = useDeleteSubject();
   const dialogs = useDialogs();
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(() => getCurrentWorkspaceId());
@@ -58,6 +60,33 @@ export function SubjectLayout() {
     const name = await dialogs.prompt({ title: "주제 이름 변경", defaultValue: s.name });
     if (!name || !name.trim() || name.trim() === s.name) return;
     await updateSubject.mutateAsync(name.trim());
+  }
+
+  async function onDelete(s: Subject) {
+    // DELETE /current는 활성 주제를 대상으로 하므로, 비활성이면 먼저 전환한다.
+    if (s.id !== activeId) switchSubject(s.id);
+    const ok = await dialogs.confirm({
+      title: "주제 삭제",
+      message: `"${s.name}"와(과) 그 안의 모든 탭·카드·관계가 영구 삭제됩니다. 되돌릴 수 없습니다. 계속할까요?`,
+      confirmLabel: "삭제",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteSubject.mutateAsync();
+    } catch {
+      await dialogs.alert({
+        title: "삭제 실패",
+        message: "주제를 삭제하지 못했습니다. 소유자만 삭제할 수 있습니다.",
+      });
+      return;
+    }
+    // 활성 주제가 사라졌으니 헤더/활성 초기화 → 목록 재조회 시 효과가 첫 주제를 재선정.
+    setCurrentWorkspaceId(null);
+    setActiveId(null);
+    qc.removeQueries({ queryKey: ["tabs"] });
+    qc.removeQueries({ queryKey: ["tabGraph"] });
+    await qc.invalidateQueries({ queryKey: ["subjects"] });
   }
 
   const activeValid = !!activeId && list.some((s) => s.id === activeId);
@@ -138,7 +167,7 @@ export function SubjectLayout() {
                   <button type="button" className="subj-act" onClick={() => onRename(s)}>
                     이름변경
                   </button>
-                  <button type="button" className="subj-act" disabled title="삭제는 다음 단계에서 지원">
+                  <button type="button" className="subj-act danger" onClick={() => onDelete(s)}>
                     삭제
                   </button>
                 </li>

@@ -31,6 +31,26 @@ const FORWARD_BUFFER_DAYS = 60;
 const TODAY_VIEW_RATIO = 0.4;
 const EDGE_ZONE = 48;
 const PAN_SPEED = 14;
+const EDGE_STUB = 16;
+
+/**
+ * 카드 간 직각(꺾인) 엣지 경로 — 대각선 없이 가로·세로만.
+ * - 같은 행: 곧은 수평선.
+ * - 전방 여유 충분: A끝 → 중간 x에서 수직 → B시작 (대칭 엘보).
+ * - 인접(다음날=간격 0)·겹침(B가 A보다 좌측): A 우측으로 스텁만큼 빠져나와 두 행 사이 레인으로
+ *   되돌아온 뒤 B 좌측으로 우향 진입 → 항상 화살표가 오른쪽을 향하고 좌석이 끼이지 않는다.
+ */
+function edgePath(sx: number, sy: number, ex: number, ey: number): string {
+  if (Math.abs(ey - sy) < 1) return `M ${sx} ${sy} H ${ex}`;
+  if (ex - sx >= 2 * EDGE_STUB) {
+    const mx = (sx + ex) / 2;
+    return `M ${sx} ${sy} H ${mx} V ${ey} H ${ex}`;
+  }
+  const x1 = sx + EDGE_STUB;
+  const x2 = ex - EDGE_STUB;
+  const my = (sy + ey) / 2;
+  return `M ${sx} ${sy} H ${x1} V ${my} H ${x2} V ${ey} H ${ex}`;
+}
 
 function parseDate(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
@@ -705,17 +725,17 @@ export function DagCanvas({ tabId }: { tabId: string }) {
               if (!from || !to || !isVisible(from) || !isVisible(to)) return null;
               const fg = nodeGeom(from);
               const tg = nodeGeom(to);
-              // 직각(가로→세로→가로) 꺾인 경로 — 대각선 금지. A 우측끝 → 중간 x에서 수직 → B 좌측끝.
-              const sx = fg.x + fg.w;
-              const sy = fg.y + BAR_H / 2;
-              const ex = tg.x;
-              const ey = tg.y + BAR_H / 2;
-              const midX = (sx + ex) / 2;
+              const d = edgePath(
+                fg.x + fg.w,
+                fg.y + BAR_H / 2,
+                tg.x,
+                tg.y + BAR_H / 2,
+              );
               return (
                 <path
                   key={rel.id}
                   className="dag-edge"
-                  d={`M ${sx} ${sy} H ${midX} V ${ey} H ${ex}`}
+                  d={d}
                   markerEnd="url(#dag-arrow)"
                   onClick={() => onDeleteRelation(rel.id)}
                 />

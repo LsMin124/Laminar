@@ -301,3 +301,45 @@
   background: #1f1f1f;
   color: #ccc;
 }
+
+/* ── 카드 업그레이드(A): 좌측 카테고리 스트라이프 + 우측 메타 인디케이터 + 상태/깊이 ── */
+.dag-node {
+  background: #1d1a17;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  padding-left: 12px;
+}
+.dag-node-stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-soft);
+  opacity: 0.7;
+}
+.dag-node-title {
+  font-weight: 600;
+  color: #f0ece6;
+}
+.dag-node-ind {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #9a8d83;
+}
+.dag-ind {
+  white-space: nowrap;
+}
+.dag-ind.danger {
+  color: var(--danger);
+}
+.dag-node.overdue {
+  border-color: #5a3a30;
+}
+.dag-node.overdue .dag-node-stripe {
+  background: var(--danger);
+  opacity: 0.85;
+}

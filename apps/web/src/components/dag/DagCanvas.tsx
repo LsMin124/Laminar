@@ -177,6 +177,14 @@ export function DagCanvas({
   const baseY = new Map<string, number>();
   cards.forEach((c, i) => baseY.set(c.id, 60 + i * (BAR_H + 24)));
 
+  // 카드별 관계 수(메타 인디케이터) + 오늘(지연 판정).
+  const relCount = new Map<string, number>();
+  for (const r of relations) {
+    relCount.set(r.fromCardId, (relCount.get(r.fromCardId) ?? 0) + 1);
+    relCount.set(r.toCardId, (relCount.get(r.toCardId) ?? 0) + 1);
+  }
+  const todayMs = todayUtc();
+
   function barWidth(c: Card): number {
     if (!c.startDate) return BACKLOG_W;
     if (c.endDate) {
@@ -765,12 +773,20 @@ export function DagCanvas({
           {cards.filter(isVisible).map((c) => {
             const g = nodeGeom(c);
             const dated = !!c.startDate;
+            const hasBody = !!c.bodyMd && c.bodyMd.trim().length > 0;
+            const rels = relCount.get(c.id) ?? 0;
+            const endMs = c.endDate
+              ? parseDate(c.endDate)
+              : c.startDate
+                ? parseDate(c.startDate)
+                : null;
+            const overdue = endMs !== null && endMs < todayMs && !c.completed;
             return (
               <div
                 key={c.id}
                 className={`dag-node${c.completed ? " completed" : ""}${
                   linkSource === c.id ? " link-src" : ""
-                }${selectedIds.has(c.id) ? " selected" : ""}`}
+                }${selectedIds.has(c.id) ? " selected" : ""}${overdue ? " overdue" : ""}`}
                 style={{ left: g.x, top: g.y, width: g.w, height: BAR_H }}
                 onPointerDown={(e) => onBodyDown(e, c)}
                 onPointerMove={onPointerMove}
@@ -780,6 +796,7 @@ export function DagCanvas({
                   onOpenCard?.(c.id, c.title);
                 }}
               >
+                <span className="dag-node-stripe" />
                 {dated && (
                   <div
                     className="dag-handle l"
@@ -803,6 +820,25 @@ export function DagCanvas({
                   <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
                   <div className="dag-node-meta">{cardMeta(c)}</div>
                 </div>
+                {(rels > 0 || hasBody || overdue) && (
+                  <div className="dag-node-ind">
+                    {overdue && (
+                      <span className="dag-ind danger" title="지연(종료일 경과)">
+                        ●
+                      </span>
+                    )}
+                    {rels > 0 && (
+                      <span className="dag-ind" title={`관계 ${rels}개`}>
+                        ↔{rels}
+                      </span>
+                    )}
+                    {hasBody && (
+                      <span className="dag-ind" title="본문 있음">
+                        ▤
+                      </span>
+                    )}
+                  </div>
+                )}
                 {dated && (
                   <div
                     className="dag-handle r"

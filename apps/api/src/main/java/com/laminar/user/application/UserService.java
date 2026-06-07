@@ -99,4 +99,22 @@ public class UserService {
   public Optional<UserEntity> findActive(UUID userId) {
     return userRepo.findById(userId).filter(u -> u.getDeletedAt() == null);
   }
+
+  /** 이메일로 활성 사용자 조회(비밀번호 재설정 요청용). */
+  @Transactional(readOnly = true)
+  public Optional<UserEntity> findActiveByEmail(String email) {
+    return userRepo.findByEmailAndDeletedAtIsNull(email.trim().toLowerCase());
+  }
+
+  /** 비밀번호 설정/재설정 — BCrypt 12 round. OAuth 전용(해시 null) 계정에도 비밀번호를 부여한다. */
+  @Transactional
+  public void setPassword(UUID userId, String rawPassword) {
+    UserEntity user =
+        userRepo
+            .findById(userId)
+            .filter(u -> u.getDeletedAt() == null)
+            .orElseThrow(() -> new IllegalStateException("user not found"));
+    user.setPasswordHash(passwordEncoder.encode(rawPassword));
+    userRepo.save(user);
+  }
 }

@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useMe } from "./lib/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { DialogProvider } from "./components/ui/DialogProvider";
 import { SubjectLayout } from "./components/dag/SubjectLayout";
 import "./App.css";
@@ -19,15 +21,27 @@ const queryClient = new QueryClient({
  */
 function Shell() {
   const me = useMe();
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
+
+  // 메일 링크(/reset?token=...)는 로그인 여부와 무관하게 재설정 페이지로.
+  if (window.location.pathname.startsWith("/reset")) {
+    return <ResetPasswordPage />;
+  }
 
   if (me.isLoading) return <p className="loading">불러오는 중...</p>;
 
   if (!me.data) {
-    return authMode === "login" ? (
-      <LoginPage onSwitchToSignup={() => setAuthMode("signup")} />
-    ) : (
-      <SignupPage onSwitchToLogin={() => setAuthMode("login")} />
+    if (authMode === "signup") {
+      return <SignupPage onSwitchToLogin={() => setAuthMode("login")} />;
+    }
+    if (authMode === "forgot") {
+      return <ForgotPasswordPage onBack={() => setAuthMode("login")} />;
+    }
+    return (
+      <LoginPage
+        onSwitchToSignup={() => setAuthMode("signup")}
+        onForgot={() => setAuthMode("forgot")}
+      />
     );
   }
 

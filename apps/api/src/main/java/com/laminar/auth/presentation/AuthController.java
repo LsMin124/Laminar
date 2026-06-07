@@ -1,6 +1,7 @@
 package com.laminar.auth.presentation;
 
 import com.laminar.auth.application.AuthService;
+import com.laminar.auth.application.PasswordResetService;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.user.domain.UserEntity;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,10 +33,13 @@ public class AuthController {
 
   private final AuthService authService;
   private final AuthCookies authCookies;
+  private final PasswordResetService passwordResetService;
 
-  public AuthController(AuthService authService, AuthCookies authCookies) {
+  public AuthController(
+      AuthService authService, AuthCookies authCookies, PasswordResetService passwordResetService) {
     this.authService = authService;
     this.authCookies = authCookies;
+    this.passwordResetService = passwordResetService;
   }
 
   @PostMapping("/signup")
@@ -91,6 +95,20 @@ public class AuthController {
             .activeUser(principal.userId())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     return toResponse(user);
+  }
+
+  /** 비밀번호 재설정 요청 — 계정 존재 여부와 무관하게 204(enumeration 차단). 메일/폴백 로그로 링크 전달. */
+  @PostMapping("/password-reset/request")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void resetRequest(@Valid @RequestBody AuthDtos.ResetRequestDto request) {
+    passwordResetService.request(request.email());
+  }
+
+  /** 비밀번호 재설정 확인 — 토큰 검증 후 새 비밀번호 설정. 무효·만료·사용된 토큰은 400. */
+  @PostMapping("/password-reset/confirm")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void resetConfirm(@Valid @RequestBody AuthDtos.ResetConfirmDto request) {
+    passwordResetService.confirm(request.token(), request.password());
   }
 
   /** 토큰쌍을 access/refresh 쿠키로 굽고 사용자 응답을 반환. */

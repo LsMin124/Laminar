@@ -5,9 +5,10 @@ import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
 
 interface Props {
   onSwitchToSignup: () => void;
+  onForgot: () => void;
 }
 
-export function LoginPage({ onSwitchToSignup }: Props) {
+export function LoginPage({ onSwitchToSignup, onForgot }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,11 @@ export function LoginPage({ onSwitchToSignup }: Props) {
       await login.mutateAsync({ email, password });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.status === 400 ? "이메일 또는 비밀번호가 올바르지 않습니다." : err.message);
+        setError(
+          err.status === 400 || err.status === 401
+            ? "이메일 또는 비밀번호가 올바르지 않습니다."
+            : err.message,
+        );
       } else {
         setError("로그인 중 오류가 발생했습니다.");
       }
@@ -62,6 +67,11 @@ export function LoginPage({ onSwitchToSignup }: Props) {
         계정이 없으신가요?{" "}
         <button type="button" onClick={onSwitchToSignup} className="link">
           가입하기
+        </button>
+      </p>
+      <p className="auth-switch">
+        <button type="button" onClick={onForgot} className="link">
+          비밀번호를 잊으셨나요?
         </button>
       </p>
     </div>

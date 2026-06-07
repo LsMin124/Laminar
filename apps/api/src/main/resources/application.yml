@@ -47,3 +47,8 @@ app:
     # 반응적으로 타 401이 자주 노출됨 → 한 세션을 덮도록 8h로 상향(refresh 28d는 유지).
     access-ttl: PT8H
     refresh-ttl: P28D
+  # 메일(비밀번호 재설정). RESEND_API_KEY 미설정 시 발송 생략 + 링크를 서버 로그로 남김(오너 폴백).
+  mail:
+    from: ${MAIL_FROM:onboarding@resend.dev}
+    resend-api-key: ${RESEND_API_KEY:}
+    reset-base-url: ${APP_BASE_URL:https://laminar-prod.fly.dev}

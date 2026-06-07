@@ -22,6 +22,11 @@ public final class AuthDtos {
 
   public record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {}
 
+  public record ResetRequestDto(@Email @NotBlank String email) {}
+
+  public record ResetConfirmDto(
+      @NotBlank String token, @NotBlank @Size(min = 8, max = 128) String password) {}
+
   public record AuthResponse(
       UUID userId, String email, String displayName, boolean emailVerified) {}
 }

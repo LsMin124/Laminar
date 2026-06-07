@@ -23,7 +23,7 @@ import "./DagCanvas.css";
 const PX_PER_DAY = 130;
 const LEFT_PAD = 80;
 const BACKLOG_W = 180;
-const BAR_H = 76;
+const BAR_H = 92;
 const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
@@ -80,6 +80,24 @@ function cardMeta(c: Card): string {
   if (c.endDate && c.endDate !== c.startDate) r += `–${shortDate(c.endDate)}`;
   if (!c.allDay && c.startTime) r += ` ${c.startTime.slice(0, 5)}`;
   return r;
+}
+
+/**
+ * 마크다운 본문 → 카드 미리보기용 평문 발췌. 카드는 독립 문서이므로 내용 일부를 노출한다.
+ * 앞 240자만 처리(2줄 프리뷰엔 충분) 후 코드/이미지/링크/수식/강조/줄머리 기호를 제거하고 공백 정규화.
+ */
+function mdExcerpt(md: string): string {
+  return md
+    .slice(0, 240)
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\$\$?[^$]*\$\$?/g, " ")
+    .replace(/^[ \t>#+-]*/gm, "")
+    .replace(/[*_~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 type DragMode = "move" | "resize-l" | "resize-r";
@@ -146,6 +164,14 @@ export function DagCanvas({
   const categories = graph.data?.categories ?? [];
   const cardCategoryIds = graph.data?.cardCategoryIds ?? {};
   const isVisible = (c: Card) => !hideCompleted || !c.completed;
+  // 본문 발췌는 카드 데이터 변경 시에만 계산(드래그 매 프레임 재계산 방지). 빈/이미지전용은 "…".
+  const excerpts = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of cards) {
+      if (c.bodyMd && c.bodyMd.trim().length > 0) m.set(c.id, mdExcerpt(c.bodyMd) || "…");
+    }
+    return m;
+  }, [cards]);
 
   // 시간축 origin은 ref로 한 번 고정한다. 매 렌더마다 카드 최소 날짜로 재계산하면, 한 카드를 더 이른
   // 날짜로 옮길 때 origin이 바뀌어 무관한 다른 카드들의 x좌표가 통째로 재배치된다("하나 옮겼는데 다른
@@ -833,7 +859,7 @@ export function DagCanvas({
           {cards.filter(isVisible).map((c) => {
             const g = nodeGeom(c);
             const dated = !!c.startDate;
-            const hasBody = !!c.bodyMd && c.bodyMd.trim().length > 0;
+            const excerpt = excerpts.get(c.id);
             const rels = relCount.get(c.id) ?? 0;
             const endMs = c.endDate
               ? parseDate(c.endDate)
@@ -880,8 +906,17 @@ export function DagCanvas({
                       title="완료 여부"
                     />
                     <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
+                    <CardCategoryTag
+                      tabId={tabId}
+                      cardId={c.id}
+                      categoryId={catId}
+                      categories={categories}
+                    />
                   </div>
-                  <div className="dag-node-body">
+                  <div className="dag-node-excerpt">
+                    {excerpt ?? <span className="dag-node-empty">빈 문서</span>}
+                  </div>
+                  <div className="dag-node-foot">
                     <span className="dag-node-date">{cardMeta(c)}</span>
                     <div className="dag-node-ind">
                       {overdue && (
@@ -894,18 +929,7 @@ export function DagCanvas({
                           ↔{rels}
                         </span>
                       )}
-                      {hasBody && (
-                        <span className="dag-ind" title="본문 있음">
-                          ▤
-                        </span>
-                      )}
                     </div>
-                    <CardCategoryTag
-                      tabId={tabId}
-                      cardId={c.id}
-                      categoryId={catId}
-                      categories={categories}
-                    />
                   </div>
                 </div>
                 {dated && (

@@ -20,7 +20,7 @@ import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
 import "./DagCanvas.css";
 
-const PX_PER_DAY = 130;
+const PX_PER_DAY = 190;
 const LEFT_PAD = 80;
 const BACKLOG_W = 180;
 const BAR_H = 76;

@@ -611,6 +611,7 @@ export function DagCanvas({
   const sole = selCount === 1 ? (cards.find((c) => selectedIds.has(c.id)) ?? null) : null;
   const soleInGroup =
     !!sole && groups.some((g) => (groupMembers[g.id] ?? []).includes(sole.id));
+  const selectedCards = cards.filter((c) => selectedIds.has(c.id));
 
   return (
     <div className={`dag${linkSource ? " linking" : ""}`}>
@@ -664,8 +665,8 @@ export function DagCanvas({
         <CategoryBar
           tabId={tabId}
           categories={categories}
-          card={sole}
-          cardCategoryId={sole ? (cardCategoryIds[sole.id] ?? null) : null}
+          cards={selectedCards}
+          cardCategoryIds={cardCategoryIds}
         />
         <span className="dag-tool-sep" />
         <button

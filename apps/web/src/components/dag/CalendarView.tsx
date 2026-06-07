@@ -26,6 +26,22 @@ function startOfMonth(ms: number): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
 }
 
+/** 카테고리 색(hex)을 막대 배경용 저알파 rgba로 — 어두운 셀 위에 옅은 틴트. */
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  const n =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 /** 한 주(7칸) 안에서 카드가 차지하는 막대 세그먼트 — 칸 범위 + 주 경계 연속 여부 + 적층 레인. */
 type Seg = {
   card: Card;
@@ -49,6 +65,12 @@ export function CalendarView({ tabId }: { tabId: string }) {
   const [hideCompleted, setHideCompleted] = useState(false);
 
   const cards = useMemo(() => graph.data?.cards ?? [], [graph.data]);
+  const cardCategoryIds = graph.data?.cardCategoryIds ?? {};
+  const categoryColorById = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const cat of graph.data?.categories ?? []) m.set(cat.id, cat.color);
+    return m;
+  }, [graph.data]);
   const today = todayUtc();
   const monthIndex = new Date(monthMs).getUTCMonth();
 
@@ -190,6 +212,8 @@ export function CalendarView({ tabId }: { tabId: string }) {
             <div className="cal-bars">
               {week.segs.map((s) => {
                 const span = s.endCol - s.startCol + 1;
+                const catId = cardCategoryIds[s.card.id];
+                const catColor = catId ? (categoryColorById.get(catId) ?? null) : null;
                 return (
                   <div
                     key={s.card.id}
@@ -203,6 +227,9 @@ export function CalendarView({ tabId }: { tabId: string }) {
                       left: `calc(${((s.startCol / 7) * 100).toFixed(4)}% + 2px)`,
                       width: `calc(${((span / 7) * 100).toFixed(4)}% - 4px)`,
                       top: 24 + s.lane * 20,
+                      ...(catColor
+                        ? { borderColor: catColor, background: hexToRgba(catColor, 0.22) }
+                        : {}),
                     }}
                   >
                     {s.isStart && (

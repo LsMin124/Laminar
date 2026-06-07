@@ -29,13 +29,15 @@ const DEFAULT_PALETTE = [
 export function CategoryBar({
   tabId,
   categories,
-  card,
-  cardCategoryId,
+  cards,
+  cardCategoryIds,
 }: {
   tabId: string;
   categories: Category[];
-  card: Card | null;
-  cardCategoryId: string | null;
+  /** 선택된 카드들 — 0개면 지정 비활성(관리만), 1+개면 일괄 지정. */
+  cards: Card[];
+  /** cardId → categoryId (선택 카드들의 공통 분류 판정용). */
+  cardCategoryIds: Record<string, string>;
 }) {
   const dialogs = useDialogs();
   const setCardCategory = useSetCardCategory(tabId);
@@ -48,9 +50,16 @@ export function CategoryBar({
   const [draftColors, setDraftColors] = useState<Record<string, string>>({});
   const colorTimers = useRef<Record<string, number>>({});
 
+  // 선택 카드들의 공통 분류 — 모두 같으면 그 id, 섞였거나 비었으면 null(피커 현재 표시용).
+  const sharedCategoryId = (() => {
+    if (cards.length === 0) return null;
+    const ids = new Set(cards.map((c) => cardCategoryIds[c.id] ?? ""));
+    return ids.size === 1 ? [...ids][0] || null : null;
+  })();
+
   function assign(categoryId: string | null) {
-    if (!card) return;
-    setCardCategory.mutate({ cardId: card.id, categoryId });
+    if (cards.length === 0) return;
+    for (const c of cards) setCardCategory.mutate({ cardId: c.id, categoryId });
     setPickerOpen(false);
   }
 
@@ -59,8 +68,8 @@ export function CategoryBar({
     if (!name || !name.trim()) return;
     const color = DEFAULT_PALETTE[categories.length % DEFAULT_PALETTE.length];
     const created = await createCategory.mutateAsync({ name: name.trim(), color });
-    if (assignAfter && card) {
-      setCardCategory.mutate({ cardId: card.id, categoryId: created.id });
+    if (assignAfter && cards.length > 0) {
+      for (const c of cards) setCardCategory.mutate({ cardId: c.id, categoryId: created.id });
       setPickerOpen(false);
     }
   }
@@ -95,21 +104,25 @@ export function CategoryBar({
         type="button"
         className="dag-tool"
         onClick={() => setPickerOpen((o) => !o)}
-        title={card ? "선택 카드 분류 지정 · 분류 관리" : "분류 관리 (카드 1개 선택 시 지정 가능)"}
+        title={
+          cards.length > 0 ? "선택 카드 분류 지정 · 분류 관리" : "분류 관리 (카드 선택 시 지정 가능)"
+        }
       >
-        🏷 분류
+        🏷 분류{cards.length > 1 ? ` (${cards.length})` : ""}
       </button>
 
       {pickerOpen && (
         <>
           <div className="catbar-backdrop" onClick={() => setPickerOpen(false)} />
           <div className="catbar-pop" role="menu">
-            {card && (
+            {cards.length > 0 && (
               <>
-                <div className="catbar-sec">이 카드 분류</div>
+                <div className="catbar-sec">
+                  {cards.length === 1 ? "이 카드 분류" : `${cards.length}개 카드 분류`}
+                </div>
                 <button
                   type="button"
-                  className={`catbar-item${!cardCategoryId ? " active" : ""}`}
+                  className={`catbar-item${!sharedCategoryId ? " active" : ""}`}
                   onClick={() => assign(null)}
                 >
                   <span className="catbar-sw none" />
@@ -119,7 +132,7 @@ export function CategoryBar({
                   <button
                     key={cat.id}
                     type="button"
-                    className={`catbar-item${cardCategoryId === cat.id ? " active" : ""}`}
+                    className={`catbar-item${sharedCategoryId === cat.id ? " active" : ""}`}
                     onClick={() => assign(cat.id)}
                   >
                     <span className="catbar-sw" style={{ background: cat.color ?? "#888" }} />

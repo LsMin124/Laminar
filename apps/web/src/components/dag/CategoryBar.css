@@ -1,0 +1,198 @@
+/* 카테고리 툴바 — 지정 피커(popover) + 분류 관리 모달. 각진·웜 다크 톤. */
+
+.catbar {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ── 지정 피커 popover ── */
+.catbar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.catbar-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 41;
+  min-width: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.catbar-sec {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding: 4px 8px 2px;
+}
+.catbar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  color: #ccc;
+  cursor: pointer;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.catbar-item:hover {
+  background: var(--surface-2);
+  color: #fff;
+}
+.catbar-item.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: #fff;
+}
+.catbar-item.add {
+  color: var(--text-dim);
+}
+.catbar-divider {
+  height: 1px;
+  background: var(--rule);
+  margin: 3px 0;
+}
+.catbar-sw {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.catbar-sw.none {
+  background: repeating-linear-gradient(
+    45deg,
+    #555,
+    #555 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* ── 분류 관리 모달 ── */
+.cat-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+}
+.cat-modal {
+  width: min(400px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: #ddd;
+}
+.cat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+.cat-x {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cat-x:hover {
+  color: #fff;
+}
+.cat-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+}
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+}
+.cat-color {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+.cat-color::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.cat-color::-webkit-color-swatch {
+  border: none;
+}
+.cat-name {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  text-align: left;
+  padding: 7px 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-name:hover {
+  color: #fff;
+}
+.cat-del {
+  flex: none;
+  background: none;
+  border: 1px solid transparent;
+  color: #8a8a8a;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 7px;
+}
+.cat-del.danger:hover {
+  color: #fdd;
+  background: #5a1f1f;
+}
+.cat-empty {
+  color: #666;
+  padding: 10px;
+  font-size: 13px;
+}
+.cat-foot {
+  padding: 10px 12px;
+  border-top: 1px solid var(--rule);
+}
+.cat-create {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px dashed var(--rule);
+  color: #bbb;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cat-create:hover {
+  color: #fff;
+  border-color: var(--accent-border);
+}

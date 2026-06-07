@@ -57,6 +57,13 @@ export interface Group {
   color: string | null;
 }
 
+/** 카드 카테고리 — 주제(subject) 단위로 공유되는 명명 분류(이름 + 색). 카드 좌측 스트라이프에 반영. */
+export interface Category {
+  id: Uuid;
+  name: string;
+  color: string | null;
+}
+
 export interface TabGraph {
   tabId: Uuid;
   cards: Card[];
@@ -64,6 +71,10 @@ export interface TabGraph {
   groups: Group[];
   /** groupId → 멤버 cardId 목록. */
   groupMembers: Record<string, string[]>;
+  /** 현재 주제의 카테고리 목록(모든 탭 공유). */
+  categories: Category[];
+  /** cardId → categoryId. 미분류 카드는 키 없음. */
+  cardCategoryIds: Record<string, string>;
 }
 
 const graphKey = (tabId: string) => ["tabGraph", tabId] as const;
@@ -325,6 +336,66 @@ export function useRemoveCardFromGroup(tabId: string) {
     mutationFn: (input: { groupId: string; cardId: string }) =>
       api.delete<void>(`/api/groups/${input.groupId}/cards/${input.cardId}`),
     onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+// ── 카드 카테고리(주제 단위 명명 분류) ──────────────────────────────────
+// 카테고리 목록·카드↔카테고리 매핑은 TabGraph 응답에 함께 실려 오므로, 변경 시 그래프를 무효화해 반영한다.
+// 카테고리는 주제 전역(전 탭 공유)이라 생성/수정/삭제는 모든 탭 그래프(prefix ["tabGraph"])를 무효화한다.
+
+/** 카드에 카테고리 지정/해제 — categoryId null이면 미분류. 스트라이프 색이 즉시 바뀌도록 낙관적. */
+export function useSetCardCategory(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { cardId: string; categoryId: string | null }) =>
+      api.put<void>(`/api/cards/${input.cardId}/category`, {
+        categoryId: input.categoryId,
+      }),
+    onMutate: async (input) => {
+      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
+      qc.setQueryData<TabGraph>(graphKey(tabId), (g) => {
+        if (!g) return g;
+        const next = { ...g.cardCategoryIds };
+        if (input.categoryId) next[input.cardId] = input.categoryId;
+        else delete next[input.cardId];
+        return { ...g, cardCategoryIds: next };
+      });
+      await qc.cancelQueries({ queryKey: graphKey(tabId) });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snapshot = ctx as { prev?: TabGraph } | undefined;
+      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
+    },
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+export function useCreateCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; color: string | null }) =>
+      api.post<Category>("/api/categories", input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tabGraph"] }),
+  });
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; name?: string; color?: string | null }) => {
+      const { id, ...patch } = input;
+      return api.patch<Category>(`/api/categories/${id}`, patch);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tabGraph"] }),
+  });
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/api/categories/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tabGraph"] }),
   });
 }
 

@@ -16,6 +16,7 @@ import {
 } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
 import { useDialogs } from "../ui/DialogProvider";
+import { CategoryBar } from "./CategoryBar";
 import "./DagCanvas.css";
 
 const PX_PER_DAY = 130;
@@ -141,6 +142,9 @@ export function DagCanvas({
   const relations = graph.data?.cardRelations ?? [];
   const groups = graph.data?.groups ?? [];
   const groupMembers = graph.data?.groupMembers ?? {};
+  const categories = graph.data?.categories ?? [];
+  const cardCategoryIds = graph.data?.cardCategoryIds ?? {};
+  const categoryById = new Map(categories.map((cat) => [cat.id, cat] as const));
   const isVisible = (c: Card) => !hideCompleted || !c.completed;
 
   // 시간축 origin은 ref로 한 번 고정한다. 매 렌더마다 카드 최소 날짜로 재계산하면, 한 카드를 더 이른
@@ -657,6 +661,12 @@ export function DagCanvas({
         >
           ▤ 본문
         </button>
+        <CategoryBar
+          tabId={tabId}
+          categories={categories}
+          card={sole}
+          cardCategoryId={sole ? (cardCategoryIds[sole.id] ?? null) : null}
+        />
         <span className="dag-tool-sep" />
         <button
           type="button"
@@ -830,6 +840,8 @@ export function DagCanvas({
                 ? parseDate(c.startDate)
                 : null;
             const overdue = endMs !== null && endMs < todayMs && !c.completed;
+            const catId = cardCategoryIds[c.id];
+            const catColor = catId ? (categoryById.get(catId)?.color ?? null) : null;
             return (
               <div
                 key={c.id}
@@ -845,7 +857,12 @@ export function DagCanvas({
                   onOpenCard?.(c.id, c.title);
                 }}
               >
-                <span className="dag-node-stripe" />
+                <span
+                  className="dag-node-stripe"
+                  style={
+                    !overdue && catColor ? { background: catColor, opacity: 1 } : undefined
+                  }
+                />
                 {dated && (
                   <div
                     className="dag-handle l"

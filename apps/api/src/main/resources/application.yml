@@ -43,5 +43,7 @@ management:
 app:
   jwt:
     secret: ${JWT_SECRET:}
-    access-ttl: PT15M
+    # access TTL = access 쿠키 Max-Age. 짧으면(15m) 그 주기마다 첫 요청이 401→refresh를
+    # 반응적으로 타 401이 자주 노출됨 → 한 세션을 덮도록 8h로 상향(refresh 28d는 유지).
+    access-ttl: PT8H
     refresh-ttl: P28D

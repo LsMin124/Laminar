@@ -56,18 +56,34 @@ let refreshInFlight: Promise<boolean> | null = null;
  */
 function attemptRefresh(): Promise<boolean> {
   if (!refreshInFlight) {
-    refreshInFlight = fetch(`${API_BASE}/api/auth/refresh`, {
-      method: "POST",
-      headers: { "X-Laminar-CSRF": "1" },
-      credentials: "include",
-    })
-      .then((res) => res.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshInFlight = null;
-      });
+    refreshInFlight = refreshWithRetry().finally(() => {
+      refreshInFlight = null;
+    });
   }
   return refreshInFlight;
+}
+
+/**
+ * refresh 1회 + 일시 오류(머신 suspend 재개 등 네트워크/5xx) 시 1회 재시도.
+ * 깨끗한 401(refresh 토큰이 실제로 무효)은 재시도 없이 false → 로그아웃 처리한다.
+ */
+async function refreshWithRetry(): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "X-Laminar-CSRF": "1" },
+        credentials: "include",
+      });
+      if (res.ok) return true;
+      if (res.status === 401) return false; // refresh 토큰 무효 → 진짜 만료
+      // 그 외(5xx 등 일시 오류)는 재시도 루프로
+    } catch {
+      // 네트워크 오류 → 재시도
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
+  }
+  return false;
 }
 
 async function request<T>(

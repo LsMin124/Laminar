@@ -36,6 +36,10 @@ public class CardEntity extends PersonalBaseEntity {
   @Column(name = "canvas_y")
   private Double canvasY;
 
+  /** 카드 카테고리(주제 단위 명명 카테고리). NULL = 미분류. */
+  @Column(name = "category_id")
+  private UUID categoryId;
+
   @Column(name = "title", nullable = false)
   private String title;
 

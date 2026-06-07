@@ -47,6 +47,9 @@ public final class CardDtos {
 
   public record ReorderRequest(@NotEmpty List<UUID> orderedIds) {}
 
+  /** 카드 카테고리 지정/해제 — categoryId null이면 미분류. */
+  public record SetCategoryRequest(UUID categoryId) {}
+
   public record RenderedBodyResponse(UUID cardId, String html) {}
 
   public record CardResponse(

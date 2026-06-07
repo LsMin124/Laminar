@@ -97,6 +97,20 @@ public class CardService {
         .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()));
   }
 
+  /** 카드 카테고리 지정/해제 — categoryId null이면 미분류. (FK가 실재 카테고리를 보장.) */
+  @Transactional
+  public CardEntity setCategory(UUID cardId, UUID categoryId) {
+    SubjectContext ctx = requirePersonalWritable();
+    CardEntity card =
+        cardRepo
+            .findById(cardId)
+            .filter(c -> c.getDeletedAt() == null)
+            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
+            .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+    card.setCategoryId(categoryId);
+    return cardRepo.save(card);
+  }
+
   @Transactional
   public CardEntity update(UUID cardId, UpdateInput input) {
     SubjectContext ctx = requirePersonalWritable();

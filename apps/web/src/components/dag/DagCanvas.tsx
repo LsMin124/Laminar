@@ -880,14 +880,8 @@ export function DagCanvas({
                       title="완료 여부"
                     />
                     <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
-                    <CardCategoryTag
-                      tabId={tabId}
-                      cardId={c.id}
-                      categoryId={catId}
-                      categories={categories}
-                    />
                   </div>
-                  <div className="dag-node-foot">
+                  <div className="dag-node-body">
                     <span className="dag-node-date">{cardMeta(c)}</span>
                     <div className="dag-node-ind">
                       {overdue && (
@@ -906,6 +900,12 @@ export function DagCanvas({
                         </span>
                       )}
                     </div>
+                    <CardCategoryTag
+                      tabId={tabId}
+                      cardId={c.id}
+                      categoryId={catId}
+                      categories={categories}
+                    />
                   </div>
                 </div>
                 {dated && (

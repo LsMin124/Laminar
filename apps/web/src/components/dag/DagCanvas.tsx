@@ -9,6 +9,7 @@ import {
   useDeleteRelation,
   useMoveCard,
   useRemoveCardFromGroup,
+  useSetCardCategory,
   useTabGraph,
   useUpdateCard,
   type Card,
@@ -18,6 +19,7 @@ import { ApiError } from "../../lib/api";
 import { useDialogs } from "../ui/DialogProvider";
 import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
+import { NewCardDialog } from "./NewCardDialog";
 import "./DagCanvas.css";
 
 const PX_PER_DAY = 130;
@@ -137,6 +139,7 @@ export function DagCanvas({
   const deleteGroup = useDeleteGroup(tabId);
   const addCardToGroup = useAddCardToGroup(tabId);
   const removeCardFromGroup = useRemoveCardFromGroup(tabId);
+  const setCardCategory = useSetCardCategory(tabId);
   const dialogs = useDialogs();
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -152,6 +155,8 @@ export function DagCanvas({
   const linkFromRef = useRef<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // 새 카드 생성 다이얼로그 — null=닫힘, {date}=열림(일자 기본값).
+  const [newCard, setNewCard] = useState<{ date: string | null } | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const lastPtRef = useRef<{ x: number; y: number } | null>(null);
   const panDirRef = useRef(0);
@@ -319,13 +324,11 @@ export function DagCanvas({
     await dialogs.alert({ title: "처리 불가", message: msg });
   }
 
-  async function onCanvasDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
+  function onCanvasDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target !== e.currentTarget) return;
     const p = canvasPoint(e.clientX, e.clientY);
-    const title = await dialogs.prompt({ title: "새 카드", placeholder: "카드 제목" });
-    if (!title || !title.trim()) return;
     const startDate = p.x >= LEFT_PAD ? fmtDate(xToDateMs(p.x)) : null;
-    createCard.mutate({ title: title.trim(), startDate });
+    setNewCard({ date: startDate });
   }
 
   function onBodyDown(e: React.PointerEvent<HTMLDivElement>, c: Card) {
@@ -540,10 +543,24 @@ export function DagCanvas({
     if (ok) deleteRelation.mutate(id);
   }
 
-  async function onAddCard() {
-    const title = await dialogs.prompt({ title: "새 카드", placeholder: "카드 제목" });
-    if (!title || !title.trim()) return;
-    createCard.mutate({ title: title.trim(), startDate: fmtDate(todayUtc()) });
+  function onAddCard() {
+    setNewCard({ date: fmtDate(todayUtc()) });
+  }
+
+  // 새 카드 확정 — 생성 후 분류 선택 시 지정(일자 비우면 미정/백로그).
+  async function onCreateCard(input: {
+    title: string;
+    startDate: string | null;
+    categoryId: string | null;
+  }) {
+    const card = await createCard.mutateAsync({
+      title: input.title,
+      startDate: input.startDate,
+    });
+    if (input.categoryId) {
+      setCardCategory.mutate({ cardId: card.id, categoryId: input.categoryId });
+    }
+    setNewCard(null);
   }
 
   function onToolLink() {
@@ -981,6 +998,14 @@ export function DagCanvas({
       </div>
       {graph.isLoading && <p className="loading">그래프 불러오는 중...</p>}
       {graph.isError && <p className="loading">그래프를 불러오지 못했습니다.</p>}
+      {newCard && (
+        <NewCardDialog
+          defaultDate={newCard.date}
+          categories={categories}
+          onSubmit={onCreateCard}
+          onClose={() => setNewCard(null)}
+        />
+      )}
     </div>
   );
 }

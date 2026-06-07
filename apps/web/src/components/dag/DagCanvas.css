@@ -513,3 +513,108 @@
 .cardtag-sw.none {
   background: repeating-linear-gradient(45deg, #555, #555 2px, transparent 2px, transparent 4px);
 }
+
+/* ── 새 카드 생성 다이얼로그 — 제목 + 일자(선택) + 분류(선택) ── */
+.ncard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+}
+.ncard {
+  width: min(360px, 92vw);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: #ddd;
+  display: flex;
+  flex-direction: column;
+}
+.ncard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+.ncard-x {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 13px;
+}
+.ncard-x:hover {
+  color: #fff;
+}
+.ncard-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ncard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.ncard-field em {
+  font-style: normal;
+  color: #6b5f57;
+}
+.ncard-input {
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  color: var(--text);
+  padding: 7px 9px;
+  font-size: 13px;
+  border-radius: 0;
+}
+.ncard-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+select.ncard-input {
+  cursor: pointer;
+}
+.ncard-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--rule);
+}
+.ncard-cancel {
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  color: #bbb;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.ncard-cancel:hover {
+  color: #fff;
+}
+.ncard-submit {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #1a1208;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ncard-submit:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.ncard-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -364,14 +364,36 @@
 .dag-ind.danger {
   color: var(--danger);
 }
+/* 완료 체크박스 — 네이티브 대신 각진 커스텀. 체크 시 체크표시(✓)가 아닌
+   안쪽 네모가 채워진다(background-clip:content-box). 색감=웜 액센트로 통일. */
 .dag-node-check {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
   flex: none;
   width: 14px;
   height: 14px;
   margin: 0;
+  padding: 2px;
   cursor: pointer;
-  accent-color: var(--accent);
+  background-color: transparent;
+  background-clip: content-box;
+  border: 1.5px solid #6a544a;
   border-radius: 0;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+.dag-node-check:hover {
+  border-color: var(--accent);
+}
+.dag-node-check:checked {
+  border-color: var(--accent);
+  background-color: var(--accent);
+}
+.dag-node-check:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* 연결 핸들(nub) — 우측 돌출, 드래그로 화살표 생성 (호버/선택 시 노출) */

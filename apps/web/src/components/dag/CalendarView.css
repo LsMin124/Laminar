@@ -133,13 +133,25 @@
 .cal-bar.completed .cal-bar-title {
   text-decoration: line-through;
 }
+/* 완료 체크박스 — DAG 카드와 통일(각진 커스텀, 체크 시 안쪽 네모, 웜 액센트). */
 .cal-bar-check {
-  width: 11px;
-  height: 11px;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
   margin: 0;
+  padding: 2px;
   flex: none;
-  accent-color: var(--accent-soft);
   cursor: pointer;
+  background-color: transparent;
+  background-clip: content-box;
+  border: 1px solid #6a544a;
+  border-radius: 0;
+}
+.cal-bar-check:checked {
+  border-color: var(--accent);
+  background-color: var(--accent);
 }
 .cal-bar-title {
   flex: 1;

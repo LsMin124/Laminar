@@ -1,9 +1,26 @@
+/* ══════════════════════════════════════════════════════════════════════
+   DAG 캔버스 — 컨테이너 / 툴바 / 시간축 / 엣지 / 그룹 / 카드 / 분류 태그
+   (카드 폭·위치·높이는 카드별 인라인 style로 지정)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 컨테이너 ── */
 .dag {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
+.dag-canvas {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  background: #0e0e0e;
+}
+.dag-surface {
+  position: relative;
+}
+
+/* ── 툴바 ── */
 .dag-toolbar {
   padding: 8px 12px;
   border-bottom: 1px solid #2a2a2a;
@@ -22,15 +39,57 @@
   padding: 2px 8px;
   font-size: 11px;
 }
-.dag-canvas {
-  position: relative;
-  flex: 1;
-  overflow: auto;
-  background: #0e0e0e;
+.dag-tool {
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  cursor: pointer;
+  padding: 3px 10px;
+  font-size: 12px;
 }
-.dag-surface {
-  position: relative;
+.dag-tool:hover {
+  background: #2a2a2a;
+  color: #fff;
 }
+.dag-tool.danger:hover {
+  background: #5a1f1f;
+  border-color: #a55;
+  color: #fdd;
+}
+.dag-tool:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+.dag-tool:disabled:hover {
+  background: #1f1f1f;
+  color: #ccc;
+}
+.dag-tool-sep {
+  width: 1px;
+  align-self: stretch;
+  background: #333;
+  margin: 0 2px;
+}
+.dag-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #777;
+}
+.dag-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #aaa;
+  white-space: nowrap;
+}
+.dag-toggle input {
+  accent-color: var(--accent-soft);
+  cursor: pointer;
+}
+
+/* ── 시간축 그리드 / 오늘 / 백로그 ── */
 .dag-gridline {
   position: absolute;
   top: 0;
@@ -72,6 +131,8 @@
   font-size: 10px;
   color: #555;
 }
+
+/* ── 관계 엣지 ── */
 .dag-edges {
   position: absolute;
   top: 0;
@@ -89,103 +150,15 @@
   stroke: var(--accent);
   stroke-width: 2.5;
 }
-.dag-node {
-  position: absolute;
-  width: 180px;
-  box-sizing: border-box;
-  background: #1b1b1b;
-  border: 1px solid #3a3a3a;
-  border-radius: 2px;
-  padding: 8px 8px 6px;
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-.dag-node.completed {
-  opacity: 0.5;
-}
-.dag-node.link-src {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-.dag .linking .dag-node {
-  cursor: crosshair;
-}
-.dag-node-title {
-  font-size: 13px;
-  color: #e8e8e8;
-  margin-bottom: 5px;
-  word-break: break-word;
-  line-height: 1.3;
-}
-.dag-node-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: #888;
-}
-.dag-node-actions {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  display: none;
-  gap: 1px;
-}
-.dag-node:hover .dag-node-actions {
-  display: flex;
-}
-.dag-node-actions button {
-  background: none;
-  border: none;
-  color: #999;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  padding: 2px 3px;
-}
-.dag-node-actions button:hover {
-  color: #fff;
+.dag-link-temp {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  fill: none;
+  pointer-events: none;
 }
 
-/* 멀티데이 막대 + 리사이즈 핸들 (폭은 인라인 style로 카드별 지정) */
-.dag-node {
-  width: auto;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-.dag-node-title {
-  margin-bottom: 0;
-  flex: 1;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dag-node-actions {
-  right: 12px;
-  z-index: 2;
-}
-.dag-handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-  z-index: 1;
-}
-.dag-handle.l {
-  left: 0;
-}
-.dag-handle.r {
-  right: 0;
-}
-.dag-node:hover .dag-handle {
-  background: rgba(217, 119, 87, 0.3);
-}
-
-/* 그룹 경계 박스 — 멤버 카드들의 bounding rect (자동 산출, pointer-events 투과) */
+/* ── 그룹 경계 박스 (멤버 bounding rect, 자동 산출·pointer-events 투과) ── */
 .dag-group {
   position: absolute;
   border: 1.5px dashed #5a6a7a;
@@ -209,183 +182,20 @@
   text-decoration: line-through;
 }
 
-/* 카드 미리보기 — 완료 체크박스 + (제목 / 날짜·시간) 2줄 본문 */
+/* ── 카드 — 기술적·각진·웜 다크 모듈 ── */
 .dag-node {
-  padding: 0 10px;
-  gap: 6px;
-}
-.dag-node-check {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  cursor: pointer;
-  accent-color: var(--accent-soft);
-}
-.dag-node-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1px;
-}
-.dag-node-title {
-  flex: none;
-}
-.dag-node-meta {
-  display: block;
-  font-size: 10px;
-  color: #8a8a8a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-.dag-node.completed .dag-node-title {
-  text-decoration: line-through;
-}
-
-.dag-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  color: #aaa;
-  white-space: nowrap;
-}
-.dag-toggle input {
-  accent-color: var(--accent-soft);
-  cursor: pointer;
-}
-
-/* 선택 하이라이트 + 상단 툴바 메뉴 */
-.dag-node.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-.dag-tool {
-  background: #1f1f1f;
-  border: 1px solid #3a3a3a;
-  color: #ccc;
-  cursor: pointer;
-  padding: 3px 10px;
-  font-size: 12px;
-}
-.dag-tool:hover {
-  background: #2a2a2a;
-  color: #fff;
-}
-.dag-tool.danger:hover {
-  background: #5a1f1f;
-  border-color: #a55;
-  color: #fdd;
-}
-.dag-tool-sep {
-  width: 1px;
-  align-self: stretch;
-  background: #333;
-  margin: 0 2px;
-}
-.dag-hint {
-  margin-left: auto;
-  font-size: 11px;
-  color: #777;
-}
-.dag-tool:disabled {
-  opacity: 0.38;
-  cursor: default;
-}
-.dag-tool:disabled:hover {
-  background: #1f1f1f;
-  color: #ccc;
-}
-
-/* ── 카드 업그레이드(A): 좌측 카테고리 스트라이프 + 우측 메타 인디케이터 + 상태/깊이 ── */
-.dag-node {
-  background: #1d1a17;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  padding-left: 12px;
-}
-.dag-node-stripe {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--accent-soft);
-  opacity: 0.7;
-}
-.dag-node-title {
-  font-weight: 600;
-  color: #f0ece6;
-}
-.dag-node-ind {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 4px;
-  font-size: 10px;
-  color: #9a8d83;
-}
-.dag-ind {
-  white-space: nowrap;
-}
-.dag-ind.danger {
-  color: var(--danger);
-}
-.dag-node.overdue {
-  border-color: #5a3a30;
-}
-.dag-node.overdue .dag-node-stripe {
-  background: var(--danger);
-  opacity: 0.85;
-}
-
-/* 연결 핸들(nub) — 우측 돌출, 드래그로 화살표 생성 + 드래그 임시 라인 */
-.dag-node {
-  overflow: visible;
-}
-.dag-link-nub {
-  position: absolute;
-  right: -13px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  cursor: crosshair;
-  display: none;
-  z-index: 3;
-  touch-action: none;
-}
-.dag-node:hover .dag-link-nub,
-.dag-node.selected .dag-link-nub {
-  display: block;
-}
-.dag-link-nub:hover {
-  background: var(--accent);
-}
-.dag-link-temp {
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-dasharray: 5 3;
-  fill: none;
-  pointer-events: none;
-}
-
-/* ══ 카드 리디자인 — 기술적·각진·웜 다크 모듈 (헤더: 체크·제목·분류태그 / 푸터: 날짜·인디케이터) ══ */
-.dag-node {
+  width: auto;
+  box-sizing: border-box;
   background: linear-gradient(180deg, #221c18 0%, #191512 100%);
   border: 1px solid var(--rule);
   border-radius: 3px;
   padding: 0;
   display: block;
   overflow: visible;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 2px 6px rgba(0, 0, 0, 0.45);
@@ -405,11 +215,18 @@
     0 0 0 1px var(--accent),
     0 5px 14px rgba(0, 0, 0, 0.55);
 }
+.dag-node.link-src {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
 .dag-node.completed {
   opacity: 0.5;
 }
 .dag-node.overdue {
   border-color: #5a3a30;
+}
+.dag .linking .dag-node {
+  cursor: crosshair;
 }
 
 /* 좌측 상태 레일 — 기본 accent-soft / 지연 danger / 완료 회색 */
@@ -430,7 +247,26 @@
   background: #5a5550;
 }
 
-/* 본문 = 헤더 / 푸터 세로 분배(가운데 정렬, 좌측 레일 폭 보정) */
+/* 리사이즈 핸들 (좌/우 끝, 호버 시 노출) */
+.dag-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 1;
+}
+.dag-handle.l {
+  left: 0;
+}
+.dag-handle.r {
+  right: 0;
+}
+.dag-node:hover .dag-handle {
+  background: rgba(217, 119, 87, 0.3);
+}
+
+/* 본문 = 헤더(체크·제목·분류태그) / 푸터(모노 날짜·인디케이터) 세로 분배 */
 .dag-node-main {
   height: 100%;
   box-sizing: border-box;
@@ -486,7 +322,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0;
   font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
   font-size: 10px;
   color: #9a8d83;
@@ -500,8 +335,6 @@
 .dag-ind.danger {
   color: var(--danger);
 }
-
-/* 완료 체크박스 — 각진 */
 .dag-node-check {
   flex: none;
   width: 15px;
@@ -510,6 +343,30 @@
   cursor: pointer;
   accent-color: var(--accent);
   border-radius: 0;
+}
+
+/* 연결 핸들(nub) — 우측 돌출, 드래그로 화살표 생성 (호버/선택 시 노출) */
+.dag-link-nub {
+  position: absolute;
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  cursor: crosshair;
+  display: none;
+  z-index: 3;
+  touch-action: none;
+}
+.dag-node:hover .dag-link-nub,
+.dag-node.selected .dag-link-nub {
+  display: block;
+}
+.dag-link-nub:hover {
+  background: var(--accent);
 }
 
 /* ── 분류 태그 — 헤더 우측 단색 칩(드롭다운 트리거). 미분류도 항상 표시 ── */

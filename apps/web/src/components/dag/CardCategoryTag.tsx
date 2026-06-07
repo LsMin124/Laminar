@@ -81,7 +81,7 @@ export function CardCategoryTag({
         }}
         title={current ? `분류: ${current.name}` : "분류 지정"}
       >
-        {current ? current.name : "분류"}
+        {current ? current.name : "미분류"}
       </button>
       {open && (
         <>

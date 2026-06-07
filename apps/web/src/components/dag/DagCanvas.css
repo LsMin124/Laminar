@@ -378,31 +378,153 @@
   pointer-events: none;
 }
 
-/* ── 카드 분류 태그 — 색+이름 단색 칩(드롭다운 트리거). 메타 라인 우측 배치 ── */
-.dag-node-meta {
+/* ══ 카드 리디자인 — 기술적·각진·웜 다크 모듈 (헤더: 체크·제목·분류태그 / 푸터: 날짜·인디케이터) ══ */
+.dag-node {
+  background: linear-gradient(180deg, #221c18 0%, #191512 100%);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0;
+  display: block;
+  overflow: visible;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.dag-node:hover {
+  border-color: var(--accent-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 5px 14px rgba(0, 0, 0, 0.55);
+}
+.dag-node.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 5px 14px rgba(0, 0, 0, 0.55);
+}
+.dag-node.completed {
+  opacity: 0.5;
+}
+.dag-node.overdue {
+  border-color: #5a3a30;
+}
+
+/* 좌측 상태 레일 — 기본 accent-soft / 지연 danger / 완료 회색 */
+.dag-node-stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent-soft);
+  opacity: 0.9;
+}
+.dag-node.overdue .dag-node-stripe {
+  background: var(--danger);
+  opacity: 1;
+}
+.dag-node.completed .dag-node-stripe {
+  background: #5a5550;
+}
+
+/* 본문 = 헤더 / 푸터 세로 분배(가운데 정렬, 좌측 레일 폭 보정) */
+.dag-node-main {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 12px 0 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+}
+.dag-node-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.dag-node-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #f2eee9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.dag-node.completed .dag-node-title {
+  text-decoration: line-through;
+}
+.dag-node-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  overflow: visible;
+  gap: 10px;
+  min-width: 0;
 }
 .dag-node-date {
+  flex: 1;
   min-width: 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.dag-node-ind {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 10px;
+  color: #9a8d83;
+}
+.dag-ind {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   white-space: nowrap;
 }
+.dag-ind.danger {
+  color: var(--danger);
+}
+
+/* 완료 체크박스 — 각진 */
+.dag-node-check {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+  border-radius: 0;
+}
+
+/* ── 분류 태그 — 헤더 우측 단색 칩(드롭다운 트리거). 미분류도 항상 표시 ── */
 .cardtag-wrap {
   position: relative;
   flex: none;
   display: inline-flex;
 }
 .cardtag {
-  max-width: 88px;
-  padding: 1px 6px;
+  max-width: 96px;
+  padding: 2px 7px;
   font-size: 10px;
-  line-height: 1.5;
+  line-height: 1.4;
   font-weight: 600;
+  letter-spacing: 0.01em;
   border: 1px solid transparent;
   border-radius: 2px;
   cursor: pointer;
@@ -412,15 +534,13 @@
 }
 .cardtag.empty {
   background: transparent;
-  border: 1px dashed #4a3f38;
+  border: 1px dashed #5a4d44;
   color: #8a7d73;
-  font-weight: 400;
-  opacity: 0;
-  transition: opacity 120ms;
+  font-weight: 500;
 }
-.dag-node:hover .cardtag.empty,
-.dag-node.selected .cardtag.empty {
-  opacity: 1;
+.cardtag.empty:hover {
+  border-color: var(--accent-border);
+  color: var(--accent-bright);
 }
 .cardtag-backdrop {
   position: fixed;
@@ -429,15 +549,16 @@
 }
 .cardtag-menu {
   position: absolute;
-  top: calc(100% + 3px);
-  left: 0;
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
   z-index: 40;
-  min-width: 150px;
+  min-width: 156px;
   max-height: 260px;
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--rule);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6);
   padding: 3px;
   display: flex;
   flex-direction: column;
@@ -446,14 +567,14 @@
 .cardtag-item {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
   background: none;
   border: 1px solid transparent;
   color: #ccc;
   cursor: pointer;
   text-align: left;
-  padding: 5px 7px;
+  padding: 6px 8px;
   font-size: 12px;
   white-space: nowrap;
 }

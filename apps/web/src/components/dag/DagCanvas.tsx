@@ -23,7 +23,7 @@ import "./DagCanvas.css";
 const PX_PER_DAY = 130;
 const LEFT_PAD = 80;
 const BACKLOG_W = 180;
-const BAR_H = 60;
+const BAR_H = 76;
 const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
@@ -866,21 +866,20 @@ export function DagCanvas({
                     onPointerUp={() => onPointerUp(c)}
                   />
                 )}
-                <input
-                  type="checkbox"
-                  className="dag-node-check"
-                  checked={c.completed}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) =>
-                    updateCard.mutate({ cardId: c.id, completed: e.target.checked })
-                  }
-                  title="완료 여부"
-                />
-                <div className="dag-node-body">
-                  <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
-                  <div className="dag-node-meta">
-                    <span className="dag-node-date">{cardMeta(c)}</span>
+                <div className="dag-node-main">
+                  <div className="dag-node-head">
+                    <input
+                      type="checkbox"
+                      className="dag-node-check"
+                      checked={c.completed}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        updateCard.mutate({ cardId: c.id, completed: e.target.checked })
+                      }
+                      title="완료 여부"
+                    />
+                    <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
                     <CardCategoryTag
                       tabId={tabId}
                       cardId={c.id}
@@ -888,26 +887,27 @@ export function DagCanvas({
                       categories={categories}
                     />
                   </div>
-                </div>
-                {(rels > 0 || hasBody || overdue) && (
-                  <div className="dag-node-ind">
-                    {overdue && (
-                      <span className="dag-ind danger" title="지연(종료일 경과)">
-                        ●
-                      </span>
-                    )}
-                    {rels > 0 && (
-                      <span className="dag-ind" title={`관계 ${rels}개`}>
-                        ↔{rels}
-                      </span>
-                    )}
-                    {hasBody && (
-                      <span className="dag-ind" title="본문 있음">
-                        ▤
-                      </span>
-                    )}
+                  <div className="dag-node-foot">
+                    <span className="dag-node-date">{cardMeta(c)}</span>
+                    <div className="dag-node-ind">
+                      {overdue && (
+                        <span className="dag-ind danger" title="지연(종료일 경과)">
+                          ● 지연
+                        </span>
+                      )}
+                      {rels > 0 && (
+                        <span className="dag-ind" title={`관계 ${rels}개`}>
+                          ↔{rels}
+                        </span>
+                      )}
+                      {hasBody && (
+                        <span className="dag-ind" title="본문 있음">
+                          ▤
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
                 {dated && (
                   <div
                     className="dag-handle r"

@@ -20,7 +20,7 @@ import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
 import "./DagCanvas.css";
 
-const PX_PER_DAY = 190;
+const PX_PER_DAY = 130;
 const LEFT_PAD = 80;
 const BACKLOG_W = 180;
 const BAR_H = 76;
@@ -886,7 +886,7 @@ export function DagCanvas({
                     <div className="dag-node-ind">
                       {overdue && (
                         <span className="dag-ind danger" title="지연(종료일 경과)">
-                          ● 지연
+                          ●
                         </span>
                       )}
                       {rels > 0 && (

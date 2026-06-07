@@ -377,3 +377,104 @@
   fill: none;
   pointer-events: none;
 }
+
+/* ── 카드 분류 태그 — 색+이름 단색 칩(드롭다운 트리거). 메타 라인 우측 배치 ── */
+.dag-node-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  overflow: visible;
+}
+.dag-node-date {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardtag-wrap {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+}
+.cardtag {
+  max-width: 88px;
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 1.5;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cardtag.empty {
+  background: transparent;
+  border: 1px dashed #4a3f38;
+  color: #8a7d73;
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.dag-node:hover .cardtag.empty,
+.dag-node.selected .cardtag.empty {
+  opacity: 1;
+}
+.cardtag-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+}
+.cardtag-menu {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  z-index: 40;
+  min-width: 150px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cardtag-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  color: #ccc;
+  cursor: pointer;
+  text-align: left;
+  padding: 5px 7px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.cardtag-item:hover {
+  background: var(--surface-2);
+  color: #fff;
+}
+.cardtag-item.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: #fff;
+}
+.cardtag-item.add {
+  color: var(--text-dim);
+}
+.cardtag-sw {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.cardtag-sw.none {
+  background: repeating-linear-gradient(45deg, #555, #555 2px, transparent 2px, transparent 4px);
+}

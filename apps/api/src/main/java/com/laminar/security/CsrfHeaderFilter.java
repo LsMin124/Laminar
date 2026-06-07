@@ -28,6 +28,16 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
   static final String CSRF_HEADER = "X-Laminar-CSRF";
   private static final Set<String> MUTATING = Set.of("POST", "PUT", "PATCH", "DELETE");
 
+  // 본문 자격(이메일·비번·리셋 토큰) 기반이라 ambient 쿠키 인증을 사용하지 않는 엔드포인트 — CSRF 면제.
+  // (stale 쿠키가 남아 있으면 CSRF가 강제돼 로그인·가입이 403으로 막히던 footgun 제거.)
+  // /refresh·/logout은 refresh 쿠키를 사용하므로 면제하지 않는다.
+  private static final Set<String> CSRF_EXEMPT =
+      Set.of(
+          "/api/auth/login",
+          "/api/auth/signup",
+          "/api/auth/password-reset/request",
+          "/api/auth/password-reset/confirm");
+
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -46,6 +56,9 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
     }
     String path = request.getRequestURI();
     if (path == null || !path.startsWith("/api/")) {
+      return false;
+    }
+    if (CSRF_EXEMPT.contains(path)) {
       return false;
     }
     return hasAuthCookie(request);

@@ -212,6 +212,17 @@ export function DagCanvas({
   }, [drag]);
   useEffect(() => () => stopPan(), []);
 
+  // 좌우(오늘 위치)·상하(맨 위) 스크롤을 오늘 기준 화면으로 복귀.
+  function scrollToToday() {
+    const el = canvasRef.current;
+    if (!el) return;
+    el.scrollTo({
+      left: Math.max(0, dateToX(todayUtc()) - el.clientWidth * TODAY_VIEW_RATIO),
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
   const baseY = new Map<string, number>();
   cards.forEach((c, i) => baseY.set(c.id, 60 + i * (BAR_H + 24)));
 
@@ -249,23 +260,30 @@ export function DagCanvas({
   const maxY = cards.reduce((m, c) => Math.max(m, nodeGeom(c).y + BAR_H + 240), 800);
   const days = Math.ceil((maxX - LEFT_PAD) / PX_PER_DAY) + 1;
 
-  // 날짜축 그리드(선+라벨)는 origin/일수에만 의존 → 메모이즈해 드래그 매 프레임 재렌더에서 제외(부담 제거).
-  const gridCells = useMemo(
+  // 날짜축 — 세로선(전체 높이, surface)과 라벨(sticky 헤더)을 분리. origin/일수에만 의존 → 메모이즈.
+  const gridLines = useMemo(
     () =>
-      Array.from({ length: days }, (_, i) => {
-        const x = LEFT_PAD + i * PX_PER_DAY;
-        const d = new Date(originMs + i * MS_DAY);
-        return (
-          <div key={`ax-${i}`}>
-            <div className="dag-gridline" style={{ left: x }} />
-            <div className="dag-axis-label" style={{ left: x }}>
-              {`${d.getUTCMonth() + 1}/${d.getUTCDate()}`}
-            </div>
-          </div>
-        );
-      }),
-    [days, originMs],
+      Array.from({ length: days }, (_, i) => (
+        <div key={`gl-${i}`} className="dag-gridline" style={{ left: LEFT_PAD + i * PX_PER_DAY }} />
+      )),
+    [days],
   );
+  const axisLabels = useMemo(() => {
+    const t = todayUtc();
+    return Array.from({ length: days }, (_, i) => {
+      const dayMs = originMs + i * MS_DAY;
+      const d = new Date(dayMs);
+      return (
+        <div
+          key={`ax-${i}`}
+          className={`dag-axis-label${dayMs === t ? " today" : ""}`}
+          style={{ left: LEFT_PAD + i * PX_PER_DAY }}
+        >
+          {`${d.getUTCMonth() + 1}/${d.getUTCDate()}`}
+        </div>
+      );
+    });
+  }, [days, originMs]);
 
   function canvasPoint(clientX: number, clientY: number) {
     const el = canvasRef.current;
@@ -730,6 +748,14 @@ export function DagCanvas({
           />
           완료 숨기기
         </label>
+        <button
+          type="button"
+          className="dag-tool"
+          onClick={scrollToToday}
+          title="현재 날짜·상단으로 스크롤 복귀"
+        >
+          ⌖ 오늘로
+        </button>
         <span className="dag-hint">
           {linkSource ? (
             <>
@@ -761,10 +787,11 @@ export function DagCanvas({
         }}
       >
         <div className="dag-surface" style={{ width: maxX, height: maxY }}>
-          {gridCells}
-          <div className="dag-today" style={{ left: todayX, width: PX_PER_DAY }}>
-            <span className="dag-today-label">오늘</span>
+          {gridLines}
+          <div className="dag-axis" style={{ width: maxX }}>
+            {axisLabels}
           </div>
+          <div className="dag-today" style={{ left: todayX, width: PX_PER_DAY }} />
           <div className="dag-backlog-label">날짜 미정</div>
 
           {groups.map((grp) => {

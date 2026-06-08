@@ -9,6 +9,7 @@ import {
   type Equipment,
 } from "../../lib/equipment";
 import { useDialogs } from "../ui/DialogProvider";
+import { EquipmentReservations } from "./EquipmentReservations";
 import "./EquipmentView.css";
 
 interface FormState {
@@ -36,14 +37,22 @@ export function EquipmentView({
   const deleteEquipment = useDeleteEquipment();
   const dialogs = useDialogs();
 
+  const [tab, setTab] = useState<"list" | "reserve">("list");
+  const [reserveEquipId, setReserveEquipId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm] = useState<FormState | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const all = useMemo(() => equipment.data ?? [], [equipment.data]);
-  const visible = showInactive ? all : all.filter((e) => e.active);
+  const activeList = useMemo(() => all.filter((e) => e.active), [all]);
+  const visible = showInactive ? all : activeList;
   const inactiveCount = all.filter((e) => !e.active).length;
+
+  function openReserve(id: string) {
+    setReserveEquipId(id);
+    setTab("reserve");
+  }
 
   function openNew() {
     setFormError(null);
@@ -113,18 +122,38 @@ export function EquipmentView({
           <span className="eq-kicker">장비 관리</span>
           <h1 className="eq-h1">{subjectName}</h1>
         </div>
-        <div className="eq-head-actions">
-          <label className="eq-toggle">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(ev) => setShowInactive(ev.target.checked)}
-            />
-            비활성 포함{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
-          </label>
-          <button type="button" className="eq-add" onClick={openNew}>
-            ＋ 장비 등록
+        <nav className="eq-tabs">
+          <button
+            type="button"
+            className={`eq-tab${tab === "list" ? " active" : ""}`}
+            onClick={() => setTab("list")}
+          >
+            장비 목록
           </button>
+          <button
+            type="button"
+            className={`eq-tab${tab === "reserve" ? " active" : ""}`}
+            onClick={() => setTab("reserve")}
+          >
+            예약
+          </button>
+        </nav>
+        <div className="eq-head-actions">
+          {tab === "list" && (
+            <>
+              <label className="eq-toggle">
+                <input
+                  type="checkbox"
+                  checked={showInactive}
+                  onChange={(ev) => setShowInactive(ev.target.checked)}
+                />
+                비활성 포함{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
+              </label>
+              <button type="button" className="eq-add" onClick={openNew}>
+                ＋ 장비 등록
+              </button>
+            </>
+          )}
           <button type="button" className="eq-close" onClick={onClose} title="보드로 돌아가기">
             ✕ 닫기
           </button>
@@ -132,7 +161,13 @@ export function EquipmentView({
       </header>
 
       <div className="eq-body">
-        {equipment.isLoading ? (
+        {tab === "reserve" ? (
+          <EquipmentReservations
+            equipment={activeList}
+            selectedId={reserveEquipId}
+            onSelect={setReserveEquipId}
+          />
+        ) : equipment.isLoading ? (
           <div className="eq-msg">불러오는 중...</div>
         ) : equipment.isError ? (
           <div className="eq-msg">장비를 불러오지 못했습니다.</div>
@@ -156,6 +191,11 @@ export function EquipmentView({
                   {e.description && <p className="eq-desc">{e.description}</p>}
                 </div>
                 <div className="eq-card-acts">
+                  {e.active && (
+                    <button type="button" className="eq-act" onClick={() => openReserve(e.id)}>
+                      예약
+                    </button>
+                  )}
                   <button type="button" className="eq-act" onClick={() => openEdit(e)}>
                     수정
                   </button>

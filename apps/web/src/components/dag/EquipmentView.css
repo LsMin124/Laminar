@@ -321,3 +321,97 @@
   opacity: 0.45;
   cursor: default;
 }
+
+/* ── 탭 토글(장비 목록 / 예약) ── */
+.eq-tabs {
+  display: inline-flex;
+  gap: 2px;
+}
+.eq-tab {
+  background: var(--surface-2, #1c1916);
+  border: 1px solid var(--rule, #2a2018);
+  color: #999;
+  font-size: 13px;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+.eq-tab:hover {
+  color: #ddd;
+}
+.eq-tab.active {
+  background: var(--accent-bg, #2a1a12);
+  border-color: var(--accent, #d97757);
+  color: #fff;
+}
+
+/* ── 예약 서브뷰 ── */
+.eq-resv-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.eq-resv-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.eq-resv-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim, #9a8d83);
+}
+.eq-resv-pick select {
+  min-width: 200px;
+  cursor: pointer;
+}
+.eq-resv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.eq-resv {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule, #2a2018);
+  border-bottom: none;
+  background: linear-gradient(180deg, #1c1714 0%, #161210 100%);
+}
+.eq-resv:last-child {
+  border-bottom: 1px solid var(--rule, #2a2018);
+}
+.eq-resv.past {
+  opacity: 0.5;
+}
+.eq-resv-range {
+  flex: none;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 12px;
+  color: var(--accent-bright, #f0a487);
+}
+.eq-resv.past .eq-resv-range {
+  color: var(--text-dim, #9a8d83);
+}
+.eq-resv-purpose {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: #cbb8ad;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.eq-resv-tag {
+  flex: none;
+  font-size: 10px;
+  color: #8a7d73;
+  border: 1px solid #574f49;
+  padding: 1px 6px;
+}

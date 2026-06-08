@@ -77,3 +77,60 @@ export function useDeleteEquipment() {
     onSuccess: () => qc.invalidateQueries({ queryKey: EQUIPMENT_KEY }),
   });
 }
+
+// ── 장비 예약 ──────────────────────────────────────────────────────────
+// 예약은 subject-shared·시간 겹침 차단(409). 시각은 ISO OffsetDateTime 문자열.
+
+export interface Reservation {
+  id: string;
+  subjectId: string;
+  equipmentId: string;
+  reservedBy: string;
+  startAt: string;
+  endAt: string;
+  purpose: string | null;
+  rrule: string | null;
+  cardId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 한 장비의 [from,to) 범위 예약 — 백엔드가 from/to(ISO) 쿼리를 필수로 요구한다. */
+export function useReservations(equipmentId: string | null, fromIso: string, toIso: string) {
+  return useQuery({
+    queryKey: ["reservations", equipmentId, fromIso, toIso],
+    queryFn: () =>
+      api.get<Reservation[]>(
+        `/api/equipment/${equipmentId}/reservations?from=${encodeURIComponent(
+          fromIso,
+        )}&to=${encodeURIComponent(toIso)}`,
+      ),
+    enabled: !!equipmentId,
+  });
+}
+
+export function useCreateReservation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      equipmentId: string;
+      startAt: string;
+      endAt: string;
+      purpose?: string | null;
+    }) =>
+      api.post<Reservation>(`/api/equipment/${input.equipmentId}/reservations`, {
+        startAt: input.startAt,
+        endAt: input.endAt,
+        purpose: input.purpose ?? null,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reservations"] }),
+  });
+}
+
+export function useCancelReservation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reservationId: string) => api.delete<void>(`/api/reservations/${reservationId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reservations"] }),
+  });
+}

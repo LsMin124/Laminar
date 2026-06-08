@@ -164,6 +164,30 @@
   pointer-events: none;
 }
 
+/* ── 그룹 간 화살표 — 카드 엣지(웜 오렌지 실선 직각)와 구분: 쿨 슬레이트 점선 직선 ── */
+.dag-group-edge {
+  stroke: #7c84bf;
+  stroke-width: 2;
+  stroke-dasharray: 7 4;
+  fill: none;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.dag-group-edge:hover {
+  stroke: #9aa2e0;
+  stroke-width: 3;
+}
+.dag-group-arrowhead {
+  fill: #7c84bf;
+}
+.dag-group-link-temp {
+  stroke: #9aa2e0;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  fill: none;
+  pointer-events: none;
+}
+
 /* ── 그룹 경계 박스 (멤버 bounding rect, 자동 산출·pointer-events 투과) ── */
 .dag-group {
   position: absolute;
@@ -172,20 +196,65 @@
   background: rgba(120, 150, 180, 0.04);
   pointer-events: none;
 }
+/* 그룹 라벨 = 본문 열기(이름) + 연결 nub + 삭제(✕) 바. 박스는 투과(pointer-events none)이고 라벨만 활성. */
 .dag-group-label {
   position: absolute;
   top: 0;
   left: 8px;
   transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11px;
-  padding: 0 6px;
+  padding: 1px 4px 1px 6px;
   background: #0e0e0e;
+  border: 1px solid var(--rule);
   pointer-events: auto;
-  cursor: pointer;
   white-space: nowrap;
 }
-.dag-group-label:hover {
-  text-decoration: line-through;
+.dag-group-name {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  padding: 0 2px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dag-group-name:hover {
+  text-decoration: underline;
+}
+/* 그룹 연결 핸들 — 드래그해 다른 그룹으로 화살표 생성. 쿨 톤(그룹 엣지색)으로 카드 nub와 구분. */
+.dag-group-nub {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: #7c84bf;
+  border: 1px solid #9aa2e0;
+  cursor: crosshair;
+  touch-action: none;
+}
+.dag-group-nub:hover {
+  background: #9aa2e0;
+}
+.dag-group-x {
+  flex: none;
+  background: none;
+  border: none;
+  color: #8a7d73;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.dag-group-x:hover {
+  color: var(--danger);
 }
 
 /* ── 카드 — 기술적·각진·웜 다크 모듈 ── */

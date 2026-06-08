@@ -3,9 +3,11 @@ import {
   useAddCardToGroup,
   useCreateCard,
   useCreateGroup,
+  useCreateGroupRelation,
   useCreateRelation,
   useDeleteCard,
   useDeleteGroup,
+  useDeleteGroupRelation,
   useDeleteRelation,
   useMoveCard,
   useRemoveCardFromGroup,
@@ -54,6 +56,23 @@ function edgePath(sx: number, sy: number, ex: number, ey: number): string {
   const x2 = ex - EDGE_STUB;
   const my = (sy + ey) / 2;
   return `M ${sx} ${sy} H ${x1} V ${my} H ${x2} V ${ey} H ${ex}`;
+}
+
+/** 사각형 중심에서 target 방향으로 그은 직선이 사각형 테두리와 만나는 점 — 그룹 박스 간 화살표 앵커. */
+function rectEdgePoint(
+  r: { x: number; y: number; w: number; h: number },
+  tx: number,
+  ty: number,
+): { x: number; y: number } {
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2;
+  const dx = tx - cx;
+  const dy = ty - cy;
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  const scaleX = Math.abs(dx) < 1e-6 ? Infinity : r.w / 2 / Math.abs(dx);
+  const scaleY = Math.abs(dy) < 1e-6 ? Infinity : r.h / 2 / Math.abs(dy);
+  const s = Math.min(scaleX, scaleY);
+  return { x: cx + dx * s, y: cy + dy * s };
 }
 
 function parseDate(s: string): number {
@@ -124,9 +143,11 @@ interface DragState {
 export function DagCanvas({
   tabId,
   onOpenCard,
+  onOpenGroup,
 }: {
   tabId: string;
   onOpenCard?: (cardId: string, title: string) => void;
+  onOpenGroup?: (groupId: string, title: string) => void;
 }) {
   const graph = useTabGraph(tabId);
   const createCard = useCreateCard(tabId);
@@ -137,6 +158,8 @@ export function DagCanvas({
   const deleteRelation = useDeleteRelation(tabId);
   const createGroup = useCreateGroup(tabId);
   const deleteGroup = useDeleteGroup(tabId);
+  const createGroupRelation = useCreateGroupRelation(tabId);
+  const deleteGroupRelation = useDeleteGroupRelation(tabId);
   const addCardToGroup = useAddCardToGroup(tabId);
   const removeCardFromGroup = useRemoveCardFromGroup(tabId);
   const setCardCategory = useSetCardCategory(tabId);
@@ -153,6 +176,14 @@ export function DagCanvas({
     y: number;
   } | null>(null);
   const linkFromRef = useRef<string | null>(null);
+  // 그룹 연결 핸들(nub) 드래그 — 임시 라인 좌표 + 출발 그룹 id. 카드 연결과 별개 레이어.
+  const [gLinkLine, setGLinkLine] = useState<{
+    sx: number;
+    sy: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const gLinkFromRef = useRef<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // 새 카드 생성 다이얼로그 — null=닫힘, {date}=열림(일자 기본값).
@@ -165,6 +196,7 @@ export function DagCanvas({
   const cards = useMemo(() => graph.data?.cards ?? [], [graph.data]);
   const relations = graph.data?.cardRelations ?? [];
   const groups = graph.data?.groups ?? [];
+  const groupRelations = graph.data?.groupRelations ?? [];
   const groupMembers = graph.data?.groupMembers ?? {};
   const categories = graph.data?.categories ?? [];
   const cardCategoryIds = graph.data?.cardCategoryIds ?? {};
@@ -609,6 +641,91 @@ export function DagCanvas({
     if (ok) deleteGroup.mutate(g.id);
   }
 
+  // 그룹 경계 박스 geometry(멤버 카드 bounding rect) — 박스 렌더와 그룹 화살표 앵커가 공유.
+  // 멤버가 보이지 않으면 rect 없음(빈/숨김 그룹은 박스·화살표 모두 숨김). 카드 드래그를 따라 갱신.
+  const groupRects = new Map<string, { x: number; y: number; w: number; h: number }>();
+  for (const grp of groups) {
+    const members = (groupMembers[grp.id] ?? [])
+      .map((id) => cards.find((c) => c.id === id))
+      .filter((c): c is Card => !!c && isVisible(c));
+    if (members.length === 0) continue;
+    let gx0 = Infinity;
+    let gy0 = Infinity;
+    let gx1 = -Infinity;
+    let gy1 = -Infinity;
+    for (const m of members) {
+      const gm = nodeGeom(m);
+      gx0 = Math.min(gx0, gm.x);
+      gy0 = Math.min(gy0, gm.y);
+      gx1 = Math.max(gx1, gm.x + gm.w);
+      gy1 = Math.max(gy1, gm.y + BAR_H);
+    }
+    const pad = 16;
+    groupRects.set(grp.id, {
+      x: gx0 - pad,
+      y: gy0 - pad - 8,
+      w: gx1 - gx0 + pad * 2,
+      h: gy1 - gy0 + pad * 2 + 8,
+    });
+  }
+
+  async function onDeleteGroupRelation(id: string) {
+    const ok = await dialogs.confirm({
+      title: "그룹 연결 삭제",
+      confirmLabel: "삭제",
+      danger: true,
+    });
+    if (ok) deleteGroupRelation.mutate(id);
+  }
+
+  // 그룹 nub 드래그 → 다른 그룹 박스 위에서 놓으면 그룹 화살표 생성(자기 자신·중복·빈 그룹 제외).
+  function onGroupNubDown(e: React.PointerEvent<HTMLSpanElement>, grp: Group) {
+    e.stopPropagation();
+    e.preventDefault();
+    const r = groupRects.get(grp.id);
+    if (!r) return;
+    gLinkFromRef.current = grp.id;
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
+    setGLinkLine({ sx: cx, sy: cy, x: cx, y: cy });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onGroupNubMove(e: React.PointerEvent<HTMLSpanElement>) {
+    if (!gLinkFromRef.current) return;
+    const p = canvasPoint(e.clientX, e.clientY);
+    setGLinkLine((l) => (l ? { ...l, x: p.x, y: p.y } : l));
+  }
+  function onGroupNubUp(e: React.PointerEvent<HTMLSpanElement>) {
+    const from = gLinkFromRef.current;
+    gLinkFromRef.current = null;
+    setGLinkLine(null);
+    if (!from) return;
+    const p = canvasPoint(e.clientX, e.clientY);
+    // 포인터가 들어간 그룹 중 가장 작은 박스(중첩 대비)를 대상으로.
+    let target: string | null = null;
+    let targetArea = Infinity;
+    for (const [gid, r] of groupRects) {
+      if (gid === from) continue;
+      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
+        const area = r.w * r.h;
+        if (area < targetArea) {
+          target = gid;
+          targetArea = area;
+        }
+      }
+    }
+    if (!target) return;
+    const exists = groupRelations.some(
+      (gr) => gr.fromGroupId === from && gr.toGroupId === target,
+    );
+    if (!exists) {
+      createGroupRelation.mutate(
+        { fromGroupId: from, toGroupId: target },
+        { onError: reportError },
+      );
+    }
+  }
+
   /** 시간 설정 — HH:MM 입력 시 allDay=false+startTime, 비우면 종일(allDay=true). */
   async function onSetTime(c: Card) {
     const current = c.allDay ? "" : (c.startTime?.slice(0, 5) ?? "");
@@ -812,43 +929,46 @@ export function DagCanvas({
           <div className="dag-backlog-label">날짜 미정</div>
 
           {groups.map((grp) => {
-            const members = (groupMembers[grp.id] ?? [])
-              .map((id) => cards.find((c) => c.id === id))
-              .filter((c): c is Card => !!c && isVisible(c));
-            if (members.length === 0) return null;
-            let minX = Infinity;
-            let minY = Infinity;
-            let maxX = -Infinity;
-            let maxY = -Infinity;
-            for (const m of members) {
-              const gm = nodeGeom(m);
-              minX = Math.min(minX, gm.x);
-              minY = Math.min(minY, gm.y);
-              maxX = Math.max(maxX, gm.x + gm.w);
-              maxY = Math.max(maxY, gm.y + BAR_H);
-            }
-            const pad = 16;
+            const r = groupRects.get(grp.id);
+            if (!r) return null;
             const color = grp.color ?? "#5a6a7a";
             return (
               <div
                 key={grp.id}
                 className="dag-group"
                 style={{
-                  left: minX - pad,
-                  top: minY - pad - 8,
-                  width: maxX - minX + pad * 2,
-                  height: maxY - minY + pad * 2 + 8,
+                  left: r.x,
+                  top: r.y,
+                  width: r.w,
+                  height: r.h,
                   borderColor: color,
                 }}
               >
-                <span
-                  className="dag-group-label"
-                  style={{ color }}
-                  onClick={() => onDeleteGroup(grp)}
-                  title="클릭하여 그룹 삭제"
-                >
-                  {grp.name}
-                </span>
+                <div className="dag-group-label" style={{ color }}>
+                  <button
+                    type="button"
+                    className="dag-group-name"
+                    onClick={() => onOpenGroup?.(grp.id, grp.name)}
+                    title="그룹 본문 열기"
+                  >
+                    {grp.name}
+                  </button>
+                  <span
+                    className="dag-group-nub"
+                    title="드래그해 다른 그룹으로 연결"
+                    onPointerDown={(e) => onGroupNubDown(e, grp)}
+                    onPointerMove={onGroupNubMove}
+                    onPointerUp={onGroupNubUp}
+                  />
+                  <button
+                    type="button"
+                    className="dag-group-x"
+                    onClick={() => onDeleteGroup(grp)}
+                    title="그룹 삭제"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -866,7 +986,42 @@ export function DagCanvas({
               >
                 <path d="M0,0 L10,5 L0,10 z" style={{ fill: "var(--accent-soft)" }} />
               </marker>
+              <marker
+                id="dag-group-arrow"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="8"
+                markerHeight="8"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" className="dag-group-arrowhead" />
+              </marker>
             </defs>
+            {/* 그룹 간 화살표 — 카드 엣지와 구분(쿨 톤·점선·직선, 박스 테두리에서 테두리로). 카드 엣지 아래 레이어. */}
+            {groupRelations.map((rel) => {
+              const fr = groupRects.get(rel.fromGroupId);
+              const tr = groupRects.get(rel.toGroupId);
+              if (!fr || !tr) return null;
+              const fcx = fr.x + fr.w / 2;
+              const fcy = fr.y + fr.h / 2;
+              const tcx = tr.x + tr.w / 2;
+              const tcy = tr.y + tr.h / 2;
+              const s = rectEdgePoint(fr, tcx, tcy);
+              const en = rectEdgePoint(tr, fcx, fcy);
+              return (
+                <line
+                  key={rel.id}
+                  className="dag-group-edge"
+                  x1={s.x}
+                  y1={s.y}
+                  x2={en.x}
+                  y2={en.y}
+                  markerEnd="url(#dag-group-arrow)"
+                  onClick={() => onDeleteGroupRelation(rel.id)}
+                />
+              );
+            })}
             {relations.map((rel) => {
               const from = cards.find((c) => c.id === rel.fromCardId);
               const to = cards.find((c) => c.id === rel.toCardId);
@@ -896,6 +1051,15 @@ export function DagCanvas({
                 y1={linkLine.sy}
                 x2={linkLine.x}
                 y2={linkLine.y}
+              />
+            )}
+            {gLinkLine && (
+              <line
+                className="dag-group-link-temp"
+                x1={gLinkLine.sx}
+                y1={gLinkLine.sy}
+                x2={gLinkLine.x}
+                y2={gLinkLine.y}
               />
             )}
           </svg>

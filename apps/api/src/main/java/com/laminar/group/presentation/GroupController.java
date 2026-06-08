@@ -51,7 +51,8 @@ public class GroupController {
   public ResponseEntity<GroupDtos.GroupResponse> update(
       @PathVariable UUID groupId, @Valid @RequestBody GroupDtos.UpdateRequest request) {
     GroupEntity updated =
-        groupService.update(groupId, request.name(), request.color(), request.attrs());
+        groupService.update(
+            groupId, request.name(), request.color(), request.bodyMd(), request.attrs());
     return ResponseEntity.ok(toResponse(updated));
   }
 
@@ -100,6 +101,7 @@ public class GroupController {
         g.getTabId(),
         g.getName(),
         g.getColor(),
+        g.getBodyMd(),
         g.getPriority(),
         g.getAttrs(),
         g.getCreatedAt(),

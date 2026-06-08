@@ -35,6 +35,9 @@ public class GroupEntity extends PersonalBaseEntity {
   @Column(name = "color")
   private String color;
 
+  @Column(name = "body_md")
+  private String bodyMd;
+
   @Column(name = "priority", nullable = false)
   private int priority;
 

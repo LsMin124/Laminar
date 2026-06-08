@@ -78,7 +78,8 @@ public class GroupService {
   }
 
   @Transactional
-  public GroupEntity update(UUID groupId, String name, String color, Map<String, Object> attrs) {
+  public GroupEntity update(
+      UUID groupId, String name, String color, String bodyMd, Map<String, Object> attrs) {
     SubjectContext ctx = requirePersonalWritable();
     GroupEntity group =
         groupRepo
@@ -88,6 +89,7 @@ public class GroupService {
             .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
     if (name != null && !name.isBlank()) group.setName(name);
     if (color != null) group.setColor(color);
+    if (bodyMd != null) group.setBodyMd(bodyMd);
     if (attrs != null) group.setAttrs(attrs);
     return groupRepo.save(group);
   }

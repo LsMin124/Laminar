@@ -20,7 +20,10 @@ public final class GroupDtos {
       Map<String, Object> attrs) {}
 
   public record UpdateRequest(
-      @Size(max = 200) String name, @Size(max = 30) String color, Map<String, Object> attrs) {}
+      @Size(max = 200) String name,
+      @Size(max = 30) String color,
+      @Size(max = 100000) String bodyMd,
+      Map<String, Object> attrs) {}
 
   public record ReorderRequest(@NotNull UUID tabId, @NotEmpty List<UUID> orderedIds) {}
 
@@ -31,6 +34,7 @@ public final class GroupDtos {
       UUID tabId,
       String name,
       String color,
+      String bodyMd,
       int priority,
       Map<String, Object> attrs,
       OffsetDateTime createdAt,

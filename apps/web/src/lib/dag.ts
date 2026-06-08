@@ -55,6 +55,17 @@ export interface Group {
   id: Uuid;
   name: string;
   color: string | null;
+  /** 그룹도 카드처럼 독립 마크다운 문서를 가진다(서브그래프 목표·메모). */
+  bodyMd: string | null;
+}
+
+/** 그룹 간 화살표 — 카드 관계(CardRelation)와 별개 레이어. 캔버스에서 쿨 톤·점선으로 구분 렌더. */
+export interface GroupRelation {
+  id: Uuid;
+  fromGroupId: Uuid;
+  toGroupId: Uuid;
+  relationKind: string;
+  summary: string | null;
 }
 
 /** 카드 카테고리 — 주제(subject) 단위로 공유되는 명명 분류(이름 + 색). 카드 좌측 스트라이프에 반영. */
@@ -69,6 +80,8 @@ export interface TabGraph {
   cards: Card[];
   cardRelations: CardRelation[];
   groups: Group[];
+  /** 그룹 간 화살표 목록. */
+  groupRelations: GroupRelation[];
   /** groupId → 멤버 cardId 목록. */
   groupMembers: Record<string, string[]>;
   /** 현재 주제의 카테고리 목록(모든 탭 공유). */
@@ -317,6 +330,71 @@ export function useDeleteGroup(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (groupId: string) => api.delete<void>(`/api/groups/${groupId}`),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+/** 그룹 속성(이름·색·본문) 수정 — 본문 자동저장이 깜빡이지 않도록 낙관적 반영. */
+export function useUpdateGroup(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      groupId: string;
+      name?: string;
+      color?: string | null;
+      bodyMd?: string | null;
+    }) => {
+      const { groupId, ...patch } = input;
+      return api.patch<Group>(`/api/groups/${groupId}`, patch);
+    },
+    onMutate: async (input) => {
+      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
+      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
+        g
+          ? {
+              ...g,
+              groups: g.groups.map((grp) =>
+                grp.id === input.groupId
+                  ? {
+                      ...grp,
+                      ...(input.name !== undefined ? { name: input.name } : {}),
+                      ...(input.color !== undefined ? { color: input.color } : {}),
+                      ...(input.bodyMd !== undefined ? { bodyMd: input.bodyMd } : {}),
+                    }
+                  : grp,
+              ),
+            }
+          : g,
+      );
+      await qc.cancelQueries({ queryKey: graphKey(tabId) });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snapshot = ctx as { prev?: TabGraph } | undefined;
+      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
+    },
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+/** 그룹 간 화살표 생성 — 같은 탭의 두 그룹만(백엔드 검증). 사이클 강제는 없음(카드와 달리 시간축 무관). */
+export function useCreateGroupRelation(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { fromGroupId: string; toGroupId: string }) =>
+      api.post<GroupRelation>("/api/group-relations", {
+        fromGroupId: input.fromGroupId,
+        toGroupId: input.toGroupId,
+      }),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+export function useDeleteGroupRelation(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (relationId: string) =>
+      api.delete<void>(`/api/group-relations/${relationId}`),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }

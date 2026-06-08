@@ -104,6 +104,7 @@ public class TabGraphController {
         g.getTabId(),
         g.getName(),
         g.getColor(),
+        g.getBodyMd(),
         g.getPriority(),
         g.getAttrs(),
         g.getCreatedAt(),

@@ -594,3 +594,26 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ── 예약↔카드 연결 (탭→카드 picker + 연결 카드 칩) ── */
+.cardpick {
+  display: flex;
+  gap: 6px;
+}
+.cardpick select {
+  flex: 1;
+  min-width: 0;
+}
+.eq-cardchip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  max-width: 160px;
+  font-size: 11px;
+  color: var(--accent-bright, #f0a487);
+  border: 1px solid var(--accent-border, #4a3328);
+  padding: 1px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -130,11 +130,13 @@ export function useCreateReservation() {
       startAt: string;
       endAt: string;
       purpose?: string | null;
+      cardId?: string | null;
     }) =>
       api.post<Reservation>(`/api/equipment/${input.equipmentId}/reservations`, {
         startAt: input.startAt,
         endAt: input.endAt,
         purpose: input.purpose ?? null,
+        cardId: input.cardId ?? null,
       }),
     onSuccess: () => invalidateReservations(qc),
   });

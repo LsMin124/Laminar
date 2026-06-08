@@ -8,6 +8,7 @@ import {
   type Reservation,
 } from "../../lib/equipment";
 import { useDialogs } from "../ui/DialogProvider";
+import { CardPicker, LinkedCardChip } from "./CardPicker";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const DAY_MS = 86400000;
@@ -36,6 +37,7 @@ interface ResvForm {
   startLocal: string;
   endLocal: string;
   purpose: string;
+  cardId: string | null;
 }
 
 /**
@@ -84,7 +86,12 @@ export function EquipmentReservations({
     start.setHours(start.getHours() + 1);
     const end = new Date(start.getTime() + 3600000);
     setFormError(null);
-    setForm({ startLocal: toLocalInput(start), endLocal: toLocalInput(end), purpose: "" });
+    setForm({
+      startLocal: toLocalInput(start),
+      endLocal: toLocalInput(end),
+      purpose: "",
+      cardId: null,
+    });
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -112,6 +119,7 @@ export function EquipmentReservations({
         startAt: localToIso(form.startLocal),
         endAt: localToIso(form.endLocal),
         purpose: form.purpose.trim() || null,
+        cardId: form.cardId,
       });
       setForm(null);
     } catch (err) {
@@ -191,6 +199,7 @@ export function EquipmentReservations({
               <li key={r.id} className={`eq-resv${past ? " past" : ""}`}>
                 <span className="eq-resv-range">{fmtRange(r.startAt, r.endAt)}</span>
                 <span className="eq-resv-purpose">{r.purpose || "—"}</span>
+                {r.cardId && <LinkedCardChip cardId={r.cardId} />}
                 {past ? (
                   <span className="eq-resv-tag">종료</span>
                 ) : (
@@ -239,6 +248,13 @@ export function EquipmentReservations({
                 onChange={(e) => setForm({ ...form, purpose: e.target.value })}
                 placeholder="예: 샘플 이미징"
                 maxLength={500}
+              />
+            </label>
+            <label className="eq-field">
+              <span>연결 카드 (선택)</span>
+              <CardPicker
+                value={form.cardId}
+                onChange={(id) => setForm({ ...form, cardId: id })}
               />
             </label>
             {formError && <div className="eq-form-err">{formError}</div>}

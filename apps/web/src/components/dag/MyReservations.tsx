@@ -6,6 +6,7 @@ import {
   type Reservation,
 } from "../../lib/equipment";
 import { useDialogs } from "../ui/DialogProvider";
+import { LinkedCardChip } from "./CardPicker";
 import { fmtRange } from "./EquipmentReservations";
 
 /** 내 예약 통합뷰 — 모든 장비에 걸친 내 예약(시작순), 장비명 표시 + 취소. */
@@ -58,6 +59,7 @@ export function MyReservations({ equipment }: { equipment: Equipment[] }) {
             <span className="eq-resv-range">{fmtRange(r.startAt, r.endAt)}</span>
             <span className="eq-resv-equip">{nameOf(r.equipmentId)}</span>
             <span className="eq-resv-purpose">{r.purpose || "—"}</span>
+            {r.cardId && <LinkedCardChip cardId={r.cardId} />}
             {past ? (
               <span className="eq-resv-tag">종료</span>
             ) : (

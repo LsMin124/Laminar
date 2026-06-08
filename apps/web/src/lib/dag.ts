@@ -220,6 +220,16 @@ export function useTabGraph(tabId: string | null) {
   });
 }
 
+/** 카드 단건 조회 — 예약↔카드 연결 등 크로스 표면에서 cardId→제목 해석용(없으면 404). */
+export function useCardById(cardId: string | null) {
+  return useQuery({
+    queryKey: ["card", cardId],
+    queryFn: () => api.get<Card>(`/api/cards/${cardId}`),
+    enabled: !!cardId,
+    retry: false,
+  });
+}
+
 export function useCreateCard(tabId: string) {
   const qc = useQueryClient();
   return useMutation({

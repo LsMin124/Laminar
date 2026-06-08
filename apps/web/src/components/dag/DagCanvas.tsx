@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  useAddCardToGroup,
   useCreateCard,
-  useCreateGroup,
   useCreateGroupRelation,
   useCreateRelation,
   useDeleteCard,
@@ -21,6 +19,7 @@ import { ApiError } from "../../lib/api";
 import { useDialogs } from "../ui/DialogProvider";
 import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
+import { GroupBar } from "./GroupBar";
 import { NewCardDialog } from "./NewCardDialog";
 import "./DagCanvas.css";
 
@@ -139,11 +138,9 @@ export function DagCanvas({
   const deleteCard = useDeleteCard(tabId);
   const createRelation = useCreateRelation(tabId);
   const deleteRelation = useDeleteRelation(tabId);
-  const createGroup = useCreateGroup(tabId);
   const deleteGroup = useDeleteGroup(tabId);
   const createGroupRelation = useCreateGroupRelation(tabId);
   const deleteGroupRelation = useDeleteGroupRelation(tabId);
-  const addCardToGroup = useAddCardToGroup(tabId);
   const removeCardFromGroup = useRemoveCardFromGroup(tabId);
   const setCardCategory = useSetCardCategory(tabId);
   const dialogs = useDialogs();
@@ -579,24 +576,6 @@ export function DagCanvas({
     setSelectedIds(new Set());
   }
 
-  /** 선택한 카드들을 그룹으로 — 기존 이름이면 그 그룹에 추가, 새 이름이면 생성+추가. */
-  async function onToolGroup() {
-    const sel = [...selectedIds];
-    if (sel.length === 0) return;
-    const name = await dialogs.prompt({
-      title: "그룹화",
-      message: `선택한 ${sel.length}개 카드를 그룹으로 묶기 (기존 이름이면 그 그룹에 추가)`,
-      placeholder: "그룹 이름",
-    });
-    if (!name || !name.trim()) return;
-    const trimmed = name.trim();
-    const existing = groups.find((g) => g.name === trimmed);
-    const groupId = existing ? existing.id : (await createGroup.mutateAsync({ name: trimmed })).id;
-    for (const cardId of sel) {
-      await addCardToGroup.mutateAsync({ groupId, cardId });
-    }
-  }
-
   /** 선택한 카드를 속한 모든 그룹에서 제외. */
   function onUngroup() {
     for (const cardId of selectedIds) {
@@ -801,21 +780,18 @@ export function DagCanvas({
           cardCategoryIds={cardCategoryIds}
         />
         <span className="dag-tool-sep" />
-        <button
-          type="button"
-          className="dag-tool"
-          disabled={selCount < 1}
-          onClick={onToolGroup}
-          title="선택한 카드들을 그룹으로"
-        >
-          ▣ 그룹화
-        </button>
+        <GroupBar
+          tabId={tabId}
+          groups={groups}
+          cards={selectedCards}
+          groupMembers={groupMembers}
+        />
         <button
           type="button"
           className="dag-tool"
           disabled={!soleInGroup}
           onClick={onUngroup}
-          title="선택 카드를 그룹에서 제외"
+          title="선택 카드를 모든 그룹에서 제외"
         >
           ⊟ 그룹 해제
         </button>

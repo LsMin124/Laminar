@@ -1,0 +1,15 @@
+/* 그룹화 피커 — 공유 드롭다운(.catbar-*)에 그룹 행(이름 신축 + 우측 멤버십 표시) 보강. */
+.gbar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gbar-mark {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  color: var(--accent-bright);
+  font-size: 11px;
+}

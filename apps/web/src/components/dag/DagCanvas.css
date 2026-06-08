@@ -164,18 +164,17 @@
   pointer-events: none;
 }
 
-/* ── 그룹 간 화살표 — 카드 엣지(웜 오렌지 실선 직각)와 구분: 쿨 슬레이트 점선 직선 ── */
+/* ── 그룹 간 화살표 — 카드 엣지(웜 오렌지)와 색으로 구분: 쿨 슬레이트 실선·가는 선·작은 화살촉 ── */
 .dag-group-edge {
   stroke: #7c84bf;
-  stroke-width: 2;
-  stroke-dasharray: 7 4;
+  stroke-width: 1.25;
   fill: none;
   pointer-events: stroke;
   cursor: pointer;
 }
 .dag-group-edge:hover {
   stroke: #9aa2e0;
-  stroke-width: 3;
+  stroke-width: 2;
 }
 .dag-group-arrowhead {
   fill: #7c84bf;

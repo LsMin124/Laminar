@@ -951,14 +951,14 @@ export function DagCanvas({
                 viewBox="0 0 10 10"
                 refX="9"
                 refY="5"
-                markerWidth="8"
-                markerHeight="8"
+                markerWidth="6"
+                markerHeight="6"
                 orient="auto-start-reverse"
               >
                 <path d="M0,0 L10,5 L0,10 z" className="dag-group-arrowhead" />
               </marker>
             </defs>
-            {/* 그룹 간 화살표 — 카드 엣지와 구분(쿨 톤·점선, 형태는 카드와 동일한 직각). 카드 엣지 아래 레이어. */}
+            {/* 그룹 간 화살표 — 카드 엣지와 색으로 구분(쿨 톤 실선·가는 선, 형태는 카드와 동일한 직각). 카드 엣지 아래 레이어. */}
             {groupRelations.map((rel) => {
               const fr = groupRects.get(rel.fromGroupId);
               const tr = groupRects.get(rel.toGroupId);

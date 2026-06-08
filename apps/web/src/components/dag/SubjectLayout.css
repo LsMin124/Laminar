@@ -91,6 +91,17 @@
   color: #ddd;
   border-color: #555;
 }
+/* 주제 본문 버튼 — 활성 주제의 콘텐츠 진입이라 실선 + 웜 액센트로 ＋/⋯(점선)과 구분. */
+.rail-btn.body {
+  border-style: solid;
+  border-color: var(--accent-border);
+  color: var(--accent-bright);
+}
+.rail-btn.body:hover {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent-bg);
+}
 
 /* 레일 아이콘 즉시 툴팁 — fixed로 레일 overflow 클리핑 회피 */
 .rail-tip {

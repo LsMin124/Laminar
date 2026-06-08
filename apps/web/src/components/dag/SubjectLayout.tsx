@@ -28,6 +28,8 @@ export function SubjectLayout() {
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(() => getCurrentWorkspaceId());
   const [manageOpen, setManageOpen] = useState(false);
+  // '주제 본문' 신호 — 증가시키면 활성 주제의 DagWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
+  const [bodyNonce, setBodyNonce] = useState(0);
   const [hoverTip, setHoverTip] = useState<{ name: string; y: number } | null>(null);
 
   const list = subjects.data ?? [];
@@ -115,6 +117,17 @@ export function SubjectLayout() {
               <Identicon seed={s.id} size={28} />
             </button>
           ))}
+          {activeValid && (
+            <button
+              type="button"
+              className="rail-btn body"
+              onClick={() => setBodyNonce((n) => n + 1)}
+              title="현재 주제 본문 열기"
+              aria-label="주제 본문"
+            >
+              ▤
+            </button>
+          )}
           <button type="button" className="rail-btn" onClick={onCreateSubject} title="새 주제">
             ＋
           </button>
@@ -139,6 +152,7 @@ export function SubjectLayout() {
             key={activeId}
             subjectId={activeId ?? ""}
             subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
+            openSubjectBodyNonce={bodyNonce}
           />
         ) : (
           <div className="lay-empty">

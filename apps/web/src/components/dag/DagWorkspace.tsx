@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { useCreateTab, useTabs } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
@@ -37,9 +37,12 @@ const DOC_PREFIX: Record<DocKind, string> = {
 export function DagWorkspace({
   subjectId,
   subjectName,
+  openSubjectBodyNonce,
 }: {
   subjectId: string;
   subjectName: string;
+  /** 좌측 레일의 '주제 본문' 버튼이 증가시키는 신호 — 변경될 때마다 주제 본문 문서를 연다(마운트 시 제외). */
+  openSubjectBodyNonce?: number;
 }) {
   const tabs = useTabs();
   const createTab = useCreateTab();
@@ -83,6 +86,17 @@ export function DagWorkspace({
   const openGroup = (groupId: string, title: string) => openDoc("group", groupId, title);
   const openTab = (tabId: string, title: string) => openDoc("tab", tabId, title);
   const openSubject = () => openDoc("subject", subjectId, subjectName);
+  // 좌측 레일에서 주제 본문 열기 — nonce가 바뀔 때만(마운트·주제 전환 리마운트 시엔 열지 않음).
+  const openSubjectRef = useRef(openSubject);
+  openSubjectRef.current = openSubject;
+  const firstNonceRun = useRef(true);
+  useEffect(() => {
+    if (firstNonceRun.current) {
+      firstNonceRun.current = false;
+      return;
+    }
+    openSubjectRef.current();
+  }, [openSubjectBodyNonce]);
   function closeDoc(id: string) {
     setOpenDocs((prev) => prev.filter((d) => d.id !== id));
     setActiveDoc((cur) => (cur === id ? null : cur));
@@ -110,18 +124,10 @@ export function DagWorkspace({
   return (
     <div className="dw">
       <header className="dw-header">
-        <button
-          type="button"
-          className="dw-subject"
-          title={`${subjectName} — 주제 본문 열기`}
-          onClick={openSubject}
-        >
+        <div className="dw-subject" title={subjectName}>
           <Identicon seed={subjectId} size={18} />
           <span className="dw-subject-name">{subjectName}</span>
-          <span className="dw-subject-doc" aria-hidden="true">
-            ▤
-          </span>
-        </button>
+        </div>
         <nav className="dw-tabs">
           {list.map((t) => {
             const isActive = t.id === active;

@@ -58,23 +58,6 @@ function edgePath(sx: number, sy: number, ex: number, ey: number): string {
   return `M ${sx} ${sy} H ${x1} V ${my} H ${x2} V ${ey} H ${ex}`;
 }
 
-/** 사각형 중심에서 target 방향으로 그은 직선이 사각형 테두리와 만나는 점 — 그룹 박스 간 화살표 앵커. */
-function rectEdgePoint(
-  r: { x: number; y: number; w: number; h: number },
-  tx: number,
-  ty: number,
-): { x: number; y: number } {
-  const cx = r.x + r.w / 2;
-  const cy = r.y + r.h / 2;
-  const dx = tx - cx;
-  const dy = ty - cy;
-  if (dx === 0 && dy === 0) return { x: cx, y: cy };
-  const scaleX = Math.abs(dx) < 1e-6 ? Infinity : r.w / 2 / Math.abs(dx);
-  const scaleY = Math.abs(dy) < 1e-6 ? Infinity : r.h / 2 / Math.abs(dy);
-  const s = Math.min(scaleX, scaleY);
-  return { x: cx + dx * s, y: cy + dy * s };
-}
-
 function parseDate(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
@@ -1003,20 +986,13 @@ export function DagCanvas({
               const fr = groupRects.get(rel.fromGroupId);
               const tr = groupRects.get(rel.toGroupId);
               if (!fr || !tr) return null;
-              const fcx = fr.x + fr.w / 2;
-              const fcy = fr.y + fr.h / 2;
-              const tcx = tr.x + tr.w / 2;
-              const tcy = tr.y + tr.h / 2;
-              const s = rectEdgePoint(fr, tcx, tcy);
-              const en = rectEdgePoint(tr, fcx, fcy);
+              // 카드 엣지와 동일하게 직각(꺾인) 경로 — from 박스 우측끝 → to 박스 좌측끝.
+              const d = edgePath(fr.x + fr.w, fr.y + fr.h / 2, tr.x, tr.y + tr.h / 2);
               return (
-                <line
+                <path
                   key={rel.id}
                   className="dag-group-edge"
-                  x1={s.x}
-                  y1={s.y}
-                  x2={en.x}
-                  y2={en.y}
+                  d={d}
                   markerEnd="url(#dag-group-arrow)"
                   onClick={() => onDeleteGroupRelation(rel.id)}
                 />

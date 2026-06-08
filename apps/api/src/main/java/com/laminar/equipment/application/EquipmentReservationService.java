@@ -58,7 +58,7 @@ public class EquipmentReservationService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()))
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .filter(EquipmentEntity::isActive)
         .orElseThrow(() -> new IllegalArgumentException("equipment not found or inactive"));
 
@@ -92,9 +92,9 @@ public class EquipmentReservationService {
         reservationRepo
             .findById(reservationId)
             .filter(r -> r.getDeletedAt() == null)
-            .filter(r -> ctx.ownsShared(r.getSubjectId()))
+            .filter(r -> ctx.ownsUser(r.getReservedBy()))
             .orElseThrow(() -> new IllegalArgumentException("reservation not found"));
-    // 본인 예약 또는 OWNER만 취소 (OWNER override는 같은 subject 한정 — ownsShared 선검증)
+    // 본인 예약 또는 OWNER만 취소 (owner-scoped: 사용자 자신의 예약만 보이므로 reserved_by 선검증)
     if (!ctx.isOwner() && !reservation.getReservedBy().equals(ctx.userId())) {
       throw new IllegalStateException("can only cancel own reservation (OWNER override allowed)");
     }

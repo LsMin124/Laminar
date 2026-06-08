@@ -69,7 +69,7 @@ public class SharedCalendarService {
     calendarRepo
         .findById(calendarId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsShared(c.getSubjectId()))
+        .filter(c -> ctx.ownsUser(c.getCreatedBy()))
         .ifPresent(
             c -> {
               c.setDeletedAt(OffsetDateTime.now());

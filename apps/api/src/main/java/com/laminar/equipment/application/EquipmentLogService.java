@@ -55,7 +55,7 @@ public class EquipmentLogService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()))
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     if (columnRepo
         .findByEquipmentIdAndColumnKeyAndDeletedAtIsNull(equipmentId, columnKey)
@@ -74,6 +74,7 @@ public class EquipmentLogService {
 
     EquipmentLogColumnEntity column = new EquipmentLogColumnEntity();
     column.setSubjectId(ctx.subjectId());
+    column.setCreatedBy(ctx.userId());
     column.setEquipmentId(equipmentId);
     column.setColumnKey(columnKey);
     column.setColumnLabel(columnLabel);
@@ -97,7 +98,7 @@ public class EquipmentLogService {
     columnRepo
         .findById(columnId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsShared(c.getSubjectId()))
+        .filter(c -> ctx.ownsUser(c.getCreatedBy()))
         .ifPresent(
             c -> {
               c.setDeletedAt(OffsetDateTime.now());
@@ -116,7 +117,7 @@ public class EquipmentLogService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()))
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     validateValues(equipmentId, values);
 

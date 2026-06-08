@@ -15,13 +15,16 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "equipment_log_columns")
-@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
+@Filter(name = "ownerScopedFilter", condition = "created_by = :ctxUserId")
 @Getter
 @Setter
 public class EquipmentLogColumnEntity extends SubjectScopedBaseEntity {
 
   @Column(name = "equipment_id", nullable = false)
   private UUID equipmentId;
+
+  @Column(name = "created_by")
+  private UUID createdBy;
 
   @Column(name = "column_key", nullable = false)
   private String columnKey;

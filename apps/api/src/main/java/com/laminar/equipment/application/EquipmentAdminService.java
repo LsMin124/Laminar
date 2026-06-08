@@ -34,7 +34,7 @@ public class EquipmentAdminService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()))
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
 
     EquipmentAdminEntity admin = new EquipmentAdminEntity();
@@ -50,7 +50,7 @@ public class EquipmentAdminService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()))
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     adminRepo.findById(new EquipmentAdminId(equipmentId, userId)).ifPresent(adminRepo::delete);
   }

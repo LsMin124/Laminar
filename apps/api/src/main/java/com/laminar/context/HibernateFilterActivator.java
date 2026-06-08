@@ -41,6 +41,7 @@ public class HibernateFilterActivator {
     if (context == null || context.scope() == SubjectContext.Scope.SYSTEM) {
       disable(session, PersonalFirstFilters.PERSONAL_FIRST);
       disable(session, PersonalFirstFilters.SUBJECT_SHARED);
+      disable(session, PersonalFirstFilters.OWNER_SCOPED);
       return;
     }
 
@@ -49,9 +50,21 @@ public class HibernateFilterActivator {
 
     if (context.scope() == SubjectContext.Scope.PERSONAL && context.userId() != null) {
       enablePersonalFirst(session, subjectId, context.userId());
+      enableOwnerScoped(session, context.userId());
     } else {
       disable(session, PersonalFirstFilters.PERSONAL_FIRST);
+      // 사용자 컨텍스트가 없으면 owner-scoped 자원(장비 시리즈)은 fail-closed로 비활성.
+      disable(session, PersonalFirstFilters.OWNER_SCOPED);
     }
+  }
+
+  private void enableOwnerScoped(Session session, UUID userId) {
+    Filter filter = session.getEnabledFilter(PersonalFirstFilters.OWNER_SCOPED);
+    if (filter == null) {
+      filter = session.enableFilter(PersonalFirstFilters.OWNER_SCOPED);
+    }
+    filter.setParameter(PersonalFirstFilters.PARAM_USER_ID, userId);
+    filter.validate();
   }
 
   /** 기존 호출처(AdminSubjectService, RruleExpansionWorker) 호환 별칭 — 현재 컨텍스트 기준으로 세션 필터를 동기화한다. */

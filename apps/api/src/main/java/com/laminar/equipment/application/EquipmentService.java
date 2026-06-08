@@ -69,7 +69,7 @@ public class EquipmentService {
     return equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()));
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()));
   }
 
   @Transactional
@@ -84,7 +84,7 @@ public class EquipmentService {
         equipmentRepo
             .findById(equipmentId)
             .filter(e -> e.getDeletedAt() == null)
-            .filter(e -> ctx.ownsShared(e.getSubjectId()))
+            .filter(e -> ctx.ownsUser(e.getCreatedBy()))
             .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     if (name != null && !name.isBlank()) equipment.setName(name);
     if (description != null) equipment.setDescription(description);
@@ -100,7 +100,7 @@ public class EquipmentService {
         equipmentRepo
             .findById(equipmentId)
             .filter(e -> e.getDeletedAt() == null)
-            .filter(e -> ctx.ownsShared(e.getSubjectId()))
+            .filter(e -> ctx.ownsUser(e.getCreatedBy()))
             .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
     equipment.setActive(active);
     return equipmentRepo.save(equipment);
@@ -112,7 +112,7 @@ public class EquipmentService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsShared(e.getSubjectId()))
+        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .ifPresent(
             e -> {
               e.setDeletedAt(OffsetDateTime.now());

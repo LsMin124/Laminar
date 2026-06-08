@@ -42,7 +42,7 @@ public class SharedCalendarAnnouncementService {
     calendarRepo
         .findById(sharedCalendarId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsShared(c.getSubjectId()))
+        .filter(c -> ctx.ownsUser(c.getCreatedBy()))
         .orElseThrow(() -> new IllegalArgumentException("shared calendar not found"));
 
     SharedCalendarAnnouncementEntity announcement = new SharedCalendarAnnouncementEntity();
@@ -71,7 +71,7 @@ public class SharedCalendarAnnouncementService {
     announcementRepo
         .findById(announcementId)
         .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsShared(a.getSubjectId()))
+        .filter(a -> ctx.ownsUser(a.getPostedBy()))
         .ifPresent(
             a -> {
               if (!ctx.isOwner() && !a.getPostedBy().equals(ctx.userId())) {

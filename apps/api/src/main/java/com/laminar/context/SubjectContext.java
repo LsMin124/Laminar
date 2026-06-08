@@ -67,4 +67,12 @@ public record SubjectContext(UUID subjectId, UUID userId, SubjectRole userRole) 
   public boolean ownsShared(UUID entitySubjectId) {
     return subjectId != null && subjectId.equals(entitySubjectId);
   }
+
+  /**
+   * Owner-Scoped 엔티티(사용자 단일 소유) 검증 — 장비 시리즈처럼 주제와 무관하게 사용자 전체에 통합되는 자원용. 컨텍스트 user와 엔티티의 소유
+   * 사용자(created_by/reserved_by 등) 일치 시 true (fail-closed).
+   */
+  public boolean ownsUser(UUID entityUserId) {
+    return userId != null && userId.equals(entityUserId);
+  }
 }

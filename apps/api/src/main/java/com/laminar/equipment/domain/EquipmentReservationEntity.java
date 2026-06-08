@@ -12,7 +12,7 @@ import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "equipment_reservations")
-@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
+@Filter(name = "ownerScopedFilter", condition = "reserved_by = :ctxUserId")
 @Getter
 @Setter
 public class EquipmentReservationEntity extends SubjectScopedBaseEntity {

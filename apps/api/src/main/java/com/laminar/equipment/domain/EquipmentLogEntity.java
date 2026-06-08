@@ -16,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "equipment_logs")
-@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
+@Filter(name = "ownerScopedFilter", condition = "logged_by = :ctxUserId")
 @Getter
 @Setter
 public class EquipmentLogEntity extends SubjectScopedBaseEntity {

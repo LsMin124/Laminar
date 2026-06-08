@@ -10,6 +10,7 @@ import {
 } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
 import { DagWorkspace } from "./DagWorkspace";
+import { EquipmentView } from "./EquipmentView";
 import { Identicon } from "./Identicon";
 import "./SubjectLayout.css";
 
@@ -30,6 +31,8 @@ export function SubjectLayout() {
   const [manageOpen, setManageOpen] = useState(false);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 DagWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
+  // 메인 영역 모드 — 보드(DagWorkspace) ↔ 장비 관리(EquipmentView). 레일 '장' 타일로 전환.
+  const [mode, setMode] = useState<"workspace" | "equipment">("workspace");
   const [hoverTip, setHoverTip] = useState<{ name: string; y: number } | null>(null);
 
   const list = subjects.data ?? [];
@@ -44,6 +47,7 @@ export function SubjectLayout() {
   }, [subjects.data, activeId]);
 
   function switchSubject(id: string) {
+    setMode("workspace");
     if (id === activeId) return;
     setCurrentWorkspaceId(id);
     setActiveId(id);
@@ -121,7 +125,10 @@ export function SubjectLayout() {
             <button
               type="button"
               className="rail-btn body"
-              onClick={() => setBodyNonce((n) => n + 1)}
+              onClick={() => {
+                setMode("workspace");
+                setBodyNonce((n) => n + 1);
+              }}
               title="현재 주제 본문 열기"
               aria-label="주제 본문"
             >
@@ -137,7 +144,14 @@ export function SubjectLayout() {
         </div>
 
         <div className="rail-future">
-          <button type="button" className="rail-tile ghost" disabled title="장비 관리 (준비 중)">
+          <button
+            type="button"
+            className={`rail-tile equip${mode === "equipment" ? " active" : ""}`}
+            onClick={() => setMode("equipment")}
+            disabled={!activeValid}
+            title="장비 관리"
+            aria-label="장비 관리"
+          >
             장
           </button>
           <button type="button" className="rail-tile ghost" disabled title="학습 정리 (준비 중)">
@@ -148,12 +162,24 @@ export function SubjectLayout() {
 
       <main className="lay-main">
         {activeValid ? (
-          <DagWorkspace
-            key={activeId}
-            subjectId={activeId ?? ""}
-            subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
-            openSubjectBodyNonce={bodyNonce}
-          />
+          <>
+            {/* DagWorkspace는 장비 뷰로 전환해도 unmount하지 않고 hidden 처리 — 열린 문서·캔버스 상태와
+                bodyNonce 메커니즘을 보존(주제 전환 시에만 key로 리마운트). */}
+            <div className="lay-pane" hidden={mode !== "workspace"}>
+              <DagWorkspace
+                key={activeId}
+                subjectId={activeId ?? ""}
+                subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
+                openSubjectBodyNonce={bodyNonce}
+              />
+            </div>
+            {mode === "equipment" && (
+              <EquipmentView
+                subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
+                onClose={() => setMode("workspace")}
+              />
+            )}
+          </>
         ) : (
           <div className="lay-empty">
             {subjects.isLoading ? "불러오는 중..." : "연구 주제를 만들어 시작하세요 (좌측 ＋)."}

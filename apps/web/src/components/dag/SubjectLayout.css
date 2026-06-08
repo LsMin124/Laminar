@@ -124,6 +124,15 @@
   flex: 1;
   min-width: 0;
 }
+/* 보드(DagWorkspace) 패널 — 장비 뷰로 전환 시 hidden(display:none)으로 mount 유지. */
+.lay-pane {
+  height: 100%;
+}
+/* 장비 관리 타일 — 활성 주제 없을 때 비활성. */
+.rail-tile.equip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .lay-empty {
   padding: 48px;
   color: #777;

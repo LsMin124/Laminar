@@ -75,6 +75,16 @@
   font-size: 11px;
   color: #777;
 }
+/* 툴바의 선택된 그룹 태그 — 쿨 슬레이트로 그룹 컨텍스트 표시. */
+.dag-grouptool-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9aa2e0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dag-toggle {
   display: flex;
   align-items: center;
@@ -196,6 +206,13 @@
   background: rgba(120, 150, 180, 0.04);
   pointer-events: none;
 }
+/* 선택/연결-소스 그룹 강조 — 쿨 슬레이트 링(그룹 화살표 색과 통일). */
+.dag-group.selected,
+.dag-group.link-src {
+  border-style: solid;
+  box-shadow: 0 0 0 1.5px #9aa2e0;
+  background: rgba(124, 132, 191, 0.08);
+}
 /* 그룹 라벨 = 본문 열기(이름) + 연결 nub + 삭제(✕) 바. 박스는 투과(pointer-events none)이고 라벨만 활성. */
 .dag-group-label {
   position: absolute;
@@ -301,6 +318,9 @@
   border-color: #5a3a30;
 }
 .dag .linking .dag-node {
+  cursor: crosshair;
+}
+.dag .linking .dag-group-name {
   cursor: crosshair;
 }
 

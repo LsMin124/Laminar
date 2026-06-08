@@ -8,15 +8,13 @@ import { Identicon } from "./Identicon";
 import "./DagWorkspace.css";
 
 // 본문(마크다운+KaTeX)은 무겁고 항상 쓰진 않으므로 지연 로드 — 초기 번들에서 분리.
-const CardBody = lazy(() =>
-  import("./CardBody").then((m) => ({ default: m.CardBody })),
-);
-const GroupBody = lazy(() =>
-  import("./GroupBody").then((m) => ({ default: m.GroupBody })),
-);
+const CardBody = lazy(() => import("./CardBody").then((m) => ({ default: m.CardBody })));
+const GroupBody = lazy(() => import("./GroupBody").then((m) => ({ default: m.GroupBody })));
+const TabBody = lazy(() => import("./TabBody").then((m) => ({ default: m.TabBody })));
+const SubjectBody = lazy(() => import("./SubjectBody").then((m) => ({ default: m.SubjectBody })));
 
-// 열린 본문 문서 — 카드 또는 그룹(UUID는 카드/그룹 전역 유일이라 id 단일 키로 충분).
-type DocKind = "card" | "group";
+// 열린 본문 문서 — 카드·그룹·탭·주제(UUID는 전역 유일이라 id 단일 키로 충분).
+type DocKind = "card" | "group" | "tab" | "subject";
 interface OpenDoc {
   kind: DocKind;
   id: string;
@@ -24,9 +22,17 @@ interface OpenDoc {
   title: string;
 }
 
+// 문서 탭 라벨 접두(종류 식별). 카드는 접두 없음.
+const DOC_PREFIX: Record<DocKind, string> = {
+  card: "",
+  group: "▣ ",
+  tab: "▭ ",
+  subject: "◈ ",
+};
+
 /**
  * DAG 워크스페이스 셸 — 탭 목록/생성 + 선택 탭의 DAG 캔버스 호스트.
- * (장비·멤버·관리자 등 부차 페이지는 Phase 4 범위에서 제외)
+ * 본문 문서(카드·그룹·탭·주제)는 상단 브라우저 탭식 doctab 바에서 열린다.
  */
 export function DagWorkspace({
   subjectId,
@@ -40,7 +46,7 @@ export function DagWorkspace({
   const dialogs = useDialogs();
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [view, setView] = useState<"canvas" | "calendar">("canvas");
-  // 브라우저 탭식 본문 문서 — 열린 카드/그룹들 + 활성(activeDoc=null이면 보드 뷰).
+  // 브라우저 탭식 본문 문서 — 열린 문서들 + 활성(activeDoc=null이면 보드 뷰).
   const [openDocs, setOpenDocs] = useState<OpenDoc[]>([]);
   const [activeDoc, setActiveDoc] = useState<string | null>(null);
 
@@ -64,18 +70,19 @@ export function DagWorkspace({
     location.reload();
   }
 
-  // 본문(카드/그룹)을 문서 탭으로 열기(이미 열려 있으면 제목 갱신 후 활성화).
+  // 본문 문서 열기(이미 열려 있으면 제목 갱신 후 활성화). 탭/주제 본문은 활성 보드 탭이 없어도 열 수 있다.
   function openDoc(kind: DocKind, id: string, title: string) {
-    if (!active) return;
     setOpenDocs((prev) =>
       prev.some((d) => d.id === id)
         ? prev.map((d) => (d.id === id ? { ...d, title } : d))
-        : [...prev, { kind, id, tabId: active, title }],
+        : [...prev, { kind, id, tabId: active ?? "", title }],
     );
     setActiveDoc(id);
   }
   const openCard = (cardId: string, title: string) => openDoc("card", cardId, title);
   const openGroup = (groupId: string, title: string) => openDoc("group", groupId, title);
+  const openTab = (tabId: string, title: string) => openDoc("tab", tabId, title);
+  const openSubject = () => openDoc("subject", subjectId, subjectName);
   function closeDoc(id: string) {
     setOpenDocs((prev) => prev.filter((d) => d.id !== id));
     setActiveDoc((cur) => (cur === id ? null : cur));
@@ -87,24 +94,60 @@ export function DagWorkspace({
 
   const activeDocEntry = openDocs.find((d) => d.id === activeDoc) ?? null;
 
+  function renderDoc(d: OpenDoc) {
+    switch (d.kind) {
+      case "subject":
+        return <SubjectBody key={d.id} subjectId={d.id} />;
+      case "tab":
+        return <TabBody key={d.id} tabId={d.id} />;
+      case "group":
+        return <GroupBody key={d.id} groupId={d.id} tabId={d.tabId} />;
+      default:
+        return <CardBody key={d.id} cardId={d.id} tabId={d.tabId} />;
+    }
+  }
+
   return (
     <div className="dw">
       <header className="dw-header">
-        <div className="dw-subject" title={subjectName}>
+        <button
+          type="button"
+          className="dw-subject"
+          title={`${subjectName} — 주제 본문 열기`}
+          onClick={openSubject}
+        >
           <Identicon seed={subjectId} size={18} />
           <span className="dw-subject-name">{subjectName}</span>
-        </div>
+          <span className="dw-subject-doc" aria-hidden="true">
+            ▤
+          </span>
+        </button>
         <nav className="dw-tabs">
-          {list.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`dw-tab${t.id === active ? " active" : ""}`}
-              onClick={() => setActiveTab(t.id)}
-            >
-              {t.name}
-            </button>
-          ))}
+          {list.map((t) => {
+            const isActive = t.id === active;
+            return (
+              <span key={t.id} className={`dw-tab-wrap${isActive ? " active" : ""}`}>
+                <button
+                  type="button"
+                  className={`dw-tab${isActive ? " active" : ""}`}
+                  onClick={() => setActiveTab(t.id)}
+                >
+                  {t.name}
+                </button>
+                {isActive && (
+                  <button
+                    type="button"
+                    className="dw-tab-doc"
+                    onClick={() => openTab(t.id, t.name)}
+                    title="탭 본문 열기"
+                    aria-label="탭 본문"
+                  >
+                    ▤
+                  </button>
+                )}
+              </span>
+            );
+          })}
           <button type="button" className="dw-tab-add" onClick={onCreateTab}>
             + 탭
           </button>
@@ -141,9 +184,7 @@ export function DagWorkspace({
           {openDocs.map((d) => (
             <span
               key={d.id}
-              className={`dw-doctab${activeDoc === d.id ? " active" : ""}${
-                d.kind === "group" ? " group" : ""
-              }`}
+              className={`dw-doctab${activeDoc === d.id ? " active" : ""} ${d.kind}`}
             >
               <button
                 type="button"
@@ -151,7 +192,7 @@ export function DagWorkspace({
                 onClick={() => setActiveDoc(d.id)}
                 title={d.title}
               >
-                {d.kind === "group" ? "▣ " : ""}
+                {DOC_PREFIX[d.kind]}
                 {d.title || "(제목 없음)"}
               </button>
               <button
@@ -169,19 +210,7 @@ export function DagWorkspace({
       <main className="dw-main">
         {activeDocEntry ? (
           <Suspense fallback={<div className="dw-empty">본문 불러오는 중...</div>}>
-            {activeDocEntry.kind === "group" ? (
-              <GroupBody
-                key={activeDocEntry.id}
-                groupId={activeDocEntry.id}
-                tabId={activeDocEntry.tabId}
-              />
-            ) : (
-              <CardBody
-                key={activeDocEntry.id}
-                cardId={activeDocEntry.id}
-                tabId={activeDocEntry.tabId}
-              />
-            )}
+            {renderDoc(activeDocEntry)}
           </Suspense>
         ) : active ? (
           view === "canvas" ? (
@@ -191,9 +220,7 @@ export function DagWorkspace({
           )
         ) : (
           <div className="dw-empty">
-            {tabs.isLoading
-              ? "불러오는 중..."
-              : '탭이 없습니다. "+ 탭"으로 만들어 보세요.'}
+            {tabs.isLoading ? "불러오는 중..." : '탭이 없습니다. "+ 탭"으로 만들어 보세요.'}
           </div>
         )}
       </main>

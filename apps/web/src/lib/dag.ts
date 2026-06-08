@@ -19,6 +19,8 @@ export interface Subject {
   id: Uuid;
   name: string;
   slug: string;
+  /** 주제(워크스페이스) 전반 개요 — 독립 마크다운 문서. */
+  bodyMd: string | null;
 }
 
 export interface Tab {
@@ -26,6 +28,8 @@ export interface Tab {
   name: string;
   slug: string;
   priority: number;
+  /** 탭(보드)별 메모/개요 — 독립 마크다운 문서. */
+  bodyMd: string | null;
 }
 
 export interface Card {
@@ -117,13 +121,68 @@ export function useCreateSubject() {
   });
 }
 
-/** 현재(활성) 주제 이름 변경 — 백엔드 PATCH /current는 헤더의 활성 주제를 대상으로 한다. */
+/**
+ * 현재(활성) 주제 수정(이름·본문) — 백엔드 PATCH /current는 헤더의 활성 주제를 대상으로 한다.
+ * `id`는 본문 자동저장 낙관적 반영(["subjects"] 캐시 행 갱신)용으로만 쓰이고 요청 본문엔 보내지 않는다.
+ */
 export function useUpdateSubject() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) =>
-      api.patch<Subject>("/api/subjects/current", { name }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
+    mutationFn: ({ name, bodyMd }: { id?: string; name?: string; bodyMd?: string | null }) =>
+      api.patch<Subject>("/api/subjects/current", { name, bodyMd }),
+    onMutate: async ({ id, name, bodyMd }) => {
+      const prev = qc.getQueryData<Subject[]>(["subjects"]);
+      if (id) {
+        qc.setQueryData<Subject[]>(["subjects"], (list) =>
+          list?.map((s) =>
+            s.id === id
+              ? {
+                  ...s,
+                  ...(name !== undefined ? { name } : {}),
+                  ...(bodyMd !== undefined ? { bodyMd } : {}),
+                }
+              : s,
+          ),
+        );
+      }
+      await qc.cancelQueries({ queryKey: ["subjects"] });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snap = ctx as { prev?: Subject[] } | undefined;
+      if (snap?.prev) qc.setQueryData(["subjects"], snap.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
+  });
+}
+
+/** 탭(보드) 수정(이름·본문) — 본문 자동저장이 깜빡이지 않도록 ["tabs"] 캐시 낙관적 반영. */
+export function useUpdateTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tabId, name, bodyMd }: { tabId: string; name?: string; bodyMd?: string | null }) =>
+      api.patch<Tab>(`/api/tabs/${tabId}`, { name, bodyMd }),
+    onMutate: async ({ tabId, name, bodyMd }) => {
+      const prev = qc.getQueryData<Tab[]>(["tabs"]);
+      qc.setQueryData<Tab[]>(["tabs"], (list) =>
+        list?.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                ...(name !== undefined ? { name } : {}),
+                ...(bodyMd !== undefined ? { bodyMd } : {}),
+              }
+            : t,
+        ),
+      );
+      await qc.cancelQueries({ queryKey: ["tabs"] });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snap = ctx as { prev?: Tab[] } | undefined;
+      if (snap?.prev) qc.setQueryData(["tabs"], snap.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tabs"] }),
   });
 }
 

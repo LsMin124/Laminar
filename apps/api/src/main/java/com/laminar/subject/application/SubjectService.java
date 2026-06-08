@@ -105,13 +105,17 @@ public class SubjectService {
   }
 
   @Transactional
-  public SubjectEntity updateCurrent(String name, String timezone, Map<String, Object> settings) {
+  public SubjectEntity updateCurrent(
+      String name, String timezone, String bodyMd, Map<String, Object> settings) {
     SubjectEntity subject = requireCurrent();
     if (name != null && !name.isBlank()) {
       subject.setName(name);
     }
     if (timezone != null && !timezone.isBlank()) {
       subject.setDefaultTimezone(timezone);
+    }
+    if (bodyMd != null) {
+      subject.setBodyMd(bodyMd);
     }
     if (settings != null) {
       subject.setSettings(settings);

@@ -61,7 +61,7 @@ export function SubjectLayout() {
     if (s.id !== activeId) switchSubject(s.id);
     const name = await dialogs.prompt({ title: "주제 이름 변경", defaultValue: s.name });
     if (!name || !name.trim() || name.trim() === s.name) return;
-    await updateSubject.mutateAsync(name.trim());
+    await updateSubject.mutateAsync({ id: s.id, name: name.trim() });
   }
 
   async function onDelete(s: Subject) {

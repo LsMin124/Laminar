@@ -66,6 +66,7 @@ public class TabController {
             request.defaultView(),
             request.iconName(),
             request.iconColor(),
+            request.bodyMd(),
             request.settings());
     return ResponseEntity.ok(toResponse(updated));
   }
@@ -93,6 +94,7 @@ public class TabController {
         tab.getDefaultView(),
         tab.getIconName(),
         tab.getIconColor(),
+        tab.getBodyMd(),
         tab.getSettings(),
         tab.getPriority(),
         tab.getCreatedAt(),

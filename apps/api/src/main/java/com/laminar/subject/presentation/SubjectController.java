@@ -57,7 +57,8 @@ public class SubjectController {
   public ResponseEntity<SubjectDtos.SubjectResponse> updateCurrent(
       @Valid @RequestBody SubjectDtos.UpdateRequest request) {
     SubjectEntity updated =
-        subjectService.updateCurrent(request.name(), request.defaultTimezone(), request.settings());
+        subjectService.updateCurrent(
+            request.name(), request.defaultTimezone(), request.bodyMd(), request.settings());
     return ResponseEntity.ok(toResponse(updated));
   }
 
@@ -83,6 +84,7 @@ public class SubjectController {
         ws.getSlug(),
         ws.getOwnerUserId(),
         ws.getDefaultTimezone(),
+        ws.getBodyMd(),
         ws.getSettings(),
         ws.getCreatedAt(),
         ws.getUpdatedAt());

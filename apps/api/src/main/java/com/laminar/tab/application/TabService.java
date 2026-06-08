@@ -88,6 +88,7 @@ public class TabService {
       TabDefaultView defaultView,
       String iconName,
       String iconColor,
+      String bodyMd,
       Map<String, Object> settings) {
     SubjectContext ctx = requirePersonalWritable();
     TabEntity tab =
@@ -101,6 +102,7 @@ public class TabService {
     if (defaultView != null) tab.setDefaultView(defaultView);
     if (iconName != null) tab.setIconName(iconName);
     if (iconColor != null) tab.setIconColor(iconColor);
+    if (bodyMd != null) tab.setBodyMd(bodyMd);
     if (settings != null) tab.setSettings(settings);
     return tabRepo.save(tab);
   }

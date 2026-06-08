@@ -42,6 +42,9 @@ public class SubjectEntity {
   @Column(name = "default_timezone", nullable = false)
   private String defaultTimezone = "Asia/Seoul";
 
+  @Column(name = "body_md")
+  private String bodyMd;
+
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "settings", nullable = false, columnDefinition = "jsonb")
   private Map<String, Object> settings = new HashMap<>();

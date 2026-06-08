@@ -19,6 +19,7 @@ public final class SubjectDtos {
   public record UpdateRequest(
       @Size(max = 200) String name,
       @Size(max = 60) String defaultTimezone,
+      @Size(max = 100000) String bodyMd,
       Map<String, Object> settings) {}
 
   public record SubjectResponse(
@@ -27,6 +28,7 @@ public final class SubjectDtos {
       String slug,
       UUID ownerUserId,
       String defaultTimezone,
+      String bodyMd,
       Map<String, Object> settings,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt) {}

@@ -26,6 +26,7 @@ public final class TabDtos {
       TabDefaultView defaultView,
       @Size(max = 100) String iconName,
       @Size(max = 30) String iconColor,
+      @Size(max = 100000) String bodyMd,
       Map<String, Object> settings) {}
 
   public record ReorderRequest(@NotEmpty List<UUID> orderedIds) {}
@@ -39,6 +40,7 @@ public final class TabDtos {
       TabDefaultView defaultView,
       String iconName,
       String iconColor,
+      String bodyMd,
       Map<String, Object> settings,
       int priority,
       OffsetDateTime createdAt,

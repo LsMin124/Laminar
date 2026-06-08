@@ -159,18 +159,9 @@ export function DagCanvas({
     y: number;
   } | null>(null);
   const linkFromRef = useRef<string | null>(null);
-  // 그룹 연결 핸들(nub) 드래그 — 임시 라인 좌표 + 출발 그룹 id. 카드 연결과 별개 레이어.
-  const [gLinkLine, setGLinkLine] = useState<{
-    sx: number;
-    sy: number;
-    x: number;
-    y: number;
-  } | null>(null);
-  const gLinkFromRef = useRef<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // 그룹 선택(카드처럼 클릭으로 선택→툴바 액션) + 그룹 연결 모드(출발 그룹; 대상 그룹 클릭 시 화살표 생성).
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  // 그룹 연결 모드 — 라벨 ⇢ 버튼으로 출발 그룹 지정, 대상 그룹 ⇢ 클릭 시 화살표 생성.
   const [groupLinkSource, setGroupLinkSource] = useState<string | null>(null);
   // 새 카드 생성 다이얼로그 — null=닫힘, {date}=열림(일자 기본값).
   const [newCard, setNewCard] = useState<{ date: string | null } | null>(null);
@@ -476,7 +467,6 @@ export function DagCanvas({
     if (!d.moved) {
       setDrag(null);
       if (d.mode === "move") {
-        setSelectedGroupId(null);
         if (linkSource) {
           if (linkSource !== c.id) {
             createRelation.mutate(
@@ -665,83 +655,29 @@ export function DagCanvas({
     if (ok) deleteGroupRelation.mutate(id);
   }
 
-  // 그룹 nub 드래그 → 다른 그룹 박스 위에서 놓으면 그룹 화살표 생성(자기 자신·중복·빈 그룹 제외).
-  function onGroupNubDown(e: React.PointerEvent<HTMLSpanElement>, grp: Group) {
-    e.stopPropagation();
-    e.preventDefault();
-    const r = groupRects.get(grp.id);
-    if (!r) return;
-    gLinkFromRef.current = grp.id;
-    const cx = r.x + r.w / 2;
-    const cy = r.y + r.h / 2;
-    setGLinkLine({ sx: cx, sy: cy, x: cx, y: cy });
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function onGroupNubMove(e: React.PointerEvent<HTMLSpanElement>) {
-    if (!gLinkFromRef.current) return;
-    const p = canvasPoint(e.clientX, e.clientY);
-    setGLinkLine((l) => (l ? { ...l, x: p.x, y: p.y } : l));
-  }
-  function onGroupNubUp(e: React.PointerEvent<HTMLSpanElement>) {
-    const from = gLinkFromRef.current;
-    gLinkFromRef.current = null;
-    setGLinkLine(null);
-    if (!from) return;
-    const p = canvasPoint(e.clientX, e.clientY);
-    // 포인터가 들어간 그룹 중 가장 작은 박스(중첩 대비)를 대상으로.
-    let target: string | null = null;
-    let targetArea = Infinity;
-    for (const [gid, r] of groupRects) {
-      if (gid === from) continue;
-      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
-        const area = r.w * r.h;
-        if (area < targetArea) {
-          target = gid;
-          targetArea = area;
-        }
-      }
-    }
-    if (!target) return;
-    const exists = groupRelations.some(
-      (gr) => gr.fromGroupId === from && gr.toGroupId === target,
-    );
-    if (!exists) {
-      createGroupRelation.mutate(
-        { fromGroupId: from, toGroupId: target },
-        { onError: reportError },
-      );
-    }
-  }
-
   /**
-   * 그룹 라벨 클릭 — 카드와 같은 방식의 연결 흐름. 연결 모드면 이 그룹을 대상으로 화살표 생성(중복·self 제외),
-   * 아니면 이 그룹을 선택(토글). 그룹 선택 시 카드 선택은 해제(툴바 액션 모호성 제거).
+   * 그룹 라벨 ⇢ 버튼 — 연결 모드 토글/완성. 처음 누르면 출발 그룹 지정(link-src 강조),
+   * 다른 그룹의 ⇢를 누르면 화살표 생성(출발→대상, 중복·self 가드), 같은 그룹 ⇢ 재클릭은 취소.
    */
-  function onGroupNameClick(grp: Group) {
-    if (groupLinkSource) {
-      if (groupLinkSource !== grp.id) {
-        const exists = groupRelations.some(
-          (gr) => gr.fromGroupId === groupLinkSource && gr.toGroupId === grp.id,
-        );
-        if (!exists) {
-          createGroupRelation.mutate(
-            { fromGroupId: groupLinkSource, toGroupId: grp.id },
-            { onError: reportError },
-          );
-        }
-      }
+  function onGroupLinkBtn(grp: Group) {
+    if (groupLinkSource === null) {
+      setGroupLinkSource(grp.id);
+      return;
+    }
+    if (groupLinkSource === grp.id) {
       setGroupLinkSource(null);
       return;
     }
-    setSelectedIds(new Set());
-    setSelectedGroupId((cur) => (cur === grp.id ? null : grp.id));
-  }
-
-  /** 선택한 그룹에서 연결 시작(카드 "⇢ 연결"과 동일) → 대상 그룹 라벨 클릭으로 완성. */
-  function onToolGroupLink() {
-    if (!selectedGroupId) return;
-    setGroupLinkSource(selectedGroupId);
-    setSelectedGroupId(null);
+    const exists = groupRelations.some(
+      (gr) => gr.fromGroupId === groupLinkSource && gr.toGroupId === grp.id,
+    );
+    if (!exists) {
+      createGroupRelation.mutate(
+        { fromGroupId: groupLinkSource, toGroupId: grp.id },
+        { onError: reportError },
+      );
+    }
+    setGroupLinkSource(null);
   }
 
   /** 시간 설정 — HH:MM 입력 시 allDay=false+startTime, 비우면 종일(allDay=true). */
@@ -808,9 +744,6 @@ export function DagCanvas({
   const soleInGroup =
     !!sole && groups.some((g) => (groupMembers[g.id] ?? []).includes(sole.id));
   const selectedCards = cards.filter((c) => selectedIds.has(c.id));
-  const selectedGroup = selectedGroupId
-    ? (groups.find((g) => g.id === selectedGroupId) ?? null)
-    : null;
 
   return (
     <div className={`dag${linkSource || groupLinkSource ? " linking" : ""}`}>
@@ -895,39 +828,6 @@ export function DagCanvas({
         >
           ✕ 삭제{selCount > 0 ? ` (${selCount})` : ""}
         </button>
-        {selectedGroup && (
-          <>
-            <span className="dag-tool-sep" />
-            <span className="dag-grouptool-tag" title="선택된 그룹">
-              ▣ {selectedGroup.name}
-            </span>
-            <button
-              type="button"
-              className="dag-tool"
-              disabled={!!groupLinkSource}
-              onClick={onToolGroupLink}
-              title="이 그룹에서 다른 그룹으로 연결 (대상 그룹 클릭)"
-            >
-              ⇢ 그룹 연결
-            </button>
-            <button
-              type="button"
-              className="dag-tool"
-              onClick={() => onOpenGroup?.(selectedGroup.id, selectedGroup.name)}
-              title="그룹 본문 열기"
-            >
-              ▤ 그룹 본문
-            </button>
-            <button
-              type="button"
-              className="dag-tool danger"
-              onClick={() => onDeleteGroup(selectedGroup)}
-              title="그룹 삭제"
-            >
-              ✕ 그룹 삭제
-            </button>
-          </>
-        )}
         <label className="dag-toggle">
           <input
             type="checkbox"
@@ -954,15 +854,13 @@ export function DagCanvas({
             </>
           ) : groupLinkSource ? (
             <>
-              <strong>연결 대상 그룹 클릭</strong>{" "}
+              <strong>연결 대상 그룹의 ⇢ 클릭</strong>{" "}
               <button type="button" className="dag-tool" onClick={() => setGroupLinkSource(null)}>
                 취소
               </button>
             </>
           ) : selCount > 0 ? (
             `${selCount}개 선택됨 · Shift+클릭 다중 · 빈 곳 클릭 해제`
-          ) : selectedGroup ? (
-            `그룹 "${selectedGroup.name}" 선택됨 · 라벨 더블클릭=본문 · 빈 곳 클릭 해제`
           ) : (
             "카드 클릭=선택 · 빈 곳 더블클릭=새 카드 · 드래그=이동/기간"
           )}
@@ -974,7 +872,6 @@ export function DagCanvas({
         onDoubleClick={onCanvasDoubleClick}
         onPointerDown={() => {
           setSelectedIds(new Set());
-          setSelectedGroupId(null);
           if (linkSource) setLinkSource(null);
           if (groupLinkSource) setGroupLinkSource(null);
         }}
@@ -997,14 +894,11 @@ export function DagCanvas({
             const r = groupRects.get(grp.id);
             if (!r) return null;
             const color = grp.color ?? "#5a6a7a";
-            const isSel = selectedGroupId === grp.id;
             const isLinkSrc = groupLinkSource === grp.id;
             return (
               <div
                 key={grp.id}
-                className={`dag-group${isSel ? " selected" : ""}${
-                  isLinkSrc ? " link-src" : ""
-                }`}
+                className={`dag-group${isLinkSrc ? " link-src" : ""}`}
                 style={{
                   left: r.x,
                   top: r.y,
@@ -1013,37 +907,51 @@ export function DagCanvas({
                   borderColor: color,
                 }}
               >
-                {/* 라벨 = 이름(클릭: 선택/연결대상, 더블클릭: 본문) + nub(드래그 연결) + ✕(삭제).
-                    라벨에서 pointerdown 전파를 막아 캔버스가 선택/연결모드를 즉시 비우지 않게 한다. */}
+                {/* 라벨 = 이름 + 명시적 아이콘 버튼(▤ 본문 / ⇢ 연결 / ✕ 삭제). 박스는 투과(pointer-events
+                    none)이고 라벨만 활성. 라벨 pointerdown 전파를 막아 캔버스가 연결모드를 즉시 비우지 않게 한다. */}
                 <div
                   className="dag-group-label"
-                  style={{ color }}
+                  style={{ borderColor: color }}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
-                  <button
-                    type="button"
-                    className="dag-group-name"
-                    onClick={() => onGroupNameClick(grp)}
-                    onDoubleClick={() => onOpenGroup?.(grp.id, grp.name)}
-                    title="클릭: 선택(→툴바 연결) · 더블클릭: 본문 · 연결 모드면 대상 지정"
-                  >
+                  <span className="dag-group-name" style={{ color }} title={grp.name}>
                     {grp.name}
-                  </button>
-                  <span
-                    className="dag-group-nub"
-                    title="드래그해 다른 그룹으로 연결(또는 선택 후 툴바 ⇢ 그룹 연결)"
-                    onPointerDown={(e) => onGroupNubDown(e, grp)}
-                    onPointerMove={onGroupNubMove}
-                    onPointerUp={onGroupNubUp}
-                  />
-                  <button
-                    type="button"
-                    className="dag-group-x"
-                    onClick={() => onDeleteGroup(grp)}
-                    title="그룹 삭제"
-                  >
-                    ✕
-                  </button>
+                  </span>
+                  <span className="dag-group-acts">
+                    <button
+                      type="button"
+                      className="dag-group-btn"
+                      onClick={() => onOpenGroup?.(grp.id, grp.name)}
+                      title="그룹 본문 열기"
+                      aria-label="본문"
+                    >
+                      ▤
+                    </button>
+                    <button
+                      type="button"
+                      className={`dag-group-btn${isLinkSrc ? " active" : ""}`}
+                      onClick={() => onGroupLinkBtn(grp)}
+                      title={
+                        groupLinkSource === null
+                          ? "연결 시작 — 이 그룹에서 화살표"
+                          : isLinkSrc
+                            ? "연결 취소"
+                            : "여기로 연결 (화살표 생성)"
+                      }
+                      aria-label="연결"
+                    >
+                      ⇢
+                    </button>
+                    <button
+                      type="button"
+                      className="dag-group-btn danger"
+                      onClick={() => onDeleteGroup(grp)}
+                      title="그룹 삭제"
+                      aria-label="삭제"
+                    >
+                      ✕
+                    </button>
+                  </span>
                 </div>
               </div>
             );
@@ -1074,7 +982,7 @@ export function DagCanvas({
                 <path d="M0,0 L10,5 L0,10 z" className="dag-group-arrowhead" />
               </marker>
             </defs>
-            {/* 그룹 간 화살표 — 카드 엣지와 구분(쿨 톤·점선·직선, 박스 테두리에서 테두리로). 카드 엣지 아래 레이어. */}
+            {/* 그룹 간 화살표 — 카드 엣지와 구분(쿨 톤·점선, 형태는 카드와 동일한 직각). 카드 엣지 아래 레이어. */}
             {groupRelations.map((rel) => {
               const fr = groupRects.get(rel.fromGroupId);
               const tr = groupRects.get(rel.toGroupId);
@@ -1120,15 +1028,6 @@ export function DagCanvas({
                 y1={linkLine.sy}
                 x2={linkLine.x}
                 y2={linkLine.y}
-              />
-            )}
-            {gLinkLine && (
-              <line
-                className="dag-group-link-temp"
-                x1={gLinkLine.sx}
-                y1={gLinkLine.sy}
-                x2={gLinkLine.x}
-                y2={gLinkLine.y}
               />
             )}
           </svg>

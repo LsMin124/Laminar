@@ -75,16 +75,6 @@
   font-size: 11px;
   color: #777;
 }
-/* 툴바의 선택된 그룹 태그 — 쿨 슬레이트로 그룹 컨텍스트 표시. */
-.dag-grouptool-tag {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9aa2e0;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .dag-toggle {
   display: flex;
   align-items: center;
@@ -190,13 +180,6 @@
 .dag-group-arrowhead {
   fill: #7c84bf;
 }
-.dag-group-link-temp {
-  stroke: #9aa2e0;
-  stroke-width: 2;
-  stroke-dasharray: 5 3;
-  fill: none;
-  pointer-events: none;
-}
 
 /* ── 그룹 경계 박스 (멤버 bounding rect, 자동 산출·pointer-events 투과) ── */
 .dag-group {
@@ -206,72 +189,81 @@
   background: rgba(120, 150, 180, 0.04);
   pointer-events: none;
 }
-/* 선택/연결-소스 그룹 강조 — 쿨 슬레이트 링(그룹 화살표 색과 통일). */
-.dag-group.selected,
+/* 연결-소스 그룹 강조 — 쿨 슬레이트 링(그룹 화살표 색과 통일). */
 .dag-group.link-src {
   border-style: solid;
   box-shadow: 0 0 0 1.5px #9aa2e0;
   background: rgba(124, 132, 191, 0.08);
 }
-/* 그룹 라벨 = 본문 열기(이름) + 연결 nub + 삭제(✕) 바. 박스는 투과(pointer-events none)이고 라벨만 활성. */
+
+/* 그룹 라벨 = 이름 + 명시적 아이콘 버튼 바(▤ 본문 / ⇢ 연결 / ✕ 삭제).
+   박스는 투과(pointer-events none)이고 라벨만 활성. 박스 상단 경계에 걸친 툴바처럼 보이게 한다. */
 .dag-group-label {
   position: absolute;
   top: 0;
-  left: 8px;
+  left: 10px;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  padding: 1px 4px 1px 6px;
-  background: #0e0e0e;
+  gap: 2px;
+  max-width: calc(100% - 20px);
+  padding: 2px 3px 2px 9px;
+  background: #14110f;
   border: 1px solid var(--rule);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   pointer-events: auto;
   white-space: nowrap;
 }
 .dag-group-name {
-  background: none;
-  border: none;
-  color: inherit;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  cursor: pointer;
-  padding: 0 2px;
-  max-width: 200px;
+  padding-right: 4px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dag-group-name:hover {
-  text-decoration: underline;
-}
-/* 그룹 연결 핸들 — 드래그해 다른 그룹으로 화살표 생성. 쿨 톤(그룹 엣지색)으로 카드 nub와 구분. */
-.dag-group-nub {
+.dag-group-acts {
   flex: none;
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-  background: #7c84bf;
-  border: 1px solid #9aa2e0;
-  cursor: crosshair;
-  touch-action: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  border-left: 1px solid var(--rule);
+  padding-left: 3px;
 }
-.dag-group-nub:hover {
-  background: #9aa2e0;
-}
-.dag-group-x {
+/* 그룹 액션 버튼 — 각진 아이콘 버튼. 호버 시 surface, ⇢ active(연결 출발)는 쿨 슬레이트. */
+.dag-group-btn {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
   background: none;
-  border: none;
-  color: #8a7d73;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: #b3a59c;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
-  padding: 0 2px;
+  padding: 0;
 }
-.dag-group-x:hover {
-  color: var(--danger);
+.dag-group-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--rule);
+  color: #f3efe9;
+}
+.dag-group-btn.danger:hover {
+  background: #5a1f1f;
+  border-color: #a55;
+  color: #fdd;
+}
+.dag-group-btn.active {
+  background: #7c84bf;
+  border-color: #9aa2e0;
+  color: #14110f;
 }
 
 /* ── 카드 — 기술적·각진·웜 다크 모듈 ── */
@@ -318,9 +310,6 @@
   border-color: #5a3a30;
 }
 .dag .linking .dag-node {
-  cursor: crosshair;
-}
-.dag .linking .dag-group-name {
   cursor: crosshair;
 }
 

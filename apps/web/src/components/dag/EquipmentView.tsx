@@ -12,6 +12,7 @@ import { useDialogs } from "../ui/DialogProvider";
 import { EquipmentLogs } from "./EquipmentLogs";
 import { EquipmentReservations } from "./EquipmentReservations";
 import { MyReservations } from "./MyReservations";
+import { SharedCalendarView } from "./SharedCalendarView";
 import "./EquipmentView.css";
 
 interface FormState {
@@ -39,7 +40,7 @@ export function EquipmentView({
   const deleteEquipment = useDeleteEquipment();
   const dialogs = useDialogs();
 
-  const [tab, setTab] = useState<"list" | "reserve" | "log" | "mine">("list");
+  const [tab, setTab] = useState<"list" | "reserve" | "log" | "calendar" | "mine">("list");
   const [selEquipId, setSelEquipId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm] = useState<FormState | null>(null);
@@ -152,6 +153,13 @@ export function EquipmentView({
           </button>
           <button
             type="button"
+            className={`eq-tab${tab === "calendar" ? " active" : ""}`}
+            onClick={() => setTab("calendar")}
+          >
+            공지
+          </button>
+          <button
+            type="button"
             className={`eq-tab${tab === "mine" ? " active" : ""}`}
             onClick={() => setTab("mine")}
           >
@@ -191,6 +199,8 @@ export function EquipmentView({
           />
         ) : tab === "log" ? (
           <EquipmentLogs equipment={activeList} selectedId={selEquipId} onSelect={setSelEquipId} />
+        ) : tab === "calendar" ? (
+          <SharedCalendarView />
         ) : equipment.isLoading ? (
           <div className="eq-msg">불러오는 중...</div>
         ) : equipment.isError ? (

@@ -26,13 +26,7 @@ interface FormState {
  * 장비 관리 전용 화면 — 주제(워크스페이스) 공유 장비 레지스트리(목록/등록/수정/활성토글/삭제).
  * 좌측 레일 '장' 타일에서 진입. 예약·로그·공용 캘린더는 다음 증분.
  */
-export function EquipmentView({
-  subjectName,
-  onClose,
-}: {
-  subjectName: string;
-  onClose: () => void;
-}) {
+export function EquipmentView({ onClose }: { onClose: () => void }) {
   const equipment = useEquipment();
   const createEquipment = useCreateEquipment();
   const updateEquipment = useUpdateEquipment();
@@ -126,8 +120,8 @@ export function EquipmentView({
     <div className="eq">
       <header className="eq-head">
         <div className="eq-title">
-          <span className="eq-kicker">장비 관리</span>
-          <h1 className="eq-h1">{subjectName}</h1>
+          <span className="eq-kicker">공용 자원</span>
+          <h1 className="eq-h1">장비 관리</h1>
         </div>
         <nav className="eq-tabs">
           <button

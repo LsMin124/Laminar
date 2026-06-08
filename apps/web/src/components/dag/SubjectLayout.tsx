@@ -188,12 +188,7 @@ export function SubjectLayout() {
                 openSubjectBodyNonce={bodyNonce}
               />
             </div>
-            {mode === "equipment" && (
-              <EquipmentView
-                subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
-                onClose={() => setMode("workspace")}
-              />
-            )}
+            {mode === "equipment" && <EquipmentView onClose={() => setMode("workspace")} />}
           </>
         ) : (
           <div className="lay-empty">

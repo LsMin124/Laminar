@@ -9,6 +9,7 @@ import {
   type Equipment,
 } from "../../lib/equipment";
 import { useDialogs } from "../ui/DialogProvider";
+import { EquipmentLogs } from "./EquipmentLogs";
 import { EquipmentReservations } from "./EquipmentReservations";
 import { MyReservations } from "./MyReservations";
 import "./EquipmentView.css";
@@ -38,8 +39,8 @@ export function EquipmentView({
   const deleteEquipment = useDeleteEquipment();
   const dialogs = useDialogs();
 
-  const [tab, setTab] = useState<"list" | "reserve" | "mine">("list");
-  const [reserveEquipId, setReserveEquipId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"list" | "reserve" | "log" | "mine">("list");
+  const [selEquipId, setSelEquipId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm] = useState<FormState | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -51,8 +52,12 @@ export function EquipmentView({
   const inactiveCount = all.filter((e) => !e.active).length;
 
   function openReserve(id: string) {
-    setReserveEquipId(id);
+    setSelEquipId(id);
     setTab("reserve");
+  }
+  function openLog(id: string) {
+    setSelEquipId(id);
+    setTab("log");
   }
 
   function openNew() {
@@ -140,6 +145,13 @@ export function EquipmentView({
           </button>
           <button
             type="button"
+            className={`eq-tab${tab === "log" ? " active" : ""}`}
+            onClick={() => setTab("log")}
+          >
+            로그
+          </button>
+          <button
+            type="button"
             className={`eq-tab${tab === "mine" ? " active" : ""}`}
             onClick={() => setTab("mine")}
           >
@@ -174,9 +186,11 @@ export function EquipmentView({
         ) : tab === "reserve" ? (
           <EquipmentReservations
             equipment={activeList}
-            selectedId={reserveEquipId}
-            onSelect={setReserveEquipId}
+            selectedId={selEquipId}
+            onSelect={setSelEquipId}
           />
+        ) : tab === "log" ? (
+          <EquipmentLogs equipment={activeList} selectedId={selEquipId} onSelect={setSelEquipId} />
         ) : equipment.isLoading ? (
           <div className="eq-msg">불러오는 중...</div>
         ) : equipment.isError ? (
@@ -204,6 +218,11 @@ export function EquipmentView({
                   {e.active && (
                     <button type="button" className="eq-act" onClick={() => openReserve(e.id)}>
                       예약
+                    </button>
+                  )}
+                  {e.active && (
+                    <button type="button" className="eq-act" onClick={() => openLog(e.id)}>
+                      로그
                     </button>
                   )}
                   <button type="button" className="eq-act" onClick={() => openEdit(e)}>

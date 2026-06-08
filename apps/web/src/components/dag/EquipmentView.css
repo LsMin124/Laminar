@@ -428,3 +428,110 @@
   border: 1px solid #574f49;
   padding: 1px 6px;
 }
+.eq-resv-bar-acts {
+  display: inline-flex;
+  gap: 8px;
+}
+.eq-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #cbb8ad;
+  cursor: pointer;
+}
+.eq-check-row input {
+  accent-color: var(--accent, #d97757);
+  cursor: pointer;
+}
+
+/* ── 로그 컬럼 관리 ── */
+.eq-cols {
+  border: 1px solid var(--rule, #2a2018);
+  background: rgba(255, 255, 255, 0.015);
+  padding: 10px 12px;
+}
+.eq-cols-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim, #9a8d83);
+  margin-bottom: 8px;
+}
+.eq-cols-empty {
+  font-size: 12px;
+  color: var(--text-dim, #9a8d83);
+}
+.eq-cols-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.eq-col-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.eq-col-label {
+  font-weight: 600;
+  color: #f3efe9;
+}
+.eq-col-type {
+  font-size: 11px;
+  color: var(--text-dim, #9a8d83);
+  border: 1px solid var(--rule, #2a2018);
+  padding: 0 5px;
+}
+.eq-col-row .eq-act {
+  margin-left: auto;
+}
+
+/* ── 로그 테이블 ── */
+.eq-log-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule, #2a2018);
+}
+.eq-log-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.eq-log-table th,
+.eq-log-table td {
+  text-align: left;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--rule, #2a2018);
+  white-space: nowrap;
+}
+.eq-log-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-dim, #9a8d83);
+  background: #181412;
+  position: sticky;
+  top: 0;
+}
+.eq-log-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.eq-log-table td {
+  color: #cbb8ad;
+}
+.eq-log-time {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 12px;
+  color: var(--accent-bright, #f0a487);
+}
+.eq-log-notes {
+  color: var(--text-dim, #9a8d83);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

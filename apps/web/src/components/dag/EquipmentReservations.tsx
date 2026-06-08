@@ -13,10 +13,10 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const DAY_MS = 86400000;
 
 // datetime-local 값("YYYY-MM-DDTHH:MM", 브라우저 로컬) → ISO(UTC Z). 백엔드 OffsetDateTime이 파싱.
-function localToIso(local: string): string {
+export function localToIso(local: string): string {
   return new Date(local).toISOString();
 }
-function toLocalInput(d: Date): string {
+export function toLocalInput(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(
     d.getMinutes(),

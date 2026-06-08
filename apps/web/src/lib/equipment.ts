@@ -147,3 +147,82 @@ export function useCancelReservation() {
     onSuccess: () => invalidateReservations(qc),
   });
 }
+
+// ── 장비 로그 시트(동적 컬럼) ──────────────────────────────────────────────
+// 컬럼은 장비별 정의(type=TEXT/NUMBER/ENUM/BOOL/DATETIME), 로그 행은 columnKey→값(JSONB).
+
+export type LogColumnType = "TEXT" | "NUMBER" | "ENUM" | "BOOL" | "DATETIME";
+
+export interface LogColumn {
+  id: string;
+  equipmentId: string;
+  columnKey: string;
+  columnLabel: string;
+  columnType: LogColumnType;
+  enumValues: string[] | null;
+  required: boolean;
+  priority: number;
+  defaultValue: string | null;
+}
+
+export interface LogEntry {
+  id: string;
+  equipmentId: string;
+  loggedBy: string;
+  loggedAt: string;
+  reservationId: string | null;
+  values: Record<string, unknown>;
+  notes: string | null;
+  createdAt: string;
+}
+
+export function useLogColumns(equipmentId: string | null) {
+  return useQuery({
+    queryKey: ["log-columns", equipmentId],
+    queryFn: () => api.get<LogColumn[]>(`/api/equipment/${equipmentId}/log-columns`),
+    enabled: !!equipmentId,
+  });
+}
+
+export function useCreateLogColumn(equipmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      columnKey: string;
+      columnLabel: string;
+      columnType: LogColumnType;
+      enumValues?: string[] | null;
+      required: boolean;
+      defaultValue?: string | null;
+    }) => api.post<LogColumn>(`/api/equipment/${equipmentId}/log-columns`, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["log-columns", equipmentId] }),
+  });
+}
+
+export function useDeleteLogColumn(equipmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (columnId: string) => api.delete<void>(`/api/log-columns/${columnId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["log-columns", equipmentId] }),
+  });
+}
+
+export function useLogs(equipmentId: string | null) {
+  return useQuery({
+    queryKey: ["logs", equipmentId],
+    queryFn: () => api.get<LogEntry[]>(`/api/equipment/${equipmentId}/logs`),
+    enabled: !!equipmentId,
+  });
+}
+
+export function useCreateLog(equipmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      loggedAt?: string | null;
+      values: Record<string, string>;
+      notes?: string | null;
+    }) => api.post<LogEntry>(`/api/equipment/${equipmentId}/logs`, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["logs", equipmentId] }),
+  });
+}

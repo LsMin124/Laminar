@@ -133,6 +133,17 @@
   opacity: 0.4;
   cursor: default;
 }
+/* 장비 아이콘(각진 플라스크) — currentColor 상속. 호버/활성 시 웜 액센트로. */
+.rail-icon {
+  display: block;
+}
+.rail-tile.equip {
+  color: #cbb8ad;
+}
+.rail-tile.equip:hover:not(:disabled),
+.rail-tile.equip.active {
+  color: var(--accent-bright);
+}
 .lay-empty {
   padding: 48px;
   color: #777;

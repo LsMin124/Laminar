@@ -152,7 +152,22 @@ export function SubjectLayout() {
             title="장비 관리"
             aria-label="장비 관리"
           >
-            장
+            <svg
+              className="rail-icon"
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinejoin="miter"
+              strokeLinecap="square"
+              aria-hidden="true"
+            >
+              <path d="M9.5 3.5 H14.5" />
+              <path d="M10.5 3.5 V9 L4.8 19 H19.2 L13.5 9 V3.5" />
+              <path d="M7.4 14.5 H16.6" />
+            </svg>
           </button>
           <button type="button" className="rail-tile ghost" disabled title="학습 정리 (준비 중)">
             학

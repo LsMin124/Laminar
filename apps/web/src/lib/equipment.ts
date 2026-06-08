@@ -109,6 +109,19 @@ export function useReservations(equipmentId: string | null, fromIso: string, toI
   });
 }
 
+/** 인증 사용자의 전체 예약(모든 장비, startAt DESC). */
+export function useMyReservations() {
+  return useQuery({
+    queryKey: ["my-reservations"],
+    queryFn: () => api.get<Reservation[]>("/api/me/reservations"),
+  });
+}
+
+function invalidateReservations(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["reservations"] });
+  qc.invalidateQueries({ queryKey: ["my-reservations"] });
+}
+
 export function useCreateReservation() {
   const qc = useQueryClient();
   return useMutation({
@@ -123,7 +136,7 @@ export function useCreateReservation() {
         endAt: input.endAt,
         purpose: input.purpose ?? null,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reservations"] }),
+    onSuccess: () => invalidateReservations(qc),
   });
 }
 
@@ -131,6 +144,6 @@ export function useCancelReservation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (reservationId: string) => api.delete<void>(`/api/reservations/${reservationId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reservations"] }),
+    onSuccess: () => invalidateReservations(qc),
   });
 }

@@ -22,7 +22,7 @@ function toLocalInput(d: Date): string {
     d.getMinutes(),
   )}`;
 }
-function fmtRange(startIso: string, endIso: string): string {
+export function fmtRange(startIso: string, endIso: string): string {
   const s = new Date(startIso);
   const e = new Date(endIso);
   const d = (x: Date) => `${x.getMonth() + 1}/${x.getDate()}(${WEEKDAYS[x.getDay()]})`;

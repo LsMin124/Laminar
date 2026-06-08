@@ -10,6 +10,7 @@ import {
 } from "../../lib/equipment";
 import { useDialogs } from "../ui/DialogProvider";
 import { EquipmentReservations } from "./EquipmentReservations";
+import { MyReservations } from "./MyReservations";
 import "./EquipmentView.css";
 
 interface FormState {
@@ -37,7 +38,7 @@ export function EquipmentView({
   const deleteEquipment = useDeleteEquipment();
   const dialogs = useDialogs();
 
-  const [tab, setTab] = useState<"list" | "reserve">("list");
+  const [tab, setTab] = useState<"list" | "reserve" | "mine">("list");
   const [reserveEquipId, setReserveEquipId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm] = useState<FormState | null>(null);
@@ -137,6 +138,13 @@ export function EquipmentView({
           >
             예약
           </button>
+          <button
+            type="button"
+            className={`eq-tab${tab === "mine" ? " active" : ""}`}
+            onClick={() => setTab("mine")}
+          >
+            내 예약
+          </button>
         </nav>
         <div className="eq-head-actions">
           {tab === "list" && (
@@ -161,7 +169,9 @@ export function EquipmentView({
       </header>
 
       <div className="eq-body">
-        {tab === "reserve" ? (
+        {tab === "mine" ? (
+          <MyReservations equipment={all} />
+        ) : tab === "reserve" ? (
           <EquipmentReservations
             equipment={activeList}
             selectedId={reserveEquipId}

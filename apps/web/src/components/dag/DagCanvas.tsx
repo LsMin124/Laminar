@@ -33,9 +33,8 @@ import {
   mdExcerpt,
 } from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
-import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
-import { GroupBar } from "./GroupBar";
+import { DagToolbar } from "./DagToolbar";
 import { NewCardDialog } from "./NewCardDialog";
 import "./DagCanvas.css";
 
@@ -653,122 +652,31 @@ export function DagCanvas({
 
   return (
     <div className={`dag${linkSource || groupLinkSource ? " linking" : ""}`}>
-      <div className="dag-toolbar">
-        <button type="button" className="dag-tool" onClick={onAddCard} title="새 카드">
-          ＋ 카드
-        </button>
-        <span className="dag-tool-sep" />
-        <button
-          type="button"
-          className="dag-tool"
-          disabled={!sole}
-          onClick={onToolLink}
-          title="선택 카드에서 연결 시작 (1개 선택)"
-        >
-          ⇢ 연결
-        </button>
-        <button
-          type="button"
-          className="dag-tool"
-          disabled={!sole}
-          onClick={() => {
-            if (sole) onSetTime(sole);
-          }}
-          title="시간 설정 (1개 선택)"
-        >
-          ⏱ 시간
-        </button>
-        <button
-          type="button"
-          className="dag-tool"
-          disabled={!sole}
-          onClick={() => {
-            if (sole) onEditTitle(sole);
-          }}
-          title="제목 편집 (1개 선택)"
-        >
-          ✎ 제목
-        </button>
-        <button
-          type="button"
-          className="dag-tool"
-          disabled={!sole}
-          onClick={() => {
-            if (sole) onOpenCard?.(sole.id, sole.title);
-          }}
-          title="본문 열기 (1개 선택 · 카드 더블클릭도 가능)"
-        >
-          ▤ 본문
-        </button>
-        <CategoryBar
-          tabId={tabId}
-          categories={categories}
-          cards={selectedCards}
-          cardCategoryIds={cardCategoryIds}
-        />
-        <span className="dag-tool-sep" />
-        <GroupBar
-          tabId={tabId}
-          groups={groups}
-          cards={selectedCards}
-          groupMembers={groupMembers}
-        />
-        <button
-          type="button"
-          className="dag-tool"
-          disabled={!soleInGroup}
-          onClick={onUngroup}
-          title="선택 카드를 모든 그룹에서 제외"
-        >
-          ⊟ 그룹 해제
-        </button>
-        <button
-          type="button"
-          className="dag-tool danger"
-          disabled={selCount < 1}
-          onClick={onToolDelete}
-          title="선택 카드 삭제"
-        >
-          ✕ 삭제{selCount > 0 ? ` (${selCount})` : ""}
-        </button>
-        <label className="dag-toggle">
-          <input
-            type="checkbox"
-            checked={hideCompleted}
-            onChange={(e) => setHideCompleted(e.target.checked)}
-          />
-          완료 숨기기
-        </label>
-        <button
-          type="button"
-          className="dag-tool"
-          onClick={scrollToToday}
-          title="현재 날짜·상단으로 스크롤 복귀"
-        >
-          ⌖ 오늘로
-        </button>
-        <span className="dag-hint">
-          {linkSource ? (
-            <>
-              <strong>연결 대상 카드 클릭</strong>{" "}
-              <button type="button" className="dag-tool" onClick={() => setLinkSource(null)}>
-                취소
-              </button>
-            </>
-          ) : groupLinkSource ? (
-            <>
-              <strong>연결 대상 그룹의 ⇢ 클릭</strong>{" "}
-              <button type="button" className="dag-tool" onClick={() => setGroupLinkSource(null)}>
-                취소
-              </button>
-            </>
-          ) : selCount > 0 ? (
-            `${selCount}개 선택됨 · Shift+클릭 다중 · 빈 곳 클릭 해제`
-          ) : (
-            "카드 클릭=선택 · 빈 곳 더블클릭=새 카드 · 드래그=이동/기간"
-          )}
-        </span>
-      </div>
+      <DagToolbar
+        tabId={tabId}
+        categories={categories}
+        cardCategoryIds={cardCategoryIds}
+        groups={groups}
+        groupMembers={groupMembers}
+        selectedCards={selectedCards}
+        sole={sole}
+        soleInGroup={soleInGroup}
+        selCount={selCount}
+        hideCompleted={hideCompleted}
+        setHideCompleted={setHideCompleted}
+        linkSource={linkSource}
+        groupLinkSource={groupLinkSource}
+        onAddCard={onAddCard}
+        onToolLink={onToolLink}
+        onSetTime={onSetTime}
+        onEditTitle={onEditTitle}
+        onOpenCard={onOpenCard}
+        onUngroup={onUngroup}
+        onToolDelete={onToolDelete}
+        scrollToToday={scrollToToday}
+        setLinkSource={setLinkSource}
+        setGroupLinkSource={setGroupLinkSource}
+      />
       <div
         className="dag-canvas"
         ref={canvasRef}

@@ -29,11 +29,12 @@ import {
   TODAY_VIEW_RATIO,
   barWidth,
   cardMeta,
-  edgePath,
   mdExcerpt,
 } from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
 import { CardCategoryTag } from "./CardCategoryTag";
+import { DagEdges } from "./DagEdges";
+import { DagGroups } from "./DagGroups";
 import { DagToolbar } from "./DagToolbar";
 import { NewCardDialog } from "./NewCardDialog";
 import "./DagCanvas.css";
@@ -701,147 +702,28 @@ export function DagCanvas({
           <div className="dag-today" style={{ left: todayX, width: PX_PER_DAY }} />
           <div className="dag-backlog-label">날짜 미정</div>
 
-          {groups.map((grp) => {
-            const r = groupRects.get(grp.id);
-            if (!r) return null;
-            const color = grp.color ?? "#5a6a7a";
-            const isLinkSrc = groupLinkSource === grp.id;
-            return (
-              <div
-                key={grp.id}
-                className={`dag-group${isLinkSrc ? " link-src" : ""}`}
-                style={{
-                  left: r.x,
-                  top: r.y,
-                  width: r.w,
-                  height: r.h,
-                  borderColor: color,
-                }}
-              >
-                {/* 라벨 = 이름 + 명시적 아이콘 버튼(▤ 본문 / ⇢ 연결 / ✕ 삭제). 박스는 투과(pointer-events
-                    none)이고 라벨만 활성. 라벨 pointerdown 전파를 막아 캔버스가 연결모드를 즉시 비우지 않게 한다. */}
-                <div
-                  className="dag-group-label"
-                  style={{ borderColor: color }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <span className="dag-group-name" style={{ color }} title={grp.name}>
-                    {grp.name}
-                  </span>
-                  <span className="dag-group-acts">
-                    <button
-                      type="button"
-                      className="dag-group-btn"
-                      onClick={() => onOpenGroup?.(grp.id, grp.name)}
-                      title="그룹 본문 열기"
-                      aria-label="본문"
-                    >
-                      ▤
-                    </button>
-                    <button
-                      type="button"
-                      className={`dag-group-btn${isLinkSrc ? " active" : ""}`}
-                      onClick={() => onGroupLinkBtn(grp)}
-                      title={
-                        groupLinkSource === null
-                          ? "연결 시작 — 이 그룹에서 화살표"
-                          : isLinkSrc
-                            ? "연결 취소"
-                            : "여기로 연결 (화살표 생성)"
-                      }
-                      aria-label="연결"
-                    >
-                      ⇢
-                    </button>
-                    <button
-                      type="button"
-                      className="dag-group-btn danger"
-                      onClick={() => onDeleteGroup(grp)}
-                      title="그룹 삭제"
-                      aria-label="삭제"
-                    >
-                      ✕
-                    </button>
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+          <DagGroups
+            groups={groups}
+            groupRects={groupRects}
+            groupLinkSource={groupLinkSource}
+            onOpenGroup={onOpenGroup}
+            onGroupLinkBtn={onGroupLinkBtn}
+            onDeleteGroup={onDeleteGroup}
+          />
 
-          <svg className="dag-edges" width={maxX} height={maxY} aria-hidden="true">
-            <defs>
-              <marker
-                id="dag-arrow"
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="7"
-                markerHeight="7"
-                orient="auto-start-reverse"
-              >
-                <path d="M0,0 L10,5 L0,10 z" style={{ fill: "var(--accent-soft)" }} />
-              </marker>
-              <marker
-                id="dag-group-arrow"
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M0,0 L10,5 L0,10 z" className="dag-group-arrowhead" />
-              </marker>
-            </defs>
-            {/* 그룹 간 화살표 — 카드 엣지와 색으로 구분(쿨 톤 실선·가는 선, 형태는 카드와 동일한 직각). 카드 엣지 아래 레이어. */}
-            {groupRelations.map((rel) => {
-              const fr = groupRects.get(rel.fromGroupId);
-              const tr = groupRects.get(rel.toGroupId);
-              if (!fr || !tr) return null;
-              // 카드 엣지와 동일하게 직각(꺾인) 경로 — from 박스 우측끝 → to 박스 좌측끝.
-              const d = edgePath(fr.x + fr.w, fr.y + fr.h / 2, tr.x, tr.y + tr.h / 2);
-              return (
-                <path
-                  key={rel.id}
-                  className="dag-group-edge"
-                  d={d}
-                  markerEnd="url(#dag-group-arrow)"
-                  onClick={() => onDeleteGroupRelation(rel.id)}
-                />
-              );
-            })}
-            {relations.map((rel) => {
-              const from = cards.find((c) => c.id === rel.fromCardId);
-              const to = cards.find((c) => c.id === rel.toCardId);
-              if (!from || !to || !isVisible(from) || !isVisible(to)) return null;
-              const fg = nodeGeom(from);
-              const tg = nodeGeom(to);
-              const d = edgePath(
-                fg.x + fg.w,
-                fg.y + BAR_H / 2,
-                tg.x,
-                tg.y + BAR_H / 2,
-              );
-              return (
-                <path
-                  key={rel.id}
-                  className="dag-edge"
-                  d={d}
-                  markerEnd="url(#dag-arrow)"
-                  onClick={() => onDeleteRelation(rel.id)}
-                />
-              );
-            })}
-            {linkLine && (
-              <line
-                className="dag-link-temp"
-                x1={linkLine.sx}
-                y1={linkLine.sy}
-                x2={linkLine.x}
-                y2={linkLine.y}
-              />
-            )}
-          </svg>
+          <DagEdges
+            maxX={maxX}
+            maxY={maxY}
+            groupRelations={groupRelations}
+            groupRects={groupRects}
+            relations={relations}
+            cards={cards}
+            nodeGeom={nodeGeom}
+            isVisible={isVisible}
+            linkLine={linkLine}
+            onDeleteGroupRelation={onDeleteGroupRelation}
+            onDeleteRelation={onDeleteRelation}
+          />
 
           {cards.filter(isVisible).map((c) => {
             const g = nodeGeom(c);

@@ -16,73 +16,28 @@ import {
   type Group,
 } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
-import { MS_DAY, parseDate, fmtDate, todayUtc, shortDate } from "../../lib/dateUtil";
+import { MS_DAY, parseDate, fmtDate, todayUtc } from "../../lib/dateUtil";
+import {
+  BACKLOG_X,
+  BAR_H,
+  EDGE_ZONE,
+  FORWARD_BUFFER_DAYS,
+  LEFT_PAD,
+  MAX_SPAN_DAYS,
+  PAN_SPEED,
+  PX_PER_DAY,
+  TODAY_VIEW_RATIO,
+  barWidth,
+  cardMeta,
+  edgePath,
+  mdExcerpt,
+} from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
 import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
 import { GroupBar } from "./GroupBar";
 import { NewCardDialog } from "./NewCardDialog";
 import "./DagCanvas.css";
-
-const PX_PER_DAY = 130;
-const LEFT_PAD = 80;
-const BACKLOG_W = 180;
-const BAR_H = 92;
-const BACKLOG_X = 8;
-const MAX_SPAN_DAYS = 30;
-// 우측(미래) 무한스크롤 여유 — 좌측 origin 30일 버퍼에 대응. 끝까지 끌면 자동 확장되므로 휴식 헤드룸만 확보.
-const FORWARD_BUFFER_DAYS = 60;
-// 진입 시 오늘을 뷰포트 가로 이 비율 지점에 배치(0.5=중앙, 0.4=살짝 좌측 → 미래 쪽을 더 넓게).
-const TODAY_VIEW_RATIO = 0.4;
-const EDGE_ZONE = 48;
-const PAN_SPEED = 14;
-const EDGE_STUB = 16;
-
-/**
- * 카드 간 직각(꺾인) 엣지 경로 — 대각선 없이 가로·세로만.
- * - 같은 행: 곧은 수평선.
- * - 전방 여유 충분: A끝 → 중간 x에서 수직 → B시작 (대칭 엘보).
- * - 인접(다음날=간격 0)·겹침(B가 A보다 좌측): A 우측으로 스텁만큼 빠져나와 두 행 사이 레인으로
- *   되돌아온 뒤 B 좌측으로 우향 진입 → 항상 화살표가 오른쪽을 향하고 좌석이 끼이지 않는다.
- */
-function edgePath(sx: number, sy: number, ex: number, ey: number): string {
-  if (Math.abs(ey - sy) < 1) return `M ${sx} ${sy} H ${ex}`;
-  if (ex - sx >= 2 * EDGE_STUB) {
-    const mx = (sx + ex) / 2;
-    return `M ${sx} ${sy} H ${mx} V ${ey} H ${ex}`;
-  }
-  const x1 = sx + EDGE_STUB;
-  const x2 = ex - EDGE_STUB;
-  const my = (sy + ey) / 2;
-  return `M ${sx} ${sy} H ${x1} V ${my} H ${x2} V ${ey} H ${ex}`;
-}
-
-/** 카드 개략 날짜/시간 — "6/4", "6/4–6/9"(멀티데이), "6/4 14:00"(시간지정), 날짜 없으면 "미정". */
-function cardMeta(c: Card): string {
-  if (!c.startDate) return "미정";
-  let r = shortDate(c.startDate);
-  if (c.endDate && c.endDate !== c.startDate) r += `–${shortDate(c.endDate)}`;
-  if (!c.allDay && c.startTime) r += ` ${c.startTime.slice(0, 5)}`;
-  return r;
-}
-
-/**
- * 마크다운 본문 → 카드 미리보기용 평문 발췌. 카드는 독립 문서이므로 내용 일부를 노출한다.
- * 앞 240자만 처리(2줄 프리뷰엔 충분) 후 코드/이미지/링크/수식/강조/줄머리 기호를 제거하고 공백 정규화.
- */
-function mdExcerpt(md: string): string {
-  return md
-    .slice(0, 240)
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\$\$?[^$]*\$\$?/g, " ")
-    .replace(/^[ \t>#+-]*/gm, "")
-    .replace(/[*_~]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 type DragMode = "move" | "resize-l" | "resize-r";
 interface DragState {
@@ -225,15 +180,6 @@ export function DagCanvas({
     relCount.set(r.toCardId, (relCount.get(r.toCardId) ?? 0) + 1);
   }
   const todayMs = todayUtc();
-
-  function barWidth(c: Card): number {
-    if (!c.startDate) return BACKLOG_W;
-    if (c.endDate) {
-      const span = (parseDate(c.endDate) - parseDate(c.startDate)) / MS_DAY + 1;
-      return Math.max(PX_PER_DAY, span * PX_PER_DAY);
-    }
-    return PX_PER_DAY;
-  }
 
   function nodeGeom(c: Card): { x: number; y: number; w: number } {
     if (drag && drag.id === c.id) return { x: drag.x, y: drag.y, w: drag.w };

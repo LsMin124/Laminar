@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import { useMoveCard, useTabGraph, useUpdateCard, type Card } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
 import { MS_DAY, parseDate, fmtDate, todayUtc, startOfMonth } from "../../lib/dateUtil";
+import { MAX_SPAN_DAYS } from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
 import "./CalendarView.css";
 
-const MAX_SPAN_DAYS = 30;
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** 카테고리 색(hex)을 막대 배경용 저알파 rgba로 — 어두운 셀 위에 옅은 틴트. */

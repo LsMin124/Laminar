@@ -28,13 +28,12 @@ import {
   PX_PER_DAY,
   TODAY_VIEW_RATIO,
   barWidth,
-  cardMeta,
   mdExcerpt,
 } from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
-import { CardCategoryTag } from "./CardCategoryTag";
 import { DagEdges } from "./DagEdges";
 import { DagGroups } from "./DagGroups";
+import { DagNode } from "./DagNode";
 import { DagToolbar } from "./DagToolbar";
 import { NewCardDialog } from "./NewCardDialog";
 import "./DagCanvas.css";
@@ -726,97 +725,35 @@ export function DagCanvas({
           />
 
           {cards.filter(isVisible).map((c) => {
-            const g = nodeGeom(c);
-            const dated = !!c.startDate;
-            const excerpt = excerpts.get(c.id);
-            const rels = relCount.get(c.id) ?? 0;
             const endMs = c.endDate
               ? parseDate(c.endDate)
               : c.startDate
                 ? parseDate(c.startDate)
                 : null;
             const overdue = endMs !== null && endMs < todayMs && !c.completed;
-            const catId = cardCategoryIds[c.id] ?? null;
             return (
-              <div
+              <DagNode
                 key={c.id}
-                className={`dag-node${c.completed ? " completed" : ""}${
-                  linkSource === c.id ? " link-src" : ""
-                }${selectedIds.has(c.id) ? " selected" : ""}${overdue ? " overdue" : ""}`}
-                style={{ left: g.x, top: g.y, width: g.w, height: BAR_H }}
-                onPointerDown={(e) => onBodyDown(e, c)}
+                card={c}
+                geom={nodeGeom(c)}
+                selected={selectedIds.has(c.id)}
+                isLinkSource={linkSource === c.id}
+                overdue={overdue}
+                excerpt={excerpts.get(c.id)}
+                rels={relCount.get(c.id) ?? 0}
+                categoryId={cardCategoryIds[c.id] ?? null}
+                tabId={tabId}
+                categories={categories}
+                onBodyDown={onBodyDown}
+                onHandleDown={onHandleDown}
                 onPointerMove={onPointerMove}
-                onPointerUp={() => onPointerUp(c)}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCard?.(c.id, c.title);
-                }}
-              >
-                <span className="dag-node-stripe" />
-                {dated && (
-                  <div
-                    className="dag-handle l"
-                    onPointerDown={(e) => onHandleDown(e, c, "resize-l")}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={() => onPointerUp(c)}
-                  />
-                )}
-                <div className="dag-node-main">
-                  <div className="dag-node-head">
-                    <input
-                      type="checkbox"
-                      className="dag-node-check"
-                      checked={c.completed}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) =>
-                        updateCard.mutate({ cardId: c.id, completed: e.target.checked })
-                      }
-                      title="완료 여부"
-                    />
-                    <div className="dag-node-title">{c.title || "(제목 없음)"}</div>
-                    <CardCategoryTag
-                      tabId={tabId}
-                      cardId={c.id}
-                      categoryId={catId}
-                      categories={categories}
-                    />
-                  </div>
-                  <div className="dag-node-excerpt">
-                    {excerpt ?? <span className="dag-node-empty">빈 문서</span>}
-                  </div>
-                  <div className="dag-node-foot">
-                    <span className="dag-node-date">{cardMeta(c)}</span>
-                    <div className="dag-node-ind">
-                      {overdue && (
-                        <span className="dag-ind danger" title="지연(종료일 경과)">
-                          ●
-                        </span>
-                      )}
-                      {rels > 0 && (
-                        <span className="dag-ind" title={`관계 ${rels}개`}>
-                          ↔{rels}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {dated && (
-                  <div
-                    className="dag-handle r"
-                    onPointerDown={(e) => onHandleDown(e, c, "resize-r")}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={() => onPointerUp(c)}
-                  />
-                )}
-                <span
-                  className="dag-link-nub"
-                  title="드래그해 다음 카드로 연결"
-                  onPointerDown={(e) => onNubDown(e, c)}
-                  onPointerMove={onNubMove}
-                  onPointerUp={onNubUp}
-                />
-              </div>
+                onPointerUp={onPointerUp}
+                onOpenCard={onOpenCard}
+                onToggleComplete={(cardId, completed) => updateCard.mutate({ cardId, completed })}
+                onNubDown={onNubDown}
+                onNubMove={onNubMove}
+                onNubUp={onNubUp}
+              />
             );
           })}
         </div>

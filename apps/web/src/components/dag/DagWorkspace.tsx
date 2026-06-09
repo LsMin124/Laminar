@@ -45,11 +45,14 @@ export function DagWorkspace({
   subjectId,
   subjectName,
   openSubjectBodyNonce,
+  openEquipmentNonce,
 }: {
   subjectId: string;
   subjectName: string;
   /** 좌측 레일의 '주제 본문' 버튼이 증가시키는 신호 — 변경될 때마다 주제 본문 문서를 연다(마운트 시 제외). */
   openSubjectBodyNonce?: number;
+  /** 좌측 레일의 '장비 관리' 버튼이 증가시키는 신호 — 변경될 때마다 장비 doctab을 연다(마운트 시 제외). */
+  openEquipmentNonce?: number;
 }) {
   const tabs = useTabs();
   const createTab = useCreateTab();
@@ -114,6 +117,17 @@ export function DagWorkspace({
   }
   // 장비 관리를 브라우저 탭식 문서로 열기(카드/본문과 동일한 doctab 창).
   const openEquipment = () => openDoc("equipment", EQUIPMENT_DOC_ID, "장비 관리");
+  // 좌측 레일에서 장비 열기 — nonce가 바뀔 때만(마운트·주제 전환 리마운트 시엔 열지 않음).
+  const openEquipmentRef = useRef(openEquipment);
+  openEquipmentRef.current = openEquipment;
+  const firstEquipNonceRun = useRef(true);
+  useEffect(() => {
+    if (firstEquipNonceRun.current) {
+      firstEquipNonceRun.current = false;
+      return;
+    }
+    openEquipmentRef.current();
+  }, [openEquipmentNonce]);
 
   const activeDocEntry = openDocs.find((d) => d.id === activeDoc) ?? null;
 
@@ -167,31 +181,6 @@ export function DagWorkspace({
           })}
           <button type="button" className="dw-tab-add" onClick={onCreateTab}>
             + 탭
-          </button>
-          {/* 장비(공용 자원)는 카드/본문처럼 브라우저 탭식 문서로 열린다(보드 탭 아님). 여기는 그 런처. */}
-          <button
-            type="button"
-            className="dw-tab-equip"
-            onClick={openEquipment}
-            title="장비 관리 열기 (공용 자원)"
-          >
-            <svg
-              className="dw-tab-equip-icon"
-              viewBox="0 0 24 24"
-              width="15"
-              height="15"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinejoin="miter"
-              strokeLinecap="square"
-              aria-hidden="true"
-            >
-              <path d="M9.5 3.5 H14.5" />
-              <path d="M10.5 3.5 V9 L4.8 19 H19.2 L13.5 9 V3.5" />
-              <path d="M7.4 14.5 H16.6" />
-            </svg>
-            장비
           </button>
         </nav>
         <div className="dw-views">

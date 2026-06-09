@@ -73,6 +73,15 @@
   color: #5a534d;
   border-style: dashed;
 }
+/* 장비(공용 자원) 레일 버튼 — 전역 도구라 웜 액센트 아이콘(주제 아이덴티콘·ghost와 구분). */
+.rail-tile.tool {
+  color: var(--accent-bright);
+}
+.rail-tile.tool:hover {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent-bg);
+}
 
 .rail-btn {
   width: 36px;

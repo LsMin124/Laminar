@@ -17,7 +17,7 @@ import "./SubjectLayout.css";
  * 좌측 얇은 아이콘 레일(주제 전환) + 활성 주제의 DagWorkspace + 주제 관리 모달.
  * 레일=빠른 전환만, 세부사항(목록·이름변경·생성·삭제)은 별도 모달 창에서.
  * 주제 전환 시 X-Laminar-Subject-Id 헤더 변경 + tabs/graph 캐시 제거 + key 리마운트.
- * 향후 장비 관리·학습 정리는 레일 하단 ghost 타일 자리.
+ * 레일 하단(rail-future)=전역 도구: 장비 관리(플라스크, doctab 오픈) + 학습 정리(준비 중 ghost).
  */
 export function SubjectLayout() {
   const subjects = useSubjects();
@@ -30,6 +30,8 @@ export function SubjectLayout() {
   const [manageOpen, setManageOpen] = useState(false);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 DagWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
+  // '장비 관리' 신호 — 증가시키면 DagWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
+  const [equipmentNonce, setEquipmentNonce] = useState(0);
   const [hoverTip, setHoverTip] = useState<{ name: string; y: number } | null>(null);
 
   const list = subjects.data ?? [];
@@ -137,6 +139,36 @@ export function SubjectLayout() {
         </div>
 
         <div className="rail-future">
+          {/* 장비 관리(공용 자원) — 전역 도구. 클릭 시 활성 주제의 DagWorkspace가 장비 doctab 창을 연다. */}
+          {activeValid && (
+            <button
+              type="button"
+              className="rail-tile tool"
+              onClick={() => setEquipmentNonce((n) => n + 1)}
+              onMouseEnter={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setHoverTip({ name: "장비 관리", y: r.top + r.height / 2 });
+              }}
+              onMouseLeave={() => setHoverTip(null)}
+              aria-label="장비 관리"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="miter"
+                strokeLinecap="square"
+                aria-hidden="true"
+              >
+                <path d="M9.5 3.5 H14.5" />
+                <path d="M10.5 3.5 V9 L4.8 19 H19.2 L13.5 9 V3.5" />
+                <path d="M7.4 14.5 H16.6" />
+              </svg>
+            </button>
+          )}
           <button type="button" className="rail-tile ghost" disabled title="학습 정리 (준비 중)">
             학
           </button>
@@ -150,6 +182,7 @@ export function SubjectLayout() {
             subjectId={activeId ?? ""}
             subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
             openSubjectBodyNonce={bodyNonce}
+            openEquipmentNonce={equipmentNonce}
           />
         ) : (
           <div className="lay-empty">

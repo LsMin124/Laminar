@@ -30,7 +30,6 @@ import {
   PX_PER_DAY,
   TODAY_VIEW_RATIO,
   barWidth,
-  mdExcerpt,
 } from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
 import { DagEdges } from "./DagEdges";
@@ -110,14 +109,6 @@ export function DagCanvas({
   const categories = graph.data?.categories ?? [];
   const cardCategoryIds = graph.data?.cardCategoryIds ?? {};
   const isVisible = (c: Card) => !hideCompleted || !c.completed;
-  // 본문 발췌는 카드 데이터 변경 시에만 계산(드래그 매 프레임 재계산 방지). 빈/이미지전용은 "…".
-  const excerpts = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const c of cards) {
-      if (c.bodyMd && c.bodyMd.trim().length > 0) m.set(c.id, mdExcerpt(c.bodyMd) || "…");
-    }
-    return m;
-  }, [cards]);
 
   // 시간축 origin은 ref로 한 번 고정한다. 매 렌더마다 카드 최소 날짜로 재계산하면, 한 카드를 더 이른
   // 날짜로 옮길 때 origin이 바뀌어 무관한 다른 카드들의 x좌표가 통째로 재배치된다("하나 옮겼는데 다른
@@ -646,7 +637,7 @@ export function DagCanvas({
                 selected={selectedIds.has(c.id)}
                 isLinkSource={linkSource === c.id}
                 overdue={overdue}
-                excerpt={excerpts.get(c.id)}
+                excerpt={c.bodyExcerpt ?? undefined}
                 rels={relCount.get(c.id) ?? 0}
                 categoryId={cardCategoryIds[c.id] ?? null}
                 tabId={tabId}

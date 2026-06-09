@@ -16,6 +16,27 @@ public final class CardDtos {
 
   private CardDtos() {}
 
+  /**
+   * 마크다운 본문 → 카드 미리보기용 평문 발췌. 그래프 페이로드 경감: TabGraph는 전체 bodyMd 대신 이것만 싣는다. 앞 240자만 처리 후
+   * 코드/이미지/링크/수식/강조/줄머리 기호 제거 + 공백 정규화(프론트 mdExcerpt 미러). 빈/공백 본문이면 null(프론트 '빈 문서'), 이미지전용 등 발췌가
+   * 비면 "…".
+   */
+  public static String bodyExcerpt(String md) {
+    if (md == null || md.isBlank()) return null;
+    String s = md.length() > 240 ? md.substring(0, 240) : md;
+    s =
+        s.replaceAll("(?s)```.*?```", " ")
+            .replaceAll("`([^`]*)`", "$1")
+            .replaceAll("!\\[[^\\]]*\\]\\([^)]*\\)", " ")
+            .replaceAll("\\[([^\\]]*)\\]\\([^)]*\\)", "$1")
+            .replaceAll("\\$\\$?[^$]*\\$\\$?", " ")
+            .replaceAll("(?m)^[ \\t>#+-]*", "")
+            .replaceAll("[*_~]", "")
+            .replaceAll("\\s+", " ")
+            .trim();
+    return s.isEmpty() ? "…" : s;
+  }
+
   public record CreateRequest(
       UUID tabId,
       @NotBlank @Size(max = 200) String title,
@@ -60,6 +81,7 @@ public final class CardDtos {
       String title,
       String slug,
       String bodyMd,
+      String bodyExcerpt,
       LocalDate startDate,
       LocalDate endDate,
       LocalTime startTime,

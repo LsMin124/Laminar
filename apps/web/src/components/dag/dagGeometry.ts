@@ -49,24 +49,6 @@ export function cardMeta(c: Card): string {
   return r;
 }
 
-/**
- * 마크다운 본문 → 카드 미리보기용 평문 발췌. 카드는 독립 문서이므로 내용 일부를 노출한다.
- * 앞 240자만 처리(2줄 프리뷰엔 충분) 후 코드/이미지/링크/수식/강조/줄머리 기호를 제거하고 공백 정규화.
- */
-export function mdExcerpt(md: string): string {
-  return md
-    .slice(0, 240)
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\$\$?[^$]*\$\$?/g, " ")
-    .replace(/^[ \t>#+-]*/gm, "")
-    .replace(/[*_~]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 /** 카드 막대 폭(px) — 멀티데이는 일수×PX_PER_DAY, 단일일=1일폭, 날짜 미정=백로그폭. */
 export function barWidth(c: Card): number {
   if (!c.startDate) return BACKLOG_W;

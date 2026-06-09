@@ -142,6 +142,7 @@ public class CardController {
         c.getTitle(),
         c.getSlug(),
         c.getBodyMd(),
+        null, // 단건 응답은 전체 bodyMd를 그대로 제공(발췌 불필요)
         c.getStartDate(),
         c.getEndDate(),
         c.getStartTime(),

@@ -61,6 +61,7 @@ public class CalendarController {
         c.getTitle(),
         c.getSlug(),
         c.getBodyMd(),
+        null,
         c.getStartDate(),
         c.getEndDate(),
         c.getStartTime(),

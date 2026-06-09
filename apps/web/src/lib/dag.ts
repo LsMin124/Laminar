@@ -36,7 +36,10 @@ export interface Card {
   id: Uuid;
   tabId: Uuid | null;
   title: string;
+  /** 전체 본문 — 그래프 응답엔 null(페이로드 경감). 단건 GET /api/cards/{id}에서만 채워진다. */
   bodyMd: string | null;
+  /** 본문 평문 발췌(서버 산출) — 그래프 노드 미리보기용. 단건 GET에선 null. */
+  bodyExcerpt: string | null;
   startDate: IsoDate | null;
   endDate: IsoDate | null;
   startTime: string | null;
@@ -277,7 +280,6 @@ export function useUpdateCard(tabId: string) {
                       ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
                       ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
                       ...(input.allDay !== undefined ? { allDay: input.allDay } : {}),
-                      ...(input.bodyMd !== undefined ? { bodyMd: input.bodyMd } : {}),
                     }
                   : c,
               ),
@@ -287,6 +289,9 @@ export function useUpdateCard(tabId: string) {
       await qc.cancelQueries({ queryKey: graphKey(tabId) });
       return { prev };
     },
+    // 본문(bodyMd)은 그래프 페이로드에서 빠져 단건 캐시(useCardById)에 산다 — PATCH 응답으로 단건
+    // 캐시를 갱신해 본문 편집 후 '완료' 시 옛 본문으로 되돌아가지 않게 한다.
+    onSuccess: (data, input) => qc.setQueryData(["card", input.cardId], data),
     onError: (_err, _input, ctx) => {
       const snapshot = ctx as { prev?: TabGraph } | undefined;
       if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);

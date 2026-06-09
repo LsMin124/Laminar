@@ -74,7 +74,8 @@ public class TabGraphController {
         c.getTabId(),
         c.getTitle(),
         c.getSlug(),
-        c.getBodyMd(),
+        null, // 그래프엔 전체 bodyMd를 싣지 않음(페이로드 경감) — 전체 본문은 GET /api/cards/{id}
+        CardDtos.bodyExcerpt(c.getBodyMd()),
         c.getStartDate(),
         c.getEndDate(),
         c.getStartTime(),

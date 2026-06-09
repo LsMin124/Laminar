@@ -80,12 +80,22 @@
   cursor: pointer;
   font-size: 12px;
 }
-/* 장비(공용 자원) 탭 — 주제와 무관하나 워크스페이스 탭의 하나로. 좌측 여백으로 보드 탭과 구분. */
+/* 장비(공용 자원) 런처 — 보드 탭이 아니라, 클릭 시 브라우저 탭식 문서(doctab)를 연다. */
 .dw-tab-equip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   margin-left: 8px;
+  background: none;
+  border: 1px dashed #444;
+  color: #999;
+  padding: 4px 11px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.dw-tab-equip:hover {
+  color: var(--accent-bright);
+  border-color: var(--accent-border);
 }
 .dw-tab-equip-icon {
   flex: none;

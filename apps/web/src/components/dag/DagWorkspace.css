@@ -80,6 +80,16 @@
   cursor: pointer;
   font-size: 12px;
 }
+/* 장비(공용 자원) 탭 — 주제와 무관하나 워크스페이스 탭의 하나로. 좌측 여백으로 보드 탭과 구분. */
+.dw-tab-equip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+}
+.dw-tab-equip-icon {
+  flex: none;
+}
 .dw-logout {
   background: none;
   border: 1px solid #333;

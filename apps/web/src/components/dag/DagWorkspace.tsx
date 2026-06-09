@@ -12,6 +12,9 @@ const CardBody = lazy(() => import("./CardBody").then((m) => ({ default: m.CardB
 const GroupBody = lazy(() => import("./GroupBody").then((m) => ({ default: m.GroupBody })));
 const TabBody = lazy(() => import("./TabBody").then((m) => ({ default: m.TabBody })));
 const SubjectBody = lazy(() => import("./SubjectBody").then((m) => ({ default: m.SubjectBody })));
+const EquipmentView = lazy(() =>
+  import("./EquipmentView").then((m) => ({ default: m.EquipmentView })),
+);
 
 // 열린 본문 문서 — 카드·그룹·탭·주제(UUID는 전역 유일이라 id 단일 키로 충분).
 type DocKind = "card" | "group" | "tab" | "subject";
@@ -52,6 +55,8 @@ export function DagWorkspace({
   // 브라우저 탭식 본문 문서 — 열린 문서들 + 활성(activeDoc=null이면 보드 뷰).
   const [openDocs, setOpenDocs] = useState<OpenDoc[]>([]);
   const [activeDoc, setActiveDoc] = useState<string | null>(null);
+  // 장비 관리 탭(공용 자원, 주제와 무관) — 메인 영역에 EquipmentView 표시.
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
 
   const list = tabs.data ?? [];
   const active = activeTab ?? list[0]?.id ?? null;
@@ -104,6 +109,11 @@ export function DagWorkspace({
   function showBoard(nextView?: "canvas" | "calendar") {
     if (nextView) setView(nextView);
     setActiveDoc(null);
+    setEquipmentOpen(false);
+  }
+  function openEquipment() {
+    setEquipmentOpen(true);
+    setActiveDoc(null);
   }
 
   const activeDocEntry = openDocs.find((d) => d.id === activeDoc) ?? null;
@@ -130,13 +140,16 @@ export function DagWorkspace({
         </div>
         <nav className="dw-tabs">
           {list.map((t) => {
-            const isActive = t.id === active;
+            const isActive = t.id === active && !equipmentOpen;
             return (
               <span key={t.id} className={`dw-tab-wrap${isActive ? " active" : ""}`}>
                 <button
                   type="button"
                   className={`dw-tab${isActive ? " active" : ""}`}
-                  onClick={() => setActiveTab(t.id)}
+                  onClick={() => {
+                    setActiveTab(t.id);
+                    setEquipmentOpen(false);
+                  }}
                 >
                   {t.name}
                 </button>
@@ -157,18 +170,47 @@ export function DagWorkspace({
           <button type="button" className="dw-tab-add" onClick={onCreateTab}>
             + 탭
           </button>
+          {/* 공용 자원(장비)은 주제와 무관하나, 워크스페이스 탭의 하나로 접근. */}
+          <button
+            type="button"
+            className={`dw-tab dw-tab-equip${equipmentOpen && activeDoc === null ? " active" : ""}`}
+            onClick={openEquipment}
+            title="장비 관리 (공용 자원)"
+          >
+            <svg
+              className="dw-tab-equip-icon"
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinejoin="miter"
+              strokeLinecap="square"
+              aria-hidden="true"
+            >
+              <path d="M9.5 3.5 H14.5" />
+              <path d="M10.5 3.5 V9 L4.8 19 H19.2 L13.5 9 V3.5" />
+              <path d="M7.4 14.5 H16.6" />
+            </svg>
+            장비
+          </button>
         </nav>
         <div className="dw-views">
           <button
             type="button"
-            className={`dw-view${activeDoc === null && view === "canvas" ? " active" : ""}`}
+            className={`dw-view${
+              activeDoc === null && !equipmentOpen && view === "canvas" ? " active" : ""
+            }`}
             onClick={() => showBoard("canvas")}
           >
             캔버스
           </button>
           <button
             type="button"
-            className={`dw-view${activeDoc === null && view === "calendar" ? " active" : ""}`}
+            className={`dw-view${
+              activeDoc === null && !equipmentOpen && view === "calendar" ? " active" : ""
+            }`}
             onClick={() => showBoard("calendar")}
           >
             캘린더
@@ -217,6 +259,10 @@ export function DagWorkspace({
         {activeDocEntry ? (
           <Suspense fallback={<div className="dw-empty">본문 불러오는 중...</div>}>
             {renderDoc(activeDocEntry)}
+          </Suspense>
+        ) : equipmentOpen ? (
+          <Suspense fallback={<div className="dw-empty">장비 불러오는 중...</div>}>
+            <EquipmentView onClose={() => setEquipmentOpen(false)} />
           </Suspense>
         ) : active ? (
           view === "canvas" ? (

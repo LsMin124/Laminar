@@ -20,11 +20,9 @@ import { MS_DAY, parseDate, fmtDate, todayUtc } from "../../lib/dateUtil";
 import {
   BACKLOG_X,
   BAR_H,
-  EDGE_ZONE,
   FORWARD_BUFFER_DAYS,
   LEFT_PAD,
   MAX_SPAN_DAYS,
-  PAN_SPEED,
   PX_PER_DAY,
   TODAY_VIEW_RATIO,
   barWidth,
@@ -36,21 +34,8 @@ import { DagGroups } from "./DagGroups";
 import { DagNode } from "./DagNode";
 import { DagToolbar } from "./DagToolbar";
 import { NewCardDialog } from "./NewCardDialog";
+import { useDagDrag, type DragMode } from "./useDagDrag";
 import "./DagCanvas.css";
-
-type DragMode = "move" | "resize-l" | "resize-r";
-interface DragState {
-  id: string;
-  mode: DragMode;
-  x: number;
-  y: number;
-  w: number;
-  offsetX: number;
-  offsetY: number;
-  rightX: number;
-  moved: boolean;
-  shift: boolean;
-}
 
 /**
  * DAG 캔버스 — 노드=카드 막대(가로 x=startDate~endDate 스팬, 세로 y=canvasY), 엣지=관계(A 끝→B 시작).
@@ -80,8 +65,21 @@ export function DagCanvas({
   const setCardCategory = useSetCardCategory(tabId);
   const dialogs = useDialogs();
 
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<DragState | null>(null);
+  // 드래그/리사이즈 + 가장자리 자동 스크롤 메커닉(상태 없는 좌표 변환·포인터 추적)은 훅으로 분리.
+  // drag/setDrag·canvasRef·stopPan 등은 노출받아 컨테이너가 드롭 커밋·선택 타이밍을 직접 제어한다.
+  const {
+    canvasRef,
+    drag,
+    setDrag,
+    dragRef,
+    lastPtRef,
+    canvasPoint,
+    beginMove,
+    beginResize,
+    handleDragMove,
+    updateEdgePan,
+    stopPan,
+  } = useDagDrag();
   const [linkSource, setLinkSource] = useState<string | null>(null);
   // 연결 핸들(nub) 드래그 — 임시 라인 좌표(sx,sy=출발 앵커, x,y=커서) + 출발 카드 id.
   const [linkLine, setLinkLine] = useState<{
@@ -97,10 +95,6 @@ export function DagCanvas({
   const [groupLinkSource, setGroupLinkSource] = useState<string | null>(null);
   // 새 카드 생성 다이얼로그 — null=닫힘, {date}=열림(일자 기본값).
   const [newCard, setNewCard] = useState<{ date: string | null } | null>(null);
-  const dragRef = useRef<DragState | null>(null);
-  const lastPtRef = useRef<{ x: number; y: number } | null>(null);
-  const panDirRef = useRef(0);
-  const panRafRef = useRef<number | null>(null);
 
   const cards = useMemo(() => graph.data?.cards ?? [], [graph.data]);
   const relations = graph.data?.cardRelations ?? [];
@@ -151,12 +145,6 @@ export function DagCanvas({
     el.scrollLeft = Math.max(0, dateToX(todayUtc()) - el.clientWidth * TODAY_VIEW_RATIO);
     didScrollRef.current = true;
   }, [graph.data]);
-
-  // 드래그 상태 미러(rAF 패닝 루프가 최신 drag를 읽도록) + 언마운트 시 패닝 정리.
-  useEffect(() => {
-    dragRef.current = drag;
-  }, [drag]);
-  useEffect(() => () => stopPan(), []);
 
   // 좌우(오늘 위치)·상하(맨 위) 스크롤을 오늘 기준 화면으로 복귀.
   function scrollToToday() {
@@ -222,13 +210,6 @@ export function DagCanvas({
     });
   }, [days, originMs]);
 
-  function canvasPoint(clientX: number, clientY: number) {
-    const el = canvasRef.current;
-    if (!el) return { x: 0, y: 0 };
-    const r = el.getBoundingClientRect();
-    return { x: clientX - r.left + el.scrollLeft, y: clientY - r.top + el.scrollTop };
-  }
-
   /** cardId로 들어오는 관계 중 fromCard.start > newStart 인(시간강제 위반) 관계 id 목록. */
   function violatedIncoming(cardId: string, newStartMs: number): string[] {
     return relations
@@ -264,115 +245,11 @@ export function DagCanvas({
   }
 
   function onBodyDown(e: React.PointerEvent<HTMLDivElement>, c: Card) {
-    e.stopPropagation();
-    const p = canvasPoint(e.clientX, e.clientY);
-    const g = nodeGeom(c);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({
-      id: c.id,
-      mode: "move",
-      x: g.x,
-      y: g.y,
-      w: g.w,
-      offsetX: p.x - g.x,
-      offsetY: p.y - g.y,
-      rightX: g.x + g.w,
-      moved: false,
-      shift: e.shiftKey,
-    });
+    beginMove(e, c.id, nodeGeom(c));
   }
 
   function onHandleDown(e: React.PointerEvent<HTMLDivElement>, c: Card, mode: DragMode) {
-    e.stopPropagation();
-    const g = nodeGeom(c);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({
-      id: c.id,
-      mode,
-      x: g.x,
-      y: g.y,
-      w: g.w,
-      offsetX: 0,
-      offsetY: 0,
-      rightX: g.x + g.w,
-      moved: false,
-      shift: false,
-    });
-  }
-
-  function applyPointerToDrag(clientX: number, clientY: number) {
-    const p = canvasPoint(clientX, clientY);
-    setDrag((d) => {
-      if (!d) return d;
-      if (d.mode === "move") {
-        const nx = Math.max(0, p.x - d.offsetX);
-        const ny = Math.max(0, p.y - d.offsetY);
-        return {
-          ...d,
-          x: nx,
-          y: ny,
-          moved: d.moved || Math.abs(nx - d.x) > 2 || Math.abs(ny - d.y) > 2,
-        };
-      }
-      if (d.mode === "resize-r") {
-        const nw = Math.max(PX_PER_DAY, p.x - d.x);
-        return { ...d, w: nw, moved: true };
-      }
-      const nx = Math.max(0, Math.min(p.x, d.rightX - PX_PER_DAY));
-      return { ...d, x: nx, w: d.rightX - nx, moved: true };
-    });
-  }
-
-  function stopPan() {
-    if (panRafRef.current != null) {
-      cancelAnimationFrame(panRafRef.current);
-      panRafRef.current = null;
-    }
-    panDirRef.current = 0;
-  }
-
-  // 가장자리 자동 스크롤 루프 — 마지막 포인터 위치 기준으로 캔버스를 밀고 드래그 카드를 따라 이동.
-  function panStep() {
-    const el = canvasRef.current;
-    if (!el || panDirRef.current === 0) {
-      panRafRef.current = null;
-      return;
-    }
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const next = Math.max(0, Math.min(maxScroll, el.scrollLeft + panDirRef.current * PAN_SPEED));
-    if (next === el.scrollLeft) {
-      panRafRef.current = null; // 경계 도달 — 정지
-      return;
-    }
-    el.scrollLeft = next;
-    // 드래그 중이면 카드가 포인터를 따라가도록 재적용(호버 중엔 스크롤만).
-    if (dragRef.current && lastPtRef.current) {
-      applyPointerToDrag(lastPtRef.current.x, lastPtRef.current.y);
-    }
-    panRafRef.current = requestAnimationFrame(panStep);
-  }
-
-  // 포인터 X가 좌우 경계 근처면 패닝 방향 설정 + 루프 시작/중지 (드래그·호버 공용).
-  function updateEdgePan(clientX: number) {
-    const el = canvasRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const localX = clientX - rect.left;
-    if (localX < EDGE_ZONE) panDirRef.current = -1;
-    else if (localX > rect.width - EDGE_ZONE) panDirRef.current = 1;
-    else panDirRef.current = 0;
-    if (panDirRef.current !== 0) {
-      if (panRafRef.current == null) panRafRef.current = requestAnimationFrame(panStep);
-    } else {
-      stopPan();
-    }
-  }
-
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!drag) return;
-    lastPtRef.current = { x: e.clientX, y: e.clientY };
-    applyPointerToDrag(e.clientX, e.clientY);
-    updateEdgePan(e.clientX);
+    beginResize(e, c.id, nodeGeom(c), mode);
   }
 
   async function onEditTitle(c: Card) {
@@ -746,7 +623,7 @@ export function DagCanvas({
                 categories={categories}
                 onBodyDown={onBodyDown}
                 onHandleDown={onHandleDown}
-                onPointerMove={onPointerMove}
+                onPointerMove={handleDragMove}
                 onPointerUp={onPointerUp}
                 onOpenCard={onOpenCard}
                 onToggleComplete={(cardId, completed) => updateCard.mutate({ cardId, completed })}

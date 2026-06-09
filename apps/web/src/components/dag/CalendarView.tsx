@@ -1,30 +1,12 @@
 import { useMemo, useState } from "react";
 import { useMoveCard, useTabGraph, useUpdateCard, type Card } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
+import { MS_DAY, parseDate, fmtDate, todayUtc, startOfMonth } from "../../lib/dateUtil";
 import { useDialogs } from "../ui/DialogProvider";
 import "./CalendarView.css";
 
-const MS_DAY = 86400000;
 const MAX_SPAN_DAYS = 30;
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-function parseDate(s: string): number {
-  const [y, m, d] = s.split("-").map(Number);
-  return Date.UTC(y, m - 1, d);
-}
-function fmtDate(ms: number): string {
-  const d = new Date(ms);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
-}
-function todayUtc(): number {
-  const n = new Date();
-  return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
-}
-function startOfMonth(ms: number): number {
-  const d = new Date(ms);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-}
 
 /** 카테고리 색(hex)을 막대 배경용 저알파 rgba로 — 어두운 셀 위에 옅은 틴트. */
 function hexToRgba(hex: string, alpha: number): string {

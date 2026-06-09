@@ -16,6 +16,7 @@ import {
   type Group,
 } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
+import { MS_DAY, parseDate, fmtDate, todayUtc, shortDate } from "../../lib/dateUtil";
 import { useDialogs } from "../ui/DialogProvider";
 import { CategoryBar } from "./CategoryBar";
 import { CardCategoryTag } from "./CardCategoryTag";
@@ -27,7 +28,6 @@ const PX_PER_DAY = 130;
 const LEFT_PAD = 80;
 const BACKLOG_W = 180;
 const BAR_H = 92;
-const MS_DAY = 86400000;
 const BACKLOG_X = 8;
 const MAX_SPAN_DAYS = 30;
 // 우측(미래) 무한스크롤 여유 — 좌측 origin 30일 버퍼에 대응. 끝까지 끌면 자동 확장되므로 휴식 헤드룸만 확보.
@@ -55,25 +55,6 @@ function edgePath(sx: number, sy: number, ex: number, ey: number): string {
   const x2 = ex - EDGE_STUB;
   const my = (sy + ey) / 2;
   return `M ${sx} ${sy} H ${x1} V ${my} H ${x2} V ${ey} H ${ex}`;
-}
-
-function parseDate(s: string): number {
-  const [y, m, d] = s.split("-").map(Number);
-  return Date.UTC(y, m - 1, d);
-}
-function fmtDate(ms: number): string {
-  const d = new Date(ms);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
-}
-function todayUtc(): number {
-  const n = new Date();
-  return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
-}
-
-function shortDate(iso: string): string {
-  const [, m, d] = iso.split("-");
-  return `${Number(m)}/${Number(d)}`;
 }
 
 /** 카드 개략 날짜/시간 — "6/4", "6/4–6/9"(멀티데이), "6/4 14:00"(시간지정), 날짜 없으면 "미정". */

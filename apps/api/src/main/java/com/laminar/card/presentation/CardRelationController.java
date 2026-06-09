@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,6 +43,12 @@ public class CardRelationController {
   public ResponseEntity<List<CardRelationDtos.CardRelationResponse>> listByTab(
       @PathVariable UUID tabId) {
     return ResponseEntity.ok(service.listByTab(tabId).stream().map(this::toResponse).toList());
+  }
+
+  @PatchMapping("/card-relations/{relationId}")
+  public ResponseEntity<CardRelationDtos.CardRelationResponse> update(
+      @PathVariable UUID relationId, @Valid @RequestBody CardRelationDtos.UpdateRequest request) {
+    return ResponseEntity.ok(toResponse(service.update(relationId, request.summary())));
   }
 
   @DeleteMapping("/card-relations/{relationId}")

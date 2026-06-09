@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,6 +43,12 @@ public class GroupRelationController {
   public ResponseEntity<List<GroupRelationDtos.GroupRelationResponse>> listByTab(
       @PathVariable UUID tabId) {
     return ResponseEntity.ok(service.listByTab(tabId).stream().map(this::toResponse).toList());
+  }
+
+  @PatchMapping("/group-relations/{relationId}")
+  public ResponseEntity<GroupRelationDtos.GroupRelationResponse> update(
+      @PathVariable UUID relationId, @Valid @RequestBody GroupRelationDtos.UpdateRequest request) {
+    return ResponseEntity.ok(toResponse(service.update(relationId, request.summary())));
   }
 
   @DeleteMapping("/group-relations/{relationId}")

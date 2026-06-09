@@ -18,6 +18,9 @@ public final class CardRelationDtos {
       @Size(max = 100000) String bodyMd,
       Map<String, Object> attrs) {}
 
+  /** 엣지 라벨 수정 — summary가 곧 화살표의 관계(별도 분류 없음). null/빈 값은 라벨 제거. */
+  public record UpdateRequest(@Size(max = 500) String summary) {}
+
   public record CardRelationResponse(
       UUID id,
       UUID subjectId,

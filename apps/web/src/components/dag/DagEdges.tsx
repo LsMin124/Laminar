@@ -24,6 +24,8 @@ export function DagEdges({
   linkLine,
   onDeleteGroupRelation,
   onDeleteRelation,
+  onEditLabel,
+  onEditGroupLabel,
 }: {
   maxX: number;
   maxY: number;
@@ -36,6 +38,9 @@ export function DagEdges({
   linkLine: { sx: number; sy: number; x: number; y: number } | null;
   onDeleteGroupRelation: (id: string) => void;
   onDeleteRelation: (id: string) => void;
+  /** 엣지 라벨 편집 — 라벨(summary)이 곧 화살표의 관계. */
+  onEditLabel: (rel: CardRelation) => void;
+  onEditGroupLabel: (rel: GroupRelation) => void;
 }) {
   return (
     <svg className="dag-edges" width={maxX} height={maxY} aria-hidden="true">
@@ -69,15 +74,31 @@ export function DagEdges({
         const tr = groupRects.get(rel.toGroupId);
         if (!fr || !tr) return null;
         // 카드 엣지와 동일하게 직각(꺾인) 경로 — from 박스 우측끝 → to 박스 좌측끝.
-        const d = edgePath(fr.x + fr.w, fr.y + fr.h / 2, tr.x, tr.y + tr.h / 2);
+        const sx = fr.x + fr.w;
+        const sy = fr.y + fr.h / 2;
+        const ex = tr.x;
+        const ey = tr.y + tr.h / 2;
+        const d = edgePath(sx, sy, ex, ey);
         return (
-          <path
-            key={rel.id}
-            className="dag-group-edge"
-            d={d}
-            markerEnd="url(#dag-group-arrow)"
-            onClick={() => onDeleteGroupRelation(rel.id)}
-          />
+          <g key={rel.id}>
+            <path
+              className="dag-group-edge"
+              d={d}
+              markerEnd="url(#dag-group-arrow)"
+              onClick={() => onDeleteGroupRelation(rel.id)}
+            />
+            <text
+              className={`dag-edge-label group${rel.summary ? "" : " empty"}`}
+              x={(sx + ex) / 2}
+              y={(sy + ey) / 2}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditGroupLabel(rel);
+              }}
+            >
+              {rel.summary || "＋"}
+            </text>
+          </g>
         );
       })}
       {relations.map((rel) => {
@@ -86,15 +107,31 @@ export function DagEdges({
         if (!from || !to || !isVisible(from) || !isVisible(to)) return null;
         const fg = nodeGeom(from);
         const tg = nodeGeom(to);
-        const d = edgePath(fg.x + fg.w, fg.y + BAR_H / 2, tg.x, tg.y + BAR_H / 2);
+        const sx = fg.x + fg.w;
+        const sy = fg.y + BAR_H / 2;
+        const ex = tg.x;
+        const ey = tg.y + BAR_H / 2;
+        const d = edgePath(sx, sy, ex, ey);
         return (
-          <path
-            key={rel.id}
-            className="dag-edge"
-            d={d}
-            markerEnd="url(#dag-arrow)"
-            onClick={() => onDeleteRelation(rel.id)}
-          />
+          <g key={rel.id}>
+            <path
+              className="dag-edge"
+              d={d}
+              markerEnd="url(#dag-arrow)"
+              onClick={() => onDeleteRelation(rel.id)}
+            />
+            <text
+              className={`dag-edge-label card${rel.summary ? "" : " empty"}`}
+              x={(sx + ex) / 2}
+              y={(sy + ey) / 2}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditLabel(rel);
+              }}
+            >
+              {rel.summary || "＋"}
+            </text>
+          </g>
         );
       })}
       {linkLine && (

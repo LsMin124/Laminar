@@ -81,6 +81,22 @@ public class GroupRelationService {
     return relationRepo.findByTabIdAndDeletedAtIsNull(tabId);
   }
 
+  /**
+   * 엣지 라벨(summary) 수정. summary 자체가 이 화살표가 나타내는 관계를 표현한다(별도 relation_kind 분류 없음). null/빈 값이면 라벨 제거.
+   */
+  @Transactional
+  public GroupRelationEntity update(UUID relationId, String summary) {
+    SubjectContext ctx = requirePersonalWritable();
+    GroupRelationEntity relation =
+        relationRepo
+            .findById(relationId)
+            .filter(r -> r.getDeletedAt() == null)
+            .filter(r -> ctx.ownsPersonal(r.getSubjectId(), r.getUserId()))
+            .orElseThrow(() -> new IllegalArgumentException("relation not found"));
+    relation.setSummary(summary == null || summary.isBlank() ? null : summary);
+    return relationRepo.save(relation);
+  }
+
   @Transactional
   public void softDelete(UUID relationId) {
     SubjectContext ctx = requirePersonalWritable();

@@ -180,6 +180,36 @@
   fill: #7c84bf;
 }
 
+/* ── 엣지 라벨 — 라벨 텍스트 = 화살표가 나타내는 관계(별도 분류 없음). bg 헤일로로 선 위에서 가독. ── */
+.dag-edge-label {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+.dag-edge-label.card {
+  fill: var(--accent);
+}
+.dag-edge-label.group {
+  fill: #9aa2e0;
+}
+/* 라벨 없는 엣지 — 작은 '＋' 추가 어포던스(평소 흐릿, 호버 시 또렷). */
+.dag-edge-label.empty {
+  fill: #8a7d72;
+  opacity: 0.35;
+  font-size: 13px;
+}
+.dag-edge-label.empty:hover {
+  opacity: 0.95;
+}
+
 /* ── 그룹 경계 박스 (멤버 bounding rect, 자동 산출·pointer-events 투과) ── */
 .dag-group {
   position: absolute;

@@ -382,6 +382,37 @@ export function useDeleteRelation(tabId: string) {
   });
 }
 
+/** 엣지 라벨(summary) 수정 — 라벨이 곧 화살표가 나타내는 관계. 깜빡임 없이 낙관적 반영. */
+export function useUpdateRelation(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { relationId: string; summary: string | null }) =>
+      api.patch<CardRelation>(`/api/card-relations/${input.relationId}`, {
+        summary: input.summary,
+      }),
+    onMutate: async (input) => {
+      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
+      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
+        g
+          ? {
+              ...g,
+              cardRelations: g.cardRelations.map((r) =>
+                r.id === input.relationId ? { ...r, summary: input.summary } : r,
+              ),
+            }
+          : g,
+      );
+      await qc.cancelQueries({ queryKey: graphKey(tabId) });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snapshot = ctx as { prev?: TabGraph } | undefined;
+      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
+    },
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
 export function useCreateGroup(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -464,6 +495,37 @@ export function useDeleteGroupRelation(tabId: string) {
   return useMutation({
     mutationFn: (relationId: string) =>
       api.delete<void>(`/api/group-relations/${relationId}`),
+    onSettled: () => invalidateGraph(qc, tabId),
+  });
+}
+
+/** 그룹 엣지 라벨(summary) 수정 — 라벨이 곧 화살표가 나타내는 관계. 낙관적 반영. */
+export function useUpdateGroupRelation(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { relationId: string; summary: string | null }) =>
+      api.patch<GroupRelation>(`/api/group-relations/${input.relationId}`, {
+        summary: input.summary,
+      }),
+    onMutate: async (input) => {
+      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
+      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
+        g
+          ? {
+              ...g,
+              groupRelations: g.groupRelations.map((r) =>
+                r.id === input.relationId ? { ...r, summary: input.summary } : r,
+              ),
+            }
+          : g,
+      );
+      await qc.cancelQueries({ queryKey: graphKey(tabId) });
+      return { prev };
+    },
+    onError: (_err, _input, ctx) => {
+      const snapshot = ctx as { prev?: TabGraph } | undefined;
+      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
+    },
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }

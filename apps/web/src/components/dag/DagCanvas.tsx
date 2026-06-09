@@ -12,8 +12,12 @@ import {
   useSetCardCategory,
   useTabGraph,
   useUpdateCard,
+  useUpdateGroupRelation,
+  useUpdateRelation,
   type Card,
+  type CardRelation,
   type Group,
+  type GroupRelation,
 } from "../../lib/dag";
 import { ApiError } from "../../lib/api";
 import { MS_DAY, parseDate, fmtDate, todayUtc } from "../../lib/dateUtil";
@@ -61,6 +65,8 @@ export function DagCanvas({
   const deleteGroup = useDeleteGroup(tabId);
   const createGroupRelation = useCreateGroupRelation(tabId);
   const deleteGroupRelation = useDeleteGroupRelation(tabId);
+  const updateRelation = useUpdateRelation(tabId);
+  const updateGroupRelation = useUpdateGroupRelation(tabId);
   const removeCardFromGroup = useRemoveCardFromGroup(tabId);
   const setCardCategory = useSetCardCategory(tabId);
   const dialogs = useDialogs();
@@ -352,6 +358,17 @@ export function DagCanvas({
     if (ok) deleteRelation.mutate(id);
   }
 
+  /** 엣지 라벨 편집 — 라벨(summary)이 곧 화살표가 나타내는 관계. 비우면 라벨 제거. */
+  async function onEditEdgeLabel(rel: CardRelation) {
+    const v = await dialogs.prompt({
+      title: "엣지 라벨",
+      message: "이 화살표가 나타내는 관계 (비우면 제거)",
+      defaultValue: rel.summary ?? "",
+    });
+    if (v === null) return;
+    updateRelation.mutate({ relationId: rel.id, summary: v.trim() ? v.trim() : null });
+  }
+
   function onAddCard() {
     setNewCard({ date: fmtDate(todayUtc()) });
   }
@@ -435,6 +452,17 @@ export function DagCanvas({
       danger: true,
     });
     if (ok) deleteGroupRelation.mutate(id);
+  }
+
+  /** 그룹 엣지 라벨 편집 — 라벨(summary)이 곧 화살표가 나타내는 관계. 비우면 제거. */
+  async function onEditGroupEdgeLabel(rel: GroupRelation) {
+    const v = await dialogs.prompt({
+      title: "그룹 엣지 라벨",
+      message: "이 화살표가 나타내는 관계 (비우면 제거)",
+      defaultValue: rel.summary ?? "",
+    });
+    if (v === null) return;
+    updateGroupRelation.mutate({ relationId: rel.id, summary: v.trim() ? v.trim() : null });
   }
 
   /**
@@ -599,6 +627,8 @@ export function DagCanvas({
             linkLine={linkLine}
             onDeleteGroupRelation={onDeleteGroupRelation}
             onDeleteRelation={onDeleteRelation}
+            onEditLabel={onEditEdgeLabel}
+            onEditGroupLabel={onEditGroupEdgeLabel}
           />
 
           {cards.filter(isVisible).map((c) => {

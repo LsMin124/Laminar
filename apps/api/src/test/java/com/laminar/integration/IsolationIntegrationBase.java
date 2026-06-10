@@ -31,8 +31,8 @@ public abstract class IsolationIntegrationBase {
           .withReuse(false);
 
   /**
-   * cron 전용 보조 DataSource(app.datasource.cron.*)는 property 기반이라 @ServiceConnection이 채워주지 않는다 —
-   * 같은 컨테이너를 가리키도록 동적 주입(미설정 시 컨텍스트 부팅이 driver 미결정으로 실패).
+   * cron 전용 보조 DataSource(app.datasource.cron.*)는 property 기반이라 @ServiceConnection이 채워주지 않는다 — 같은
+   * 컨테이너를 가리키도록 동적 주입(미설정 시 컨텍스트 부팅이 driver 미결정으로 실패).
    */
   @DynamicPropertySource
   static void cronDataSourceProperties(DynamicPropertyRegistry registry) {

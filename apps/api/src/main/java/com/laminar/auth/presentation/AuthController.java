@@ -2,6 +2,7 @@ package com.laminar.auth.presentation;
 
 import com.laminar.auth.application.AuthService;
 import com.laminar.auth.application.PasswordResetService;
+import com.laminar.config.JwtProperties;
 import com.laminar.security.AuthCookies;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.user.domain.UserEntity;
@@ -35,12 +36,17 @@ public class AuthController {
   private final AuthService authService;
   private final AuthCookies authCookies;
   private final PasswordResetService passwordResetService;
+  private final long accessTtlSeconds;
 
   public AuthController(
-      AuthService authService, AuthCookies authCookies, PasswordResetService passwordResetService) {
+      AuthService authService,
+      AuthCookies authCookies,
+      PasswordResetService passwordResetService,
+      JwtProperties jwtProperties) {
     this.authService = authService;
     this.authCookies = authCookies;
     this.passwordResetService = passwordResetService;
+    this.accessTtlSeconds = jwtProperties.accessTtl().toSeconds();
   }
 
   @PostMapping("/signup")
@@ -121,6 +127,10 @@ public class AuthController {
 
   private AuthDtos.AuthResponse toResponse(UserEntity user) {
     return new AuthDtos.AuthResponse(
-        user.getId(), user.getEmail(), user.getDisplayName(), user.getEmailVerifiedAt() != null);
+        user.getId(),
+        user.getEmail(),
+        user.getDisplayName(),
+        user.getEmailVerifiedAt() != null,
+        accessTtlSeconds);
   }
 }

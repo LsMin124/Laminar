@@ -43,9 +43,10 @@ management:
 app:
   jwt:
     secret: ${JWT_SECRET:}
-    # access TTL = access 쿠키 Max-Age. 짧으면(15m) 그 주기마다 첫 요청이 401→refresh를
-    # 반응적으로 타 401이 자주 노출됨 → 한 세션을 덮도록 8h로 상향(refresh 28d는 유지).
-    access-ttl: PT8H
+    # access TTL = access 쿠키 Max-Age. 정답지(단명 15m)로 수렴(G1) — 과거 8h 상향의 근거였던
+    # "주기마다 반응적 401 노출"은 FE 선제 silent refresh(web lib/silentRefresh.ts)가 만료 전에
+    # 회전시켜 소멸. 단명 TTL이 로그아웃·계정 정지·세션 폐기(G3)의 무력 창을 8h→15m로 줄인다.
+    access-ttl: PT15M
     refresh-ttl: P28D
   # 메일(비밀번호 재설정). RESEND_API_KEY 미설정 시 발송 생략 + 링크를 서버 로그로 남김(오너 폴백).
   mail:

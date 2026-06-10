@@ -4,12 +4,15 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
+import { markAuthenticated } from "./silentRefresh";
 
 export interface AuthResponse {
   userId: string;
   email: string;
   displayName: string;
   emailVerified: boolean;
+  /** access 토큰 TTL(초) — 서버 설정(app.jwt.access-ttl)이 정본. 선제 silent refresh 타이머 기준(G1). */
+  accessTtlSeconds: number;
 }
 
 export interface SignupInput {
@@ -30,7 +33,10 @@ export function useMe() {
     queryKey: ME_KEY,
     queryFn: async () => {
       try {
-        return await api.get<AuthResponse>("/api/auth/me");
+        const me = await api.get<AuthResponse>("/api/auth/me");
+        // me는 토큰 발급 시점이 아니라 TTL 전체 재무장이 과대평가일 수 있음 — 빗나가면 반응적 401 경로가 보정.
+        markAuthenticated(me.accessTtlSeconds);
+        return me;
       } catch {
         return null;
       }
@@ -45,6 +51,7 @@ export function useSignup() {
     mutationFn: (input: SignupInput) => api.post<AuthResponse>("/api/auth/signup", input),
     onSuccess: (data) => {
       qc.setQueryData(ME_KEY, data);
+      markAuthenticated(data.accessTtlSeconds);
     },
   });
 }
@@ -55,6 +62,7 @@ export function useLogin() {
     mutationFn: (input: LoginInput) => api.post<AuthResponse>("/api/auth/login", input),
     onSuccess: (data) => {
       qc.setQueryData(ME_KEY, data);
+      markAuthenticated(data.accessTtlSeconds);
     },
   });
 }

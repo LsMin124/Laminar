@@ -5,6 +5,8 @@
  * 백엔드 SubjectContextRequestFilter가 주제(subject) 컨텍스트로 진입.
  */
 
+import { markAuthenticated, registerRefresher, stopSilentRefresh } from "./silentRefresh";
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 const SUBJECT_ID_KEY = "laminar.subjectId";
@@ -60,16 +62,39 @@ function skipAuthRetry(path: string): boolean {
 let refreshInFlight: Promise<boolean> | null = null;
 
 /**
- * access 만료 시 refresh 쿠키로 새 토큰쌍 발급. single-flight — 동시에 401이 다발해도 refresh 요청은 1회만 나가고
- * 모든 대기자가 그 결과를 공유한다. 쿠키는 httpOnly라 JS가 토큰을 직접 만지지 않는다.
+ * access 만료(반응적 401)·만료 임박(선제 타이머) 시 refresh 쿠키로 새 토큰쌍 발급. 탭 내
+ * single-flight — 동시에 401이 다발해도 refresh 요청은 1회만 나가고 모든 대기자가 그 결과를
+ * 공유한다. 쿠키는 httpOnly라 JS가 토큰을 직접 만지지 않는다.
  */
 function attemptRefresh(): Promise<boolean> {
   if (!refreshInFlight) {
-    refreshInFlight = refreshWithRetry().finally(() => {
+    refreshInFlight = exclusiveRefresh().finally(() => {
       refreshInFlight = null;
     });
   }
   return refreshInFlight;
+}
+
+const LAST_REFRESH_AT_KEY = "laminar.lastRefreshAt";
+// 다른 탭이 방금 회전시킨 토큰쌍을 또 회전시키지 않기 위한 창 — access TTL(15m)보다 충분히 짧게.
+const REFRESH_DEDUPE_MS = 30_000;
+
+/**
+ * 탭 간 직렬화 + 디듀프. refresh는 회전식(기존 refresh 즉시 폐기)이라 두 탭이 같은 토큰으로 동시
+ * 호출하면 늦은 쪽이 401을 맞는다 — Web Locks로 동일 오리진 탭을 직렬화하고, 락을 얻은 시점에 다른
+ * 탭이 방금 갱신했으면(stamp) 호출을 건너뛴다(브라우저 쿠키 항아리는 이미 새 토큰). Locks 미지원
+ * 브라우저는 종전 동작(드문 경쟁 수용).
+ */
+function exclusiveRefresh(): Promise<boolean> {
+  const run = async (): Promise<boolean> => {
+    const last = Number(localStorage.getItem(LAST_REFRESH_AT_KEY) ?? "0");
+    if (Date.now() - last < REFRESH_DEDUPE_MS) return true;
+    return refreshWithRetry();
+  };
+  if (typeof navigator !== "undefined" && navigator.locks) {
+    return navigator.locks.request("laminar.auth.refresh", run) as Promise<boolean>;
+  }
+  return run();
 }
 
 /**
@@ -84,8 +109,20 @@ async function refreshWithRetry(): Promise<boolean> {
         headers: { "X-Laminar-CSRF": "1" },
         credentials: "include",
       });
-      if (res.ok) return true;
-      if (res.status === 401) return false; // refresh 토큰 무효 → 진짜 만료
+      if (res.ok) {
+        localStorage.setItem(LAST_REFRESH_AT_KEY, String(Date.now()));
+        try {
+          const body = (await res.json()) as { accessTtlSeconds?: number };
+          if (body.accessTtlSeconds) markAuthenticated(body.accessTtlSeconds);
+        } catch {
+          // 본문 파싱 실패는 치명 아님 — 선제 타이머가 멈춰도 반응적 401 경로가 안전망
+        }
+        return true;
+      }
+      if (res.status === 401) {
+        stopSilentRefresh(); // 세션 종료 — 다음 인증까지 선제 갱신 침묵
+        return false; // refresh 토큰 무효 → 진짜 만료
+      }
       // 그 외(5xx 등 일시 오류)는 재시도 루프로
     } catch {
       // 네트워크 오류 → 재시도
@@ -94,6 +131,9 @@ async function refreshWithRetry(): Promise<boolean> {
   }
   return false;
 }
+
+// 선제 갱신 타이머의 refresher 주입 — silentRefresh가 api.ts를 역import하면 순환이라 방향 고정.
+registerRefresher(attemptRefresh);
 
 async function request<T>(
   method: string,

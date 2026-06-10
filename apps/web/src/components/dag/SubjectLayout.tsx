@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "../../lib/api";
+import { getCurrentSubjectId, setCurrentSubjectId } from "../../lib/api";
 import {
   useCreateSubject,
   useDeleteSubject,
@@ -9,12 +9,12 @@ import {
   type Subject,
 } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
-import { DagWorkspace } from "./DagWorkspace";
+import { SubjectWorkspace } from "./SubjectWorkspace";
 import { Identicon } from "./Identicon";
 import "./SubjectLayout.css";
 
 /**
- * 좌측 얇은 아이콘 레일(주제 전환) + 활성 주제의 DagWorkspace + 주제 관리 모달.
+ * 좌측 얇은 아이콘 레일(주제 전환) + 활성 주제의 SubjectWorkspace + 주제 관리 모달.
  * 레일=빠른 전환만, 세부사항(목록·이름변경·생성·삭제)은 별도 모달 창에서.
  * 주제 전환 시 X-Laminar-Subject-Id 헤더 변경 + tabs/graph 캐시 제거 + key 리마운트.
  * 레일 하단(rail-future)=전역 도구: 장비 관리(플라스크, doctab 오픈) + 학습 정리(준비 중 ghost).
@@ -26,11 +26,11 @@ export function SubjectLayout() {
   const deleteSubject = useDeleteSubject();
   const dialogs = useDialogs();
   const qc = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(() => getCurrentWorkspaceId());
+  const [activeId, setActiveId] = useState<string | null>(() => getCurrentSubjectId());
   const [manageOpen, setManageOpen] = useState(false);
-  // '주제 본문' 신호 — 증가시키면 활성 주제의 DagWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
+  // '주제 본문' 신호 — 증가시키면 활성 주제의 SubjectWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
-  // '장비 관리' 신호 — 증가시키면 DagWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
+  // '장비 관리' 신호 — 증가시키면 SubjectWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
   const [equipmentNonce, setEquipmentNonce] = useState(0);
   const [hoverTip, setHoverTip] = useState<{ name: string; y: number } | null>(null);
 
@@ -41,13 +41,13 @@ export function SubjectLayout() {
     if (!subjects.data) return;
     const valid = !!activeId && subjects.data.some((s) => s.id === activeId);
     const next = valid ? activeId : (subjects.data[0]?.id ?? null);
-    setCurrentWorkspaceId(next);
+    setCurrentSubjectId(next);
     if (next !== activeId) setActiveId(next);
   }, [subjects.data, activeId]);
 
   function switchSubject(id: string) {
     if (id === activeId) return;
-    setCurrentWorkspaceId(id);
+    setCurrentSubjectId(id);
     setActiveId(id);
     qc.removeQueries({ queryKey: ["tabs"] });
     qc.removeQueries({ queryKey: ["tabGraph"] });
@@ -88,7 +88,7 @@ export function SubjectLayout() {
       return;
     }
     // 활성 주제가 사라졌으니 헤더/활성 초기화 → 목록 재조회 시 효과가 첫 주제를 재선정.
-    setCurrentWorkspaceId(null);
+    setCurrentSubjectId(null);
     setActiveId(null);
     qc.removeQueries({ queryKey: ["tabs"] });
     qc.removeQueries({ queryKey: ["tabGraph"] });
@@ -139,7 +139,7 @@ export function SubjectLayout() {
         </div>
 
         <div className="rail-future">
-          {/* 장비 관리(공용 자원) — 전역 도구. 클릭 시 활성 주제의 DagWorkspace가 장비 doctab 창을 연다. */}
+          {/* 장비 관리(공용 자원) — 전역 도구. 클릭 시 활성 주제의 SubjectWorkspace가 장비 doctab 창을 연다. */}
           {activeValid && (
             <button
               type="button"
@@ -177,7 +177,7 @@ export function SubjectLayout() {
 
       <main className="lay-main">
         {activeValid ? (
-          <DagWorkspace
+          <SubjectWorkspace
             key={activeId}
             subjectId={activeId ?? ""}
             subjectName={list.find((s) => s.id === activeId)?.name ?? ""}

@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { api } from "../../lib/api";
+import { api, setCurrentSubjectId } from "../../lib/api";
 import { useCreateTab, useTabs } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
 import { CalendarView } from "./CalendarView";
 import { DagCanvas } from "./DagCanvas";
 import { Identicon } from "./Identicon";
-import "./DagWorkspace.css";
+import "./SubjectWorkspace.css";
 
 // 본문(마크다운+KaTeX)은 무겁고 항상 쓰진 않으므로 지연 로드 — 초기 번들에서 분리.
 const CardBody = lazy(() => import("./CardBody").then((m) => ({ default: m.CardBody })));
@@ -41,7 +41,7 @@ const DOC_PREFIX: Record<DocKind, string> = {
  * DAG 워크스페이스 셸 — 탭 목록/생성 + 선택 탭의 DAG 캔버스 호스트.
  * 본문 문서(카드·그룹·탭·주제)는 상단 브라우저 탭식 doctab 바에서 열린다.
  */
-export function DagWorkspace({
+export function SubjectWorkspace({
   subjectId,
   subjectName,
   openSubjectBodyNonce,
@@ -79,7 +79,7 @@ export function DagWorkspace({
     } catch {
       // 무시 — 어차피 로컬 상태를 비우고 새로고침한다.
     }
-    localStorage.removeItem("laminar.workspaceId");
+    setCurrentSubjectId(null); // 활성 주제 선택 해제(신·구 localStorage 키 모두 정리)
     location.reload();
   }
 

@@ -1,28 +1,37 @@
 /**
  * Laminar API client — fetch wrapper.
  *
- * Cookie 기반 세션 (credentials: include) + X-Laminar-Workspace-Id 헤더 자동 주입.
- * 백엔드 WorkspaceContextRequestFilter가 워크스페이스 컨텍스트로 진입.
+ * Cookie 기반 세션 (credentials: include) + X-Laminar-Subject-Id 헤더 자동 주입.
+ * 백엔드 SubjectContextRequestFilter가 주제(subject) 컨텍스트로 진입.
  */
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
-let currentWorkspaceId: string | null = null;
+const SUBJECT_ID_KEY = "laminar.subjectId";
+// DX-10 rename(workspace→subject) 이전 키 — 기존 사용자 세션 호환용. 읽기에서 새 키로 이관.
+const LEGACY_WORKSPACE_ID_KEY = "laminar.workspaceId";
 
-export function setCurrentWorkspaceId(workspaceId: string | null): void {
-  currentWorkspaceId = workspaceId;
-  if (workspaceId) {
-    localStorage.setItem("laminar.workspaceId", workspaceId);
+let currentSubjectId: string | null = null;
+
+export function setCurrentSubjectId(subjectId: string | null): void {
+  currentSubjectId = subjectId;
+  if (subjectId) {
+    localStorage.setItem(SUBJECT_ID_KEY, subjectId);
   } else {
-    localStorage.removeItem("laminar.workspaceId");
+    localStorage.removeItem(SUBJECT_ID_KEY);
   }
+  localStorage.removeItem(LEGACY_WORKSPACE_ID_KEY);
 }
 
-export function getCurrentWorkspaceId(): string | null {
-  if (currentWorkspaceId === null) {
-    currentWorkspaceId = localStorage.getItem("laminar.workspaceId");
+export function getCurrentSubjectId(): string | null {
+  if (currentSubjectId === null) {
+    currentSubjectId = localStorage.getItem(SUBJECT_ID_KEY);
+    if (currentSubjectId === null) {
+      const legacy = localStorage.getItem(LEGACY_WORKSPACE_ID_KEY);
+      if (legacy) setCurrentSubjectId(legacy); // 구 키 → 새 키 1회 이관
+    }
   }
-  return currentWorkspaceId;
+  return currentSubjectId;
 }
 
 export class ApiError extends Error {
@@ -98,11 +107,11 @@ async function request<T>(
     // 교차출처 위조 요청은 CORS preflight 없이 커스텀 헤더를 달 수 없어 차단된다.
     "X-Laminar-CSRF": "1",
   };
-  const workspaceId = getCurrentWorkspaceId();
+  const subjectId = getCurrentSubjectId();
   // 주제 목록 조회(GET /api/subjects)는 SYSTEM scope여야 한다 — 헤더가 있으면 subjectSharedFilter가
   // 활성 주제 1개로 제한해 새 주제가 목록에서 누락된다. 이 경우만 skipSubjectHeader로 헤더를 생략.
-  if (workspaceId && !opts?.skipSubjectHeader) {
-    headers["X-Laminar-Subject-Id"] = workspaceId;
+  if (subjectId && !opts?.skipSubjectHeader) {
+    headers["X-Laminar-Subject-Id"] = subjectId;
   }
 
   const serializedBody = body === undefined ? undefined : JSON.stringify(body);

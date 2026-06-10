@@ -9,7 +9,6 @@ public enum CardImportance {
   CF("cf"),
   URGENT("urgent"),
   PURCHASE("purchase"),
-  PERPETUAL_VER("perpetual-ver"),
   ARTICLE("article"),
   PROCESS("process");
 

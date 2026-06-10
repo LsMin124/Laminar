@@ -58,13 +58,14 @@ export function EquipmentReservations({
   const cancelResv = useCancelReservation();
 
   // 조회 범위는 마운트 시 1회 고정(쿼리 키 안정화). now-1일 ~ now+90일.
-  const range = useMemo(() => {
+  // useState lazy 초기화 = 최초 렌더 1회 실행 — "1회 고정" 의도와 렌더 순수성 규칙이 일치.
+  const [range] = useState(() => {
     const now = Date.now();
     return {
       from: new Date(now - DAY_MS).toISOString(),
       to: new Date(now + 90 * DAY_MS).toISOString(),
     };
-  }, []);
+  });
 
   const selected = selectedId ?? equipment[0]?.id ?? null;
   const resv = useReservations(selected, range.from, range.to);
@@ -78,7 +79,9 @@ export function EquipmentReservations({
     () => [...(resv.data ?? [])].sort((a, b) => a.startAt.localeCompare(b.startAt)),
     [resv.data],
   );
-  const now = Date.now();
+  // past 분류 기준 시각 — 렌더 순수성을 위해 Date.now() 대신 마지막 fetch 시각을 쓴다
+  // (refetch 때마다 갱신되므로 분류가 데이터 신선도와 함께 움직인다).
+  const now = resv.dataUpdatedAt;
 
   function openForm() {
     const start = new Date();

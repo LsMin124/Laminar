@@ -59,13 +59,14 @@ export function SharedCalendarView() {
   const postAnc = usePostAnnouncement(selected ?? "");
 
   // 조회 범위 — 마운트 시 1회 고정(now-30일 ~ now+365일).
-  const range = useMemo(() => {
+  // useState lazy 초기화 = 최초 렌더 1회 실행 — "1회 고정" 의도와 렌더 순수성 규칙이 일치.
+  const [range] = useState(() => {
     const now = Date.now();
     return {
       from: new Date(now - 30 * DAY_MS).toISOString(),
       to: new Date(now + 365 * DAY_MS).toISOString(),
     };
-  }, []);
+  });
   const ancQ = useAnnouncements(selected, range.from, range.to);
 
   const [form, setForm] = useState<PostForm | null>(null);
@@ -89,7 +90,8 @@ export function SharedCalendarView() {
     () => [...(ancQ.data ?? [])].sort((a, b) => a.startAt.localeCompare(b.startAt)),
     [ancQ.data],
   );
-  const now = Date.now();
+  // past 분류 기준 시각 — 렌더 순수성을 위해 Date.now() 대신 마지막 fetch 시각(refetch 시 갱신).
+  const now = ancQ.dataUpdatedAt;
 
   async function onCreateCalendar() {
     const name = await dialogs.prompt({

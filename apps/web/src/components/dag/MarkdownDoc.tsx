@@ -55,8 +55,12 @@ export function MarkdownDoc({
   const dirtyRef = useRef(false);
   const valueRef = useRef(value);
   const onSaveRef = useRef(onSave);
-  valueRef.current = value;
-  onSaveRef.current = onSave;
+  // latest-ref 동기화 — 소비자(flush·자동저장 타이머·언마운트)는 전부 커밋 후에 읽으므로
+  // 렌더 중 대입 대신 커밋 후 대입으로 충분하다(react-hooks/refs 준수).
+  useEffect(() => {
+    valueRef.current = value;
+    onSaveRef.current = onSave;
+  });
 
   // 편집 중이 아닐 때만 서버 값으로 draft 동기화.
   useEffect(() => {
@@ -77,7 +81,9 @@ export function MarkdownDoc({
     onSaveRef.current(v);
   };
   const flushRef = useRef(flush);
-  flushRef.current = flush;
+  useEffect(() => {
+    flushRef.current = flush;
+  });
 
   // 언마운트(탭 전환·닫기 포함) 시 타이머 정리 + 미저장분 flush(데이터 유실 방지).
   useEffect(

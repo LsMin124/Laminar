@@ -97,8 +97,11 @@ export function DagWorkspace({
   const openTab = (tabId: string, title: string) => openDoc("tab", tabId, title);
   const openSubject = () => openDoc("subject", subjectId, subjectName);
   // 좌측 레일에서 주제 본문 열기 — nonce가 바뀔 때만(마운트·주제 전환 리마운트 시엔 열지 않음).
+  // latest-ref는 커밋 후 대입(아래 nonce effect보다 선언이 앞이라 같은 커밋에서 먼저 갱신됨).
   const openSubjectRef = useRef(openSubject);
-  openSubjectRef.current = openSubject;
+  useEffect(() => {
+    openSubjectRef.current = openSubject;
+  });
   const firstNonceRun = useRef(true);
   useEffect(() => {
     if (firstNonceRun.current) {
@@ -119,7 +122,9 @@ export function DagWorkspace({
   const openEquipment = () => openDoc("equipment", EQUIPMENT_DOC_ID, "장비 관리");
   // 좌측 레일에서 장비 열기 — nonce가 바뀔 때만(마운트·주제 전환 리마운트 시엔 열지 않음).
   const openEquipmentRef = useRef(openEquipment);
-  openEquipmentRef.current = openEquipment;
+  useEffect(() => {
+    openEquipmentRef.current = openEquipment;
+  });
   const firstEquipNonceRun = useRef(true);
   useEffect(() => {
     if (firstEquipNonceRun.current) {

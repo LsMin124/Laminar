@@ -41,6 +41,24 @@ import { useDagDrag, type DragMode } from "./useDagDrag";
 import "./DagCanvas.css";
 
 /**
+ * 캔버스 x=0 기준 시각(origin) — 최소 카드 일자보다 30일 왼쪽. 카드가 과거로 추가되면 왼쪽으로만
+ * 이동(단조 감소)하고, 카드 삭제로 최소값이 올라가도 오른쪽으로 되돌리지 않아 기존 노드들의
+ * x 좌표 점프를 막는다. 이 "이전 렌더 기억"은 상태로 두면 한 프레임 늦은 좌표(재렌더 점프)가
+ * 생기므로 렌더 중 ref 누산이 의도된 설계다. 반환값은 일반 숫자라 호출부는 규칙 위반이 없다.
+ */
+function useMonotonicOriginMs(minCardMs: number | null): number {
+  const originRef = useRef<number | null>(null);
+  /* eslint-disable react-hooks/refs -- 단조 origin 누산: 렌더 간 기억이 필요하나 상태화하면 1프레임 좌표 점프가 생긴다(위 주석). */
+  if (originRef.current === null) {
+    originRef.current = (minCardMs ?? todayUtc()) - 30 * MS_DAY;
+  } else if (minCardMs !== null && minCardMs < originRef.current) {
+    originRef.current = minCardMs - 30 * MS_DAY;
+  }
+  return originRef.current;
+  /* eslint-enable react-hooks/refs */
+}
+
+/**
  * DAG 캔버스 — 노드=카드 막대(가로 x=startDate~endDate 스팬, 세로 y=canvasY), 엣지=관계(A 끝→B 시작).
  * 막대 몸통 드래그=이동(span 보존), 좌/우 끝 핸들=리사이즈(start/end), "⇢"=관계 생성, 더블클릭=카드 생성.
  * 이전 일자로 이동해 선행 관계를 위반하면 그 화살표를 끊을지 확인 후 이동한다.
@@ -122,14 +140,8 @@ export function DagCanvas({
     }
     return min;
   }, [cards]);
-  const originRef = useRef<number | null>(null);
   const didScrollRef = useRef(false);
-  if (originRef.current === null) {
-    originRef.current = (minCardMs ?? todayUtc()) - 30 * MS_DAY;
-  } else if (minCardMs !== null && minCardMs < originRef.current) {
-    originRef.current = minCardMs - 30 * MS_DAY;
-  }
-  const originMs = originRef.current;
+  const originMs = useMonotonicOriginMs(minCardMs);
 
   const dateToX = (ms: number) => ((ms - originMs) / MS_DAY) * PX_PER_DAY + LEFT_PAD;
   const xToDateMs = (x: number) =>

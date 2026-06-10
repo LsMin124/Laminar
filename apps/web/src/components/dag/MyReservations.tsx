@@ -24,7 +24,8 @@ export function MyReservations({ equipment }: { equipment: Equipment[] }) {
     () => [...(mine.data ?? [])].sort((a, b) => a.startAt.localeCompare(b.startAt)),
     [mine.data],
   );
-  const now = Date.now();
+  // past 분류 기준 시각 — 렌더 순수성을 위해 Date.now() 대신 마지막 fetch 시각(refetch 시 갱신).
+  const now = mine.dataUpdatedAt;
 
   async function onCancel(r: Reservation) {
     const ok = await dialogs.confirm({

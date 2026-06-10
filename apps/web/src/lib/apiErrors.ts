@@ -6,7 +6,7 @@
  * 깨지는 계약이라 제거했다. 코드 목록은 백엔드 `com.laminar.error.ErrorCode`와 동기 유지할 것.
  */
 import { ApiError } from "./api";
-import { MAX_SPAN_DAYS } from "../components/dag/dagGeometry";
+import { MAX_SPAN_DAYS } from "./cardRules";
 
 const CODE_MESSAGES: Record<string, string> = {
   CARD_CYCLE: "두 카드를 연결하면 순환이 생겨 차단되었습니다.",

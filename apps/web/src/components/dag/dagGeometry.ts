@@ -12,7 +12,6 @@ export const LEFT_PAD = 80;
 export const BACKLOG_W = 180;
 export const BAR_H = 92;
 export const BACKLOG_X = 8;
-export const MAX_SPAN_DAYS = 30;
 // 우측(미래) 무한스크롤 여유 — 좌측 origin 30일 버퍼에 대응. 끝까지 끌면 자동 확장되므로 휴식 헤드룸만 확보.
 export const FORWARD_BUFFER_DAYS = 60;
 // 진입 시 오늘을 뷰포트 가로 이 비율 지점에 배치(0.5=중앙, 0.4=살짝 좌측 → 미래 쪽을 더 넓게).

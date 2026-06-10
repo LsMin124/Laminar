@@ -20,13 +20,13 @@ import {
   type GroupRelation,
 } from "../../lib/dag";
 import { apiErrorMessage } from "../../lib/apiErrors";
+import { MAX_SPAN_DAYS } from "../../lib/cardRules";
 import { MS_DAY, parseDate, fmtDate, todayUtc } from "../../lib/dateUtil";
 import {
   BACKLOG_X,
   BAR_H,
   FORWARD_BUFFER_DAYS,
   LEFT_PAD,
-  MAX_SPAN_DAYS,
   PX_PER_DAY,
   TODAY_VIEW_RATIO,
   barWidth,

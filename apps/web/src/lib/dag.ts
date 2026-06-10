@@ -106,6 +106,30 @@ function invalidateGraph(qc: QueryClient, tabId: string): Promise<void> {
   return qc.invalidateQueries({ queryKey: graphKey(tabId) });
 }
 
+/**
+ * 낙관적 캐시 갱신 공통기 (DX-6) — cancel → snapshot → set 순서를 한 곳에 고정한다.
+ * 과거 훅들은 set 후 cancel(후행)이라, 진행 중이던 refetch 응답이 낙관적 갱신 뒤에 도착하면
+ * 화면을 과거 데이터로 되돌릴 수 있는 경쟁이 있었고 그 순서가 훅마다 복제돼 있었다.
+ * onMutate에서 호출하고, onError엔 rollbackTo()를 넘긴다.
+ */
+async function optimisticUpdate<T>(
+  qc: QueryClient,
+  key: readonly unknown[],
+  apply: (current: T) => T,
+): Promise<{ prev?: T }> {
+  await qc.cancelQueries({ queryKey: key });
+  const prev = qc.getQueryData<T>(key);
+  qc.setQueryData<T>(key, (cur) => (cur === undefined ? cur : apply(cur)));
+  return { prev };
+}
+
+/** optimisticUpdate의 onError 짝 — 스냅샷이 있으면 복원한다. */
+function rollbackTo<T>(qc: QueryClient, key: readonly unknown[]) {
+  return (_err: unknown, _input: unknown, ctx: { prev?: T } | undefined) => {
+    if (ctx?.prev !== undefined) qc.setQueryData(key, ctx.prev);
+  };
+}
+
 export function useSubjects() {
   return useQuery({
     queryKey: ["subjects"],
@@ -136,28 +160,21 @@ export function useUpdateSubject() {
   return useMutation({
     mutationFn: ({ name, bodyMd }: { id?: string; name?: string; bodyMd?: string | null }) =>
       api.patch<Subject>("/api/subjects/current", { name, bodyMd }),
-    onMutate: async ({ id, name, bodyMd }) => {
-      const prev = qc.getQueryData<Subject[]>(["subjects"]);
-      if (id) {
-        qc.setQueryData<Subject[]>(["subjects"], (list) =>
-          list?.map((s) =>
-            s.id === id
-              ? {
-                  ...s,
-                  ...(name !== undefined ? { name } : {}),
-                  ...(bodyMd !== undefined ? { bodyMd } : {}),
-                }
-              : s,
-          ),
-        );
-      }
-      await qc.cancelQueries({ queryKey: ["subjects"] });
-      return { prev };
-    },
-    onError: (_err, _input, ctx) => {
-      const snap = ctx as { prev?: Subject[] } | undefined;
-      if (snap?.prev) qc.setQueryData(["subjects"], snap.prev);
-    },
+    onMutate: ({ id, name, bodyMd }) =>
+      optimisticUpdate<Subject[]>(qc, ["subjects"], (list) =>
+        id
+          ? list.map((s) =>
+              s.id === id
+                ? {
+                    ...s,
+                    ...(name !== undefined ? { name } : {}),
+                    ...(bodyMd !== undefined ? { bodyMd } : {}),
+                  }
+                : s,
+            )
+          : list,
+      ),
+    onError: rollbackTo<Subject[]>(qc, ["subjects"]),
     onSettled: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
   });
 }
@@ -168,10 +185,9 @@ export function useUpdateTab() {
   return useMutation({
     mutationFn: ({ tabId, name, bodyMd }: { tabId: string; name?: string; bodyMd?: string | null }) =>
       api.patch<Tab>(`/api/tabs/${tabId}`, { name, bodyMd }),
-    onMutate: async ({ tabId, name, bodyMd }) => {
-      const prev = qc.getQueryData<Tab[]>(["tabs"]);
-      qc.setQueryData<Tab[]>(["tabs"], (list) =>
-        list?.map((t) =>
+    onMutate: ({ tabId, name, bodyMd }) =>
+      optimisticUpdate<Tab[]>(qc, ["tabs"], (list) =>
+        list.map((t) =>
           t.id === tabId
             ? {
                 ...t,
@@ -180,14 +196,8 @@ export function useUpdateTab() {
               }
             : t,
         ),
-      );
-      await qc.cancelQueries({ queryKey: ["tabs"] });
-      return { prev };
-    },
-    onError: (_err, _input, ctx) => {
-      const snap = ctx as { prev?: Tab[] } | undefined;
-      if (snap?.prev) qc.setQueryData(["tabs"], snap.prev);
-    },
+      ),
+    onError: rollbackTo<Tab[]>(qc, ["tabs"]),
     onSettled: () => qc.invalidateQueries({ queryKey: ["tabs"] }),
   });
 }
@@ -267,38 +277,27 @@ export function useUpdateCard(tabId: string) {
       return api.patch<Card>(`/api/cards/${cardId}`, patch);
     },
     // 제목/완료 토글이 즉시 반영되도록 낙관적 업데이트.
-    onMutate: async (input) => {
-      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
-      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
-        g
-          ? {
-              ...g,
-              cards: g.cards.map((c) =>
-                c.id === input.cardId
-                  ? {
-                      ...c,
-                      ...(input.title !== undefined ? { title: input.title } : {}),
-                      ...(input.completed !== undefined ? { completed: input.completed } : {}),
-                      ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
-                      ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
-                      ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
-                      ...(input.allDay !== undefined ? { allDay: input.allDay } : {}),
-                    }
-                  : c,
-              ),
-            }
-          : g,
-      );
-      await qc.cancelQueries({ queryKey: graphKey(tabId) });
-      return { prev };
-    },
+    onMutate: (input) =>
+      optimisticUpdate<TabGraph>(qc, graphKey(tabId), (g) => ({
+        ...g,
+        cards: g.cards.map((c) =>
+          c.id === input.cardId
+            ? {
+                ...c,
+                ...(input.title !== undefined ? { title: input.title } : {}),
+                ...(input.completed !== undefined ? { completed: input.completed } : {}),
+                ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
+                ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
+                ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
+                ...(input.allDay !== undefined ? { allDay: input.allDay } : {}),
+              }
+            : c,
+        ),
+      })),
     // 본문(bodyMd)은 그래프 페이로드에서 빠져 단건 캐시(useCardById)에 산다 — PATCH 응답으로 단건
     // 캐시를 갱신해 본문 편집 후 '완료' 시 옛 본문으로 되돌아가지 않게 한다.
     onSuccess: (data, input) => qc.setQueryData(["card", input.cardId], data),
-    onError: (_err, _input, ctx) => {
-      const snapshot = ctx as { prev?: TabGraph } | undefined;
-      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
-    },
+    onError: rollbackTo<TabGraph>(qc, graphKey(tabId)),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }
@@ -328,35 +327,24 @@ export function useMoveCard(tabId: string) {
       return api.patch<Card>(`/api/cards/${input.cardId}`, patch);
     },
     // 낙관적 업데이트 — 드롭 즉시 화면에 반영해 "놓은 자리로 안 가고 원위치로 되돌아갔다 점프"하는 깜빡임 제거.
-    onMutate: async (input) => {
-      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
-      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
-        g
-          ? {
-              ...g,
-              cards: g.cards.map((c) =>
-                c.id === input.cardId
-                  ? {
-                      ...c,
-                      ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
-                      ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
-                      ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
-                    }
-                  : c,
-              ),
-              cardRelations: g.cardRelations.filter(
-                (r) => !(input.severRelationIds ?? []).includes(r.id),
-              ),
-            }
-          : g,
-      );
-      await qc.cancelQueries({ queryKey: graphKey(tabId) });
-      return { prev };
-    },
-    onError: (_err, _input, ctx) => {
-      const snapshot = ctx as { prev?: TabGraph } | undefined;
-      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
-    },
+    onMutate: (input) =>
+      optimisticUpdate<TabGraph>(qc, graphKey(tabId), (g) => ({
+        ...g,
+        cards: g.cards.map((c) =>
+          c.id === input.cardId
+            ? {
+                ...c,
+                ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
+                ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
+                ...(input.canvasY !== undefined ? { canvasY: input.canvasY } : {}),
+              }
+            : c,
+        ),
+        cardRelations: g.cardRelations.filter(
+          (r) => !(input.severRelationIds ?? []).includes(r.id),
+        ),
+      })),
+    onError: rollbackTo<TabGraph>(qc, graphKey(tabId)),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }
@@ -398,25 +386,14 @@ export function useUpdateRelation(tabId: string) {
       api.patch<CardRelation>(`/api/card-relations/${input.relationId}`, {
         summary: input.summary,
       }),
-    onMutate: async (input) => {
-      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
-      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
-        g
-          ? {
-              ...g,
-              cardRelations: g.cardRelations.map((r) =>
-                r.id === input.relationId ? { ...r, summary: input.summary } : r,
-              ),
-            }
-          : g,
-      );
-      await qc.cancelQueries({ queryKey: graphKey(tabId) });
-      return { prev };
-    },
-    onError: (_err, _input, ctx) => {
-      const snapshot = ctx as { prev?: TabGraph } | undefined;
-      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
-    },
+    onMutate: (input) =>
+      optimisticUpdate<TabGraph>(qc, graphKey(tabId), (g) => ({
+        ...g,
+        cardRelations: g.cardRelations.map((r) =>
+          r.id === input.relationId ? { ...r, summary: input.summary } : r,
+        ),
+      })),
+    onError: rollbackTo<TabGraph>(qc, graphKey(tabId)),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }
@@ -465,34 +442,23 @@ export function useUpdateGroup(tabId: string) {
       const { groupId, ...patch } = input;
       return api.patch<Group>(`/api/groups/${groupId}`, patch);
     },
-    onMutate: async (input) => {
-      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
-      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
-        g
-          ? {
-              ...g,
-              groups: g.groups.map((grp) =>
-                grp.id === input.groupId
-                  ? {
-                      ...grp,
-                      ...(input.name !== undefined ? { name: input.name } : {}),
-                      ...(input.color !== undefined ? { color: input.color } : {}),
-                    }
-                  : grp,
-              ),
-            }
-          : g,
-      );
-      await qc.cancelQueries({ queryKey: graphKey(tabId) });
-      return { prev };
-    },
+    onMutate: (input) =>
+      optimisticUpdate<TabGraph>(qc, graphKey(tabId), (g) => ({
+        ...g,
+        groups: g.groups.map((grp) =>
+          grp.id === input.groupId
+            ? {
+                ...grp,
+                ...(input.name !== undefined ? { name: input.name } : {}),
+                ...(input.color !== undefined ? { color: input.color } : {}),
+              }
+            : grp,
+        ),
+      })),
     // 본문(bodyMd)은 그래프 페이로드에서 빠져 단건 캐시(useGroupById)에 산다 — PATCH 응답으로
     // 단건 캐시를 갱신해 본문 편집 후 '완료' 시 옛 본문으로 되돌아가지 않게 한다(카드와 동형).
     onSuccess: (data, input) => qc.setQueryData(["group", input.groupId], data),
-    onError: (_err, _input, ctx) => {
-      const snapshot = ctx as { prev?: TabGraph } | undefined;
-      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
-    },
+    onError: rollbackTo<TabGraph>(qc, graphKey(tabId)),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }
@@ -527,25 +493,14 @@ export function useUpdateGroupRelation(tabId: string) {
       api.patch<GroupRelation>(`/api/group-relations/${input.relationId}`, {
         summary: input.summary,
       }),
-    onMutate: async (input) => {
-      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
-      qc.setQueryData<TabGraph>(graphKey(tabId), (g) =>
-        g
-          ? {
-              ...g,
-              groupRelations: g.groupRelations.map((r) =>
-                r.id === input.relationId ? { ...r, summary: input.summary } : r,
-              ),
-            }
-          : g,
-      );
-      await qc.cancelQueries({ queryKey: graphKey(tabId) });
-      return { prev };
-    },
-    onError: (_err, _input, ctx) => {
-      const snapshot = ctx as { prev?: TabGraph } | undefined;
-      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
-    },
+    onMutate: (input) =>
+      optimisticUpdate<TabGraph>(qc, graphKey(tabId), (g) => ({
+        ...g,
+        groupRelations: g.groupRelations.map((r) =>
+          r.id === input.relationId ? { ...r, summary: input.summary } : r,
+        ),
+      })),
+    onError: rollbackTo<TabGraph>(qc, graphKey(tabId)),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }
@@ -580,22 +535,14 @@ export function useSetCardCategory(tabId: string) {
       api.put<void>(`/api/cards/${input.cardId}/category`, {
         categoryId: input.categoryId,
       }),
-    onMutate: async (input) => {
-      const prev = qc.getQueryData<TabGraph>(graphKey(tabId));
-      qc.setQueryData<TabGraph>(graphKey(tabId), (g) => {
-        if (!g) return g;
+    onMutate: (input) =>
+      optimisticUpdate<TabGraph>(qc, graphKey(tabId), (g) => {
         const next = { ...g.cardCategoryIds };
         if (input.categoryId) next[input.cardId] = input.categoryId;
         else delete next[input.cardId];
         return { ...g, cardCategoryIds: next };
-      });
-      await qc.cancelQueries({ queryKey: graphKey(tabId) });
-      return { prev };
-    },
-    onError: (_err, _input, ctx) => {
-      const snapshot = ctx as { prev?: TabGraph } | undefined;
-      if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);
-    },
+      }),
+    onError: rollbackTo<TabGraph>(qc, graphKey(tabId)),
     onSettled: () => invalidateGraph(qc, tabId),
   });
 }

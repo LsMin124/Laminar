@@ -14,7 +14,7 @@ import { localToIso, toLocalInput } from "./EquipmentReservations";
 
 // 본문 마크다운 렌더는 카드 본문과 청크 공유(KaTeX 포함) — 공지에 본문이 있을 때만 로드.
 const MarkdownView = lazy(() =>
-  import("./MarkdownDoc").then((m) => ({ default: m.MarkdownView })),
+  import("../doc/MarkdownDoc").then((m) => ({ default: m.MarkdownView })),
 );
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];

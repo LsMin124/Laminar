@@ -2,18 +2,18 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, setCurrentSubjectId } from "../../lib/api";
 import { useCreateTab, useTabs } from "../../lib/dag";
 import { useDialogs } from "../ui/DialogProvider";
-import { CalendarView } from "./CalendarView";
-import { DagCanvas } from "./DagCanvas";
+import { CalendarView } from "../calendar/CalendarView";
+import { DagCanvas } from "../dag/DagCanvas";
 import { Identicon } from "./Identicon";
 import "./SubjectWorkspace.css";
 
 // 본문(마크다운+KaTeX)은 무겁고 항상 쓰진 않으므로 지연 로드 — 초기 번들에서 분리.
-const CardBody = lazy(() => import("./CardBody").then((m) => ({ default: m.CardBody })));
-const GroupBody = lazy(() => import("./GroupBody").then((m) => ({ default: m.GroupBody })));
-const TabBody = lazy(() => import("./TabBody").then((m) => ({ default: m.TabBody })));
-const SubjectBody = lazy(() => import("./SubjectBody").then((m) => ({ default: m.SubjectBody })));
+const CardBody = lazy(() => import("../doc/CardBody").then((m) => ({ default: m.CardBody })));
+const GroupBody = lazy(() => import("../doc/GroupBody").then((m) => ({ default: m.GroupBody })));
+const TabBody = lazy(() => import("../doc/TabBody").then((m) => ({ default: m.TabBody })));
+const SubjectBody = lazy(() => import("../doc/SubjectBody").then((m) => ({ default: m.SubjectBody })));
 const EquipmentView = lazy(() =>
-  import("./EquipmentView").then((m) => ({ default: m.EquipmentView })),
+  import("../equipment/EquipmentView").then((m) => ({ default: m.EquipmentView })),
 );
 
 // 열린 문서 — 카드·그룹·탭·주제(UUID 키) + 장비(공용 자원, 싱글톤 doc).

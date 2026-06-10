@@ -6,7 +6,7 @@ import { SignupPage } from "./pages/SignupPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { DialogProvider } from "./components/ui/DialogProvider";
-import { SubjectLayout } from "./components/dag/SubjectLayout";
+import { SubjectLayout } from "./components/subject/SubjectLayout";
 import "./App.css";
 
 const queryClient = new QueryClient({

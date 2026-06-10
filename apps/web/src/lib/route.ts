@@ -15,7 +15,7 @@ export type DocKind = "card" | "group" | "tab" | "subject" | "equipment";
 /** 장비 doc의 고정 sentinel id(UUID와 충돌 없음) — doctab 키·URL 복원 공용. */
 export const EQUIPMENT_DOC_ID = "equipment";
 
-export interface RouteDoc {
+interface RouteDoc {
   kind: DocKind;
   id: string;
 }

@@ -4,7 +4,7 @@
  * 백엔드 contract(/api/subjects·/api/tabs·graph 페이로드)에 정합. 훅은 리소스별 모듈
  * (subjects/tabs/graph/cards/groups/categories)에, 타입은 여기 한 곳에 둔다.
  */
-export type Uuid = string;
+type Uuid = string;
 export type IsoDate = string;
 
 export interface Subject {

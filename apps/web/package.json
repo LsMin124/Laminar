@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vitest run && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "e2e": "playwright test",
-    "e2e:ci": "playwright test --reporter=github"
+    "e2e:ci": "playwright test --reporter=github",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
@@ -39,6 +41,7 @@
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.8"
   }
 }

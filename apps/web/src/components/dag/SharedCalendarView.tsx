@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { ApiError } from "../../lib/api";
 import {
   useAnnouncements,
@@ -11,6 +11,11 @@ import {
 } from "../../lib/equipment";
 import { useDialogs } from "../ui/DialogProvider";
 import { localToIso, toLocalInput } from "./EquipmentReservations";
+
+// 본문 마크다운 렌더는 카드 본문과 청크 공유(KaTeX 포함) — 공지에 본문이 있을 때만 로드.
+const MarkdownView = lazy(() =>
+  import("./MarkdownDoc").then((m) => ({ default: m.MarkdownView })),
+);
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const DAY_MS = 86400000;
@@ -36,7 +41,8 @@ interface PostForm {
 
 /**
  * 공용 캘린더 공지 — 주제 공유 공지 게시판. 캘린더(여러 개 가능) 선택/생성 + 날짜 공지 작성/삭제.
- * 공지 본문은 평문(텍스트) 표시(마크다운 렌더는 추후). 시각은 브라우저 로컬↔ISO.
+ * 공지 본문은 마크다운 렌더(카드 본문과 동일한 MarkdownView, lazy). 기본 4줄 클램프, 클릭으로 펼침.
+ * 시각은 브라우저 로컬↔ISO.
  */
 export function SharedCalendarView() {
   const dialogs = useDialogs();
@@ -65,6 +71,19 @@ export function SharedCalendarView() {
   const [form, setForm] = useState<PostForm | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // 본문 펼침 상태(공지 id 집합) — 기본은 4줄 클램프.
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(new Set());
+
+  function toggleBody(id: string, e: React.MouseEvent) {
+    // 본문 안 링크 클릭은 펼침 토글로 먹지 않는다.
+    if ((e.target as HTMLElement).closest("a")) return;
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const sorted = useMemo(
     () => [...(ancQ.data ?? [])].sort((a, b) => a.startAt.localeCompare(b.startAt)),
@@ -221,7 +240,17 @@ export function SharedCalendarView() {
                 <div className="eq-anc-when">{fmtWhen(a.startAt, a.endAt)}</div>
                 <div className="eq-anc-main">
                   <div className="eq-anc-title">{a.title}</div>
-                  {a.bodyMd && <div className="eq-anc-body">{a.bodyMd}</div>}
+                  {a.bodyMd && (
+                    <div
+                      className={`eq-anc-body${expandedIds.has(a.id) ? " open" : ""}`}
+                      onClick={(e) => toggleBody(a.id, e)}
+                      title={expandedIds.has(a.id) ? "클릭하여 접기" : "클릭하여 펼치기"}
+                    >
+                      <Suspense fallback={<>{a.bodyMd}</>}>
+                        <MarkdownView source={a.bodyMd} />
+                      </Suspense>
+                    </div>
+                  )}
                 </div>
                 <button type="button" className="eq-act danger" onClick={() => onDeleteAnc(a)}>
                   삭제
@@ -275,8 +304,8 @@ export function SharedCalendarView() {
                 className="eq-input eq-textarea"
                 value={form.body}
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
-                placeholder="공지 내용"
-                rows={3}
+                placeholder="공지 내용 — 마크다운 지원 (제목 #, 목록 -, 링크, 표, 수식 $..$)"
+                rows={5}
                 maxLength={2000}
               />
             </label>

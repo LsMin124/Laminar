@@ -586,13 +586,34 @@
   font-size: 12px;
   line-height: 1.5;
   color: #b3a59c;
-  white-space: pre-wrap;
+  white-space: pre-wrap; /* 마크다운 청크 로드 전 평문 fallback의 줄바꿈 보존 */
   word-break: break-word;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  cursor: pointer;
+}
+.eq-anc-body.open {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+/* 공지 안 마크다운 — 카드 본문 타이포(.cb-md)를 리스트 밀도로 죈다 */
+.eq-anc-body .cb-md {
+  padding: 0;
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b3a59c;
+  white-space: normal;
+}
+.eq-anc-body .cb-md > :first-child {
+  margin-top: 0;
+}
+.eq-anc-body .cb-md > :last-child {
+  margin-bottom: 0;
 }
 
 /* ── 예약↔카드 연결 (탭→카드 picker + 연결 카드 칩) ── */

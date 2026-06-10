@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSubjectId, setCurrentSubjectId } from "../../lib/api";
+import { dagKeys } from "../../lib/dagKeys";
 import type { Subject } from "../../lib/graphTypes";
 import { useCreateSubject, useDeleteSubject, useSubjects, useUpdateSubject } from "../../lib/subjects";
+import { pushRoute, replaceRoute, useRoute } from "../../lib/useRoute";
 import { useDialogs } from "../ui/DialogProvider";
 import { SubjectWorkspace } from "./SubjectWorkspace";
 import { Identicon } from "./Identicon";
@@ -13,6 +15,9 @@ import "./SubjectLayout.css";
  * 레일=빠른 전환만, 세부사항(목록·이름변경·생성·삭제)은 별도 모달 창에서.
  * 주제 전환 시 X-Laminar-Subject-Id 헤더 변경 + tabs/graph 캐시 제거 + key 리마운트.
  * 레일 하단(rail-future)=전역 도구: 장비 관리(플라스크, doctab 오픈) + 학습 정리(준비 중 ghost).
+ *
+ * DX-3: 활성 주제의 정본은 URL(/s/{subjectId}) — localStorage는 API 헤더용 follower.
+ * URL이 없거나(루트 진입) 무효(남의/삭제된 주제)면 저장값→첫 주제 순으로 보정(replace).
  */
 export function SubjectLayout() {
   const subjects = useSubjects();
@@ -21,7 +26,8 @@ export function SubjectLayout() {
   const deleteSubject = useDeleteSubject();
   const dialogs = useDialogs();
   const qc = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(() => getCurrentSubjectId());
+  const route = useRoute();
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 SubjectWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
@@ -31,21 +37,44 @@ export function SubjectLayout() {
 
   const list = subjects.data ?? [];
 
-  // 목록 로드 시 활성 주제 보정(저장값 없거나 목록에 없으면 첫 주제) + 헤더 동기화.
+  function purgeSubjectCaches() {
+    // tabs/tabGraph는 주제-무관 키(헤더 기반 API)라 주제가 바뀌면 비워야 한다.
+    qc.removeQueries({ queryKey: dagKeys.tabs });
+    qc.removeQueries({ queryKey: dagKeys.tabGraphs });
+  }
+
+  // URL(정본) → 활성 주제 보정·동기화. 헤더(setCurrentSubjectId)를 마운트 트리거(setActiveId)보다
+  // 먼저 동기 호출해야 자식(useTabs)의 첫 fetch가 새 주제 헤더로 나간다(자식 effect가 부모보다 선행).
+  // 뒤로가기/딥링크로 주제가 바뀌는 경로에도 캐시 purge가 동작하도록 직전 값을 추적한다.
+  const prevActiveRef = useRef<string | null>(null);
   useEffect(() => {
     if (!subjects.data) return;
-    const valid = !!activeId && subjects.data.some((s) => s.id === activeId);
-    const next = valid ? activeId : (subjects.data[0]?.id ?? null);
+    const urlValid = !!route.subjectId && subjects.data.some((s) => s.id === route.subjectId);
+    const stored = getCurrentSubjectId();
+    const storedValid = !!stored && subjects.data.some((s) => s.id === stored);
+    const next = urlValid
+      ? route.subjectId
+      : storedValid
+        ? stored
+        : (subjects.data[0]?.id ?? null);
     setCurrentSubjectId(next);
-    if (next !== activeId) setActiveId(next);
-  }, [subjects.data, activeId]);
+    if (prevActiveRef.current !== null && next !== prevActiveRef.current) purgeSubjectCaches();
+    prevActiveRef.current = next;
+    setActiveId(next);
+    if (next && !urlValid) {
+      replaceRoute({ subjectId: next, tabId: null, view: "canvas", doc: null });
+    } else if (!next && route.subjectId) {
+      replaceRoute({ subjectId: null, tabId: null, view: "canvas", doc: null });
+    }
+  }, [subjects.data, route.subjectId]);
 
   function switchSubject(id: string) {
     if (id === activeId) return;
-    setCurrentSubjectId(id);
+    setCurrentSubjectId(id); // 헤더 먼저(아래 마운트 트리거보다 선행)
+    prevActiveRef.current = id;
+    purgeSubjectCaches();
     setActiveId(id);
-    qc.removeQueries({ queryKey: ["tabs"] });
-    qc.removeQueries({ queryKey: ["tabGraph"] });
+    pushRoute({ subjectId: id, tabId: null, view: "canvas", doc: null });
   }
 
   async function onCreateSubject() {
@@ -82,12 +111,11 @@ export function SubjectLayout() {
       });
       return;
     }
-    // 활성 주제가 사라졌으니 헤더/활성 초기화 → 목록 재조회 시 효과가 첫 주제를 재선정.
+    // 활성 주제가 사라졌으니 헤더/활성 초기화 → 목록 재조회 시 보정 effect가 첫 주제를 재선정(replace).
     setCurrentSubjectId(null);
     setActiveId(null);
-    qc.removeQueries({ queryKey: ["tabs"] });
-    qc.removeQueries({ queryKey: ["tabGraph"] });
-    await qc.invalidateQueries({ queryKey: ["subjects"] });
+    purgeSubjectCaches();
+    await qc.invalidateQueries({ queryKey: dagKeys.subjects });
   }
 
   const activeValid = !!activeId && list.some((s) => s.id === activeId);
@@ -241,4 +269,3 @@ export function SubjectLayout() {
     </div>
   );
 }
-

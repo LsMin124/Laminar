@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, setCurrentSubjectId } from "../../lib/api";
+import { EQUIPMENT_DOC_ID, type DocKind } from "../../lib/route";
 import { useCreateTab, useTabs } from "../../lib/tabs";
+import { pushRoute, replaceRoute, useRoute } from "../../lib/useRoute";
 import { useDialogs } from "../ui/DialogProvider";
 import { CalendarView } from "../calendar/CalendarView";
 import { DagCanvas } from "../dag/DagCanvas";
@@ -16,17 +18,13 @@ const EquipmentView = lazy(() =>
   import("../equipment/EquipmentView").then((m) => ({ default: m.EquipmentView })),
 );
 
-// 열린 문서 — 카드·그룹·탭·주제(UUID 키) + 장비(공용 자원, 싱글톤 doc).
-type DocKind = "card" | "group" | "tab" | "subject" | "equipment";
+// 열린 문서 — 종류(DocKind)·sentinel은 lib/route와 공유(URL 복원이 같은 어휘를 쓴다).
 interface OpenDoc {
   kind: DocKind;
   id: string;
   tabId: string;
   title: string;
 }
-
-// 장비 doc는 단일(주제/탭 무관)이라 고정 sentinel id 사용(UUID와 충돌 없음).
-const EQUIPMENT_DOC_ID = "equipment";
 
 // 문서 탭 라벨 접두(종류 식별). 카드는 접두 없음.
 const DOC_PREFIX: Record<DocKind, string> = {
@@ -40,6 +38,9 @@ const DOC_PREFIX: Record<DocKind, string> = {
 /**
  * DAG 워크스페이스 셸 — 탭 목록/생성 + 선택 탭의 DAG 캔버스 호스트.
  * 본문 문서(카드·그룹·탭·주제)는 상단 브라우저 탭식 doctab 바에서 열린다.
+ *
+ * DX-3: 활성 탭·뷰·활성 문서의 정본은 URL(useRoute) — 전환은 pushRoute, 보정은 replaceRoute.
+ * 열린 문서 "목록"은 세션 상태로 남고, 딥링크/뒤로가기로 URL에만 있는 문서는 복원해 연다.
  */
 export function SubjectWorkspace({
   subjectId,
@@ -57,20 +58,37 @@ export function SubjectWorkspace({
   const tabs = useTabs();
   const createTab = useCreateTab();
   const dialogs = useDialogs();
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [view, setView] = useState<"canvas" | "calendar">("canvas");
-  // 브라우저 탭식 본문 문서 — 열린 문서들 + 활성(activeDoc=null이면 보드 뷰).
+  const route = useRoute();
+  // 열린 문서 목록(세션 상태) — URL에는 활성 문서 하나만 실린다.
   const [openDocs, setOpenDocs] = useState<OpenDoc[]>([]);
-  const [activeDoc, setActiveDoc] = useState<string | null>(null);
 
   const list = tabs.data ?? [];
-  const active = activeTab ?? list[0]?.id ?? null;
+  const routeTabValid = !!route.tabId && list.some((t) => t.id === route.tabId);
+  const active = routeTabValid ? route.tabId : (list[0]?.id ?? null);
+  const view = route.view;
+  const activeDoc = route.doc?.id ?? null;
+
+  // URL의 탭이 목록에 없으면(삭제·타 주제 딥링크) 첫 탭으로 보정 — replace(히스토리 오염 방지).
+  // 주제 전환 과도 구간(뒤로가기로 URL은 새 주제, 본 컴포넌트는 아직 구 주제) 동안
+  // 남의 URL을 내 탭으로 되돌려 쓰지 않도록 자기 주제의 URL에만 반응한다.
+  useEffect(() => {
+    if (route.subjectId !== subjectId) return;
+    if (!tabs.data) return;
+    if (route.tabId && !tabs.data.some((t) => t.id === route.tabId)) {
+      replaceRoute({
+        subjectId,
+        tabId: tabs.data[0]?.id ?? null,
+        view: route.view,
+        doc: route.doc,
+      });
+    }
+  }, [tabs.data, route.tabId, route.view, route.doc, route.subjectId, subjectId]);
 
   async function onCreateTab() {
     const name = await dialogs.prompt({ title: "새 탭", placeholder: "탭 이름" });
     if (!name || !name.trim()) return;
     const tab = await createTab.mutateAsync(name.trim());
-    setActiveTab(tab.id);
+    pushRoute({ subjectId, tabId: tab.id, view, doc: null });
   }
 
   async function onLogout() {
@@ -83,14 +101,14 @@ export function SubjectWorkspace({
     location.reload();
   }
 
-  // 본문 문서 열기(이미 열려 있으면 제목 갱신 후 활성화). 탭/주제 본문은 활성 보드 탭이 없어도 열 수 있다.
+  // 본문 문서 열기(이미 열려 있으면 제목 갱신) + URL 활성화. 탭/주제 본문은 활성 보드 탭이 없어도 열 수 있다.
   function openDoc(kind: DocKind, id: string, title: string) {
     setOpenDocs((prev) =>
       prev.some((d) => d.id === id)
         ? prev.map((d) => (d.id === id ? { ...d, title } : d))
         : [...prev, { kind, id, tabId: active ?? "", title }],
     );
-    setActiveDoc(id);
+    pushRoute({ subjectId, tabId: route.tabId, view, doc: { kind, id } });
   }
   const openCard = (cardId: string, title: string) => openDoc("card", cardId, title);
   const openGroup = (groupId: string, title: string) => openDoc("group", groupId, title);
@@ -112,11 +130,15 @@ export function SubjectWorkspace({
   }, [openSubjectBodyNonce]);
   function closeDoc(id: string) {
     setOpenDocs((prev) => prev.filter((d) => d.id !== id));
-    setActiveDoc((cur) => (cur === id ? null : cur));
+    if (route.doc?.id === id) {
+      pushRoute({ subjectId, tabId: route.tabId, view, doc: null });
+    }
   }
   function showBoard(nextView?: "canvas" | "calendar") {
-    if (nextView) setView(nextView);
-    setActiveDoc(null);
+    pushRoute({ subjectId, tabId: route.tabId, view: nextView ?? view, doc: null });
+  }
+  function activateDoc(d: OpenDoc) {
+    pushRoute({ subjectId, tabId: route.tabId, view, doc: { kind: d.kind, id: d.id } });
   }
   // 장비 관리를 브라우저 탭식 문서로 열기(카드/본문과 동일한 doctab 창).
   const openEquipment = () => openDoc("equipment", EQUIPMENT_DOC_ID, "장비 관리");
@@ -133,6 +155,66 @@ export function SubjectWorkspace({
     }
     openEquipmentRef.current();
   }, [openEquipmentNonce]);
+
+  // URL에만 있는 활성 문서 복원(딥링크·닫은 문서로 뒤로가기) — 제목은 단건 조회로 보정.
+  // latest-ref 패턴: 본체는 매 커밋 갱신, 실행은 문서 키가 바뀔 때만.
+  const routeDocKey = route.doc ? `${route.doc.kind}:${route.doc.id}` : null;
+  const restoreDocRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    restoreDocRef.current = () => {
+      if (route.subjectId !== subjectId) return; // 주제 전환 과도 구간 — 남의 URL 문서를 열지 않음
+      const doc = route.doc;
+      if (!doc) return;
+      if (openDocs.some((d) => d.id === doc.id)) return; // 이미 열려 있음 — 복원 불요
+      const title =
+        doc.kind === "equipment"
+          ? "장비 관리"
+          : doc.kind === "subject"
+            ? subjectName
+            : doc.kind === "tab"
+              ? (list.find((t) => t.id === doc.id)?.name ?? "")
+              : "";
+      setOpenDocs((prev) =>
+        prev.some((d) => d.id === doc.id)
+          ? prev
+          : [...prev, { kind: doc.kind, id: doc.id, tabId: active ?? "", title }],
+      );
+      if (doc.kind === "card" || doc.kind === "group") {
+        const path = doc.kind === "card" ? `/api/cards/${doc.id}` : `/api/groups/${doc.id}`;
+        api.get<{ title?: string; name?: string }>(path).then(
+          (data) => {
+            const fetched = data.title ?? data.name ?? "";
+            setOpenDocs((prev) =>
+              prev.map((d) => (d.id === doc.id && !d.title ? { ...d, title: fetched } : d)),
+            );
+          },
+          () => {
+            // 부재/권한 없음은 본문 영역이 에러를 표시 — 라벨은 빈 채 둔다.
+          },
+        );
+      }
+    };
+  });
+  useEffect(() => {
+    if (routeDocKey) restoreDocRef.current();
+  }, [routeDocKey]);
+
+  // 복원된 탭 doc의 빈 제목을 탭 목록 도착 시 보정.
+  useEffect(() => {
+    if (!tabs.data) return;
+    const data = tabs.data;
+    setOpenDocs((prev) => {
+      let changed = false;
+      const next = prev.map((d) => {
+        if (d.kind !== "tab" || d.title) return d;
+        const name = data.find((t) => t.id === d.id)?.name;
+        if (!name) return d;
+        changed = true;
+        return { ...d, title: name };
+      });
+      return changed ? next : prev;
+    });
+  }, [tabs.data]);
 
   const activeDocEntry = openDocs.find((d) => d.id === activeDoc) ?? null;
 
@@ -166,7 +248,7 @@ export function SubjectWorkspace({
                 <button
                   type="button"
                   className={`dw-tab${isActive ? " active" : ""}`}
-                  onClick={() => setActiveTab(t.id)}
+                  onClick={() => pushRoute({ subjectId, tabId: t.id, view, doc: route.doc })}
                 >
                   {t.name}
                 </button>
@@ -213,7 +295,7 @@ export function SubjectWorkspace({
           <button
             type="button"
             className={`dw-doctab${activeDoc === null ? " active" : ""}`}
-            onClick={() => setActiveDoc(null)}
+            onClick={() => showBoard()}
           >
             ◧ 보드
           </button>
@@ -225,7 +307,7 @@ export function SubjectWorkspace({
               <button
                 type="button"
                 className="dw-doctab-label"
-                onClick={() => setActiveDoc(d.id)}
+                onClick={() => activateDoc(d)}
                 title={d.title}
               >
                 {DOC_PREFIX[d.kind]}

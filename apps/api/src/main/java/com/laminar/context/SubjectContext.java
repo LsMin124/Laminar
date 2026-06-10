@@ -1,6 +1,5 @@
 package com.laminar.context;
 
-import com.laminar.subject.domain.SubjectRole;
 import java.util.UUID;
 
 /**

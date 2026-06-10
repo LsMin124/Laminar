@@ -1,11 +1,11 @@
 package com.laminar.subject.application;
 
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.context.SubjectRole;
 import com.laminar.outbox.domain.EmailOutboxEntity;
 import com.laminar.subject.domain.SubjectInvitationEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
-import com.laminar.subject.domain.SubjectRole;
 import com.laminar.subject.repository.SubjectInvitationRepository;
 import com.laminar.subject.repository.SubjectMemberRepository;
 import com.laminar.system.EmailOutboxSystemRepository;

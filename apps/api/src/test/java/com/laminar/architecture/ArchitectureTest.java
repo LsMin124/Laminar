@@ -1,5 +1,8 @@
 package com.laminar.architecture;
 
+import static com.tngtech.archunit.base.DescribedPredicate.not;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -118,4 +121,29 @@ public class ArchitectureTest {
           .dependOnClassesThat()
           .haveSimpleNameEndingWith("Repository")
           .allowEmptyShould(true);
+
+  /**
+   * DX-16 — 인프라 패키지(context·common·error)는 도메인 패키지에 의존 금지.
+   *
+   * <p>context는 14개 패키지가 의존하는 최기반 인프라 — 특정 도메인으로의 역의존은 순환을 만든다 (과거:
+   * SubjectContext→subject.SubjectRole, 필터→SubjectMemberRepository). SubjectRole은 격리 모델의 어휘로
+   * context 소속으로 이동했고, 멤버십 해석은 MembershipResolver 포트(구현: subject 측 @Component)로 분리해 순환을 절단했다. 본 룰이
+   * 재발을 기계 차단한다. security(LaminarPrincipal)는 인증 인프라라 허용.
+   */
+  @ArchTest
+  static final ArchRule infra_must_not_depend_on_domain_packages =
+      noClasses()
+          .that()
+          .resideInAnyPackage(
+              "com.laminar.context..", "com.laminar.common..", "com.laminar.error..")
+          .should()
+          .dependOnClassesThat(
+              resideInAPackage("com.laminar..")
+                  .and(
+                      not(
+                          resideInAnyPackage(
+                              "com.laminar.context..",
+                              "com.laminar.common..",
+                              "com.laminar.error..",
+                              "com.laminar.security.."))));
 }

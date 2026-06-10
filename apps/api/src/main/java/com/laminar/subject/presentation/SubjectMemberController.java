@@ -1,10 +1,10 @@
 package com.laminar.subject.presentation;
 
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.context.SubjectRole;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.subject.application.SubjectMemberService;
 import com.laminar.subject.domain.SubjectMemberEntity;
-import com.laminar.subject.domain.SubjectRole;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;

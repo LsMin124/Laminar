@@ -1,4 +1,4 @@
-package com.laminar.subject.domain;
+package com.laminar.context;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

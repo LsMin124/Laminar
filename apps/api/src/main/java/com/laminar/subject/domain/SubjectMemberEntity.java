@@ -1,5 +1,6 @@
 package com.laminar.subject.domain;
 
+import com.laminar.context.SubjectRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;

@@ -2,10 +2,10 @@ package com.laminar.subject.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.context.SubjectRole;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
-import com.laminar.subject.domain.SubjectRole;
 import com.laminar.subject.repository.SubjectMemberRepository;
 import com.laminar.subject.repository.SubjectRepository;
 import java.security.SecureRandom;

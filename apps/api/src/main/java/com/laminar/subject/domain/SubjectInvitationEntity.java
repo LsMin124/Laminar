@@ -1,6 +1,7 @@
 package com.laminar.subject.domain;
 
 import com.laminar.common.domain.SubjectScopedBaseEntity;
+import com.laminar.context.SubjectRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

@@ -1,8 +1,6 @@
 package com.laminar.context;
 
 import com.laminar.security.LaminarPrincipal;
-import com.laminar.subject.domain.SubjectMemberEntity;
-import com.laminar.subject.repository.SubjectMemberRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,10 +31,11 @@ public class SubjectContextRequestFilter extends OncePerRequestFilter {
   // 활성 주제(Subject) 선택 헤더 — 프론트가 송신, 본 필터가 SubjectContext 도출에 사용.
   private static final String HEADER_SUBJECT_ID = "X-Laminar-Subject-Id";
 
-  private final SubjectMemberRepository memberRepo;
+  // 멤버십 해석은 포트 너머로만 — subject 도메인 직의존 금지 (DX-16, ArchUnit 강제).
+  private final MembershipResolver membershipResolver;
 
-  public SubjectContextRequestFilter(SubjectMemberRepository memberRepo) {
-    this.memberRepo = memberRepo;
+  public SubjectContextRequestFilter(MembershipResolver membershipResolver) {
+    this.membershipResolver = membershipResolver;
   }
 
   @Override
@@ -56,13 +55,12 @@ public class SubjectContextRequestFilter extends OncePerRequestFilter {
       context = SubjectContext.system();
     } else {
       UUID userId = maybePrincipal.get().userId();
-      Optional<SubjectMemberEntity> member =
-          memberRepo.findByIdSubjectIdAndIdUserIdAndRemovedAtIsNull(subjectId, userId);
-      if (member.isEmpty()) {
+      Optional<SubjectRole> role = membershipResolver.activeRole(subjectId, userId);
+      if (role.isEmpty()) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "not a member of subject");
         return;
       }
-      context = SubjectContext.personal(subjectId, userId, member.get().getRole());
+      context = SubjectContext.personal(subjectId, userId, role.get());
     }
 
     SubjectContextHolder.set(context);

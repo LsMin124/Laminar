@@ -1,6 +1,6 @@
 package com.laminar.subject.presentation;
 
-import com.laminar.subject.domain.SubjectRole;
+import com.laminar.context.SubjectRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

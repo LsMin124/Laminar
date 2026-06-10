@@ -28,3 +28,10 @@ logging:
 app:
   cookie:
     secure: false
+  jwt:
+    # 테스트 전용 더미(HS256 최소 32바이트 충족) — 실 배포 secret은 환경변수 JWT_SECRET.
+    secret: "integration-test-only-jwt-secret-0123456789abcdef"
+  r2:
+    # 부팅용 더미 — presign은 로컬 서명 연산이라 네트워크 불필요, endpoint는 placeholder 기본값 사용.
+    access-key: "integration-test-access-key"
+    secret-key: "integration-test-secret-key"

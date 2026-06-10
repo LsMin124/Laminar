@@ -11,7 +11,19 @@ package com.laminar.error;
  */
 public class ConflictException extends RuntimeException {
 
+  /** 기계 판독 코드(선택) — 프론트가 메시지를 달리 보여줘야 하는 충돌에만 부여(DX-4). */
+  private final ErrorCode code;
+
   public ConflictException(String message) {
+    this(message, null);
+  }
+
+  public ConflictException(String message, ErrorCode code) {
     super(message);
+    this.code = code;
+  }
+
+  public ErrorCode code() {
+    return code;
   }
 }

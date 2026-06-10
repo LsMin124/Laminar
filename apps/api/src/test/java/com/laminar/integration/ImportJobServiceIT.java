@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.ConflictException;
 import com.laminar.outbox.application.ImportJobService;
 import com.laminar.outbox.domain.ImportJobEntity;
 import com.laminar.outbox.domain.ImportJobStatus;
@@ -91,7 +92,7 @@ class ImportJobServiceIT extends IsolationIntegrationBase {
     importService.complete(job.getId(), null);
 
     assertThatThrownBy(() -> importService.start(job.getId()))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(ConflictException.class)
         .hasMessageContaining("PENDING");
   }
 
@@ -103,7 +104,7 @@ class ImportJobServiceIT extends IsolationIntegrationBase {
     importService.complete(job.getId(), null);
 
     assertThatThrownBy(() -> importService.cancel(job.getId()))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(ConflictException.class)
         .hasMessageContaining("terminal");
   }
 }

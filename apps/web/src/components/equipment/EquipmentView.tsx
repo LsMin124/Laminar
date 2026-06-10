@@ -1,13 +1,7 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "../../lib/api";
-import {
-  useCreateEquipment,
-  useDeleteEquipment,
-  useEquipment,
-  useToggleEquipmentActive,
-  useUpdateEquipment,
-  type Equipment,
-} from "../../lib/equipment";
+import { useCreateEquipment, useDeleteEquipment, useEquipment, useToggleEquipmentActive, useUpdateEquipment } from "../../lib/equipment";
+import type { Equipment } from "../../lib/equipmentTypes";
 import { useDialogs } from "../ui/DialogProvider";
 import { EquipmentLogs } from "./EquipmentLogs";
 import { EquipmentReservations } from "./EquipmentReservations";

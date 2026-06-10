@@ -1,10 +1,6 @@
 import { useMemo } from "react";
-import {
-  useCancelReservation,
-  useMyReservations,
-  type Equipment,
-  type Reservation,
-} from "../../lib/equipment";
+import type { Equipment, Reservation } from "../../lib/equipmentTypes";
+import { useCancelReservation, useMyReservations } from "../../lib/reservations";
 import { useDialogs } from "../ui/DialogProvider";
 import { LinkedCardChip } from "./CardPicker";
 import { fmtRange } from "./EquipmentReservations";

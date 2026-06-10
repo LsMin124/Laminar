@@ -1,14 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { ApiError } from "../../lib/api";
-import {
-  useAnnouncements,
-  useCreateSharedCalendar,
-  useDeleteAnnouncement,
-  useDeleteSharedCalendar,
-  usePostAnnouncement,
-  useSharedCalendars,
-  type Announcement,
-} from "../../lib/equipment";
+import type { Announcement } from "../../lib/equipmentTypes";
+import { useAnnouncements, useCreateSharedCalendar, useDeleteAnnouncement, useDeleteSharedCalendar, usePostAnnouncement, useSharedCalendars } from "../../lib/sharedCalendars";
 import { useDialogs } from "../ui/DialogProvider";
 import { localToIso, toLocalInput } from "./EquipmentReservations";
 

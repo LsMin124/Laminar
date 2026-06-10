@@ -1,15 +1,7 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "../../lib/api";
-import {
-  useCreateLog,
-  useCreateLogColumn,
-  useDeleteLogColumn,
-  useLogColumns,
-  useLogs,
-  type Equipment,
-  type LogColumn,
-  type LogColumnType,
-} from "../../lib/equipment";
+import { useCreateLog, useCreateLogColumn, useDeleteLogColumn, useLogColumns, useLogs } from "../../lib/equipmentLogs";
+import type { Equipment, LogColumn, LogColumnType } from "../../lib/equipmentTypes";
 import { useDialogs } from "../ui/DialogProvider";
 import { localToIso, toLocalInput } from "./EquipmentReservations";
 

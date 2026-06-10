@@ -1,32 +1,21 @@
 /**
- * 장비(공용 자원) 데이터 레이어 — 백엔드 /api/equipment(subject-shared) CRUD.
+ * 장비(공용 자원) CRUD 데이터 훅 — 백엔드 /api/equipment(subject-shared).
  *
  * 장비는 주제(워크스페이스) 단위로 모든 멤버가 공유한다. 표준 X-Laminar-Subject-Id 헤더로 접근
  * (EquipmentService는 PERSONAL 스코프 + canWrite 허용). 삭제는 OWNER만(백엔드 강제 → 403).
+ *
+ * DX-2′: 예약(reservations)·로그(equipmentLogs)·공용캘린더(sharedCalendars)는 리소스별 모듈로
+ * 분리 — 타입은 equipmentTypes, 키는 equipmentKeys가 정본.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
-
-export interface Equipment {
-  id: string;
-  subjectId: string;
-  createdBy: string | null;
-  name: string;
-  description: string | null;
-  location: string | null;
-  active: boolean;
-  /** 로그 시트 컬럼 정의(JSONB) — 로그 기능 증분에서 사용, 현재는 빈 배열로 둠. */
-  defaultLogColumns: Record<string, unknown>[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-const EQUIPMENT_KEY = ["equipment"] as const;
+import { equipmentKeys } from "./equipmentKeys";
+import type { Equipment } from "./equipmentTypes";
 
 /** 주제의 전체 장비(비활성 포함) — 활성 필터는 뷰에서 클라이언트 측 토글. */
 export function useEquipment() {
   return useQuery({
-    queryKey: EQUIPMENT_KEY,
+    queryKey: equipmentKeys.equipment,
     queryFn: () => api.get<Equipment[]>("/api/equipment?activeOnly=false"),
   });
 }
@@ -41,7 +30,7 @@ export function useCreateEquipment() {
         location: input.location ?? null,
         defaultLogColumns: [],
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: EQUIPMENT_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: equipmentKeys.equipment }),
   });
 }
 
@@ -57,7 +46,7 @@ export function useUpdateEquipment() {
       const { id, ...patch } = input;
       return api.patch<Equipment>(`/api/equipment/${id}`, patch);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: EQUIPMENT_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: equipmentKeys.equipment }),
   });
 }
 
@@ -66,7 +55,7 @@ export function useToggleEquipmentActive() {
   return useMutation({
     mutationFn: (input: { id: string; active: boolean }) =>
       api.post<Equipment>(`/api/equipment/${input.id}/toggle-active`, { active: input.active }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: EQUIPMENT_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: equipmentKeys.equipment }),
   });
 }
 
@@ -74,256 +63,6 @@ export function useDeleteEquipment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete<void>(`/api/equipment/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: EQUIPMENT_KEY }),
-  });
-}
-
-// ── 장비 예약 ──────────────────────────────────────────────────────────
-// 예약은 subject-shared·시간 겹침 차단(409). 시각은 ISO OffsetDateTime 문자열.
-
-export interface Reservation {
-  id: string;
-  subjectId: string;
-  equipmentId: string;
-  reservedBy: string;
-  startAt: string;
-  endAt: string;
-  purpose: string | null;
-  rrule: string | null;
-  cardId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/** 한 장비의 [from,to) 범위 예약 — 백엔드가 from/to(ISO) 쿼리를 필수로 요구한다. */
-export function useReservations(equipmentId: string | null, fromIso: string, toIso: string) {
-  return useQuery({
-    queryKey: ["reservations", equipmentId, fromIso, toIso],
-    queryFn: () =>
-      api.get<Reservation[]>(
-        `/api/equipment/${equipmentId}/reservations?from=${encodeURIComponent(
-          fromIso,
-        )}&to=${encodeURIComponent(toIso)}`,
-      ),
-    enabled: !!equipmentId,
-  });
-}
-
-/** 인증 사용자의 전체 예약(모든 장비, startAt DESC). */
-export function useMyReservations() {
-  return useQuery({
-    queryKey: ["my-reservations"],
-    queryFn: () => api.get<Reservation[]>("/api/me/reservations"),
-  });
-}
-
-function invalidateReservations(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: ["reservations"] });
-  qc.invalidateQueries({ queryKey: ["my-reservations"] });
-}
-
-export function useCreateReservation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      equipmentId: string;
-      startAt: string;
-      endAt: string;
-      purpose?: string | null;
-      cardId?: string | null;
-    }) =>
-      api.post<Reservation>(`/api/equipment/${input.equipmentId}/reservations`, {
-        startAt: input.startAt,
-        endAt: input.endAt,
-        purpose: input.purpose ?? null,
-        cardId: input.cardId ?? null,
-      }),
-    onSuccess: () => invalidateReservations(qc),
-  });
-}
-
-export function useCancelReservation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (reservationId: string) => api.delete<void>(`/api/reservations/${reservationId}`),
-    onSuccess: () => invalidateReservations(qc),
-  });
-}
-
-// ── 장비 로그 시트(동적 컬럼) ──────────────────────────────────────────────
-// 컬럼은 장비별 정의(type=TEXT/NUMBER/ENUM/BOOL/DATETIME), 로그 행은 columnKey→값(JSONB).
-
-export type LogColumnType = "TEXT" | "NUMBER" | "ENUM" | "BOOL" | "DATETIME";
-
-export interface LogColumn {
-  id: string;
-  equipmentId: string;
-  columnKey: string;
-  columnLabel: string;
-  columnType: LogColumnType;
-  enumValues: string[] | null;
-  required: boolean;
-  priority: number;
-  defaultValue: string | null;
-}
-
-export interface LogEntry {
-  id: string;
-  equipmentId: string;
-  loggedBy: string;
-  loggedAt: string;
-  reservationId: string | null;
-  values: Record<string, unknown>;
-  notes: string | null;
-  createdAt: string;
-}
-
-export function useLogColumns(equipmentId: string | null) {
-  return useQuery({
-    queryKey: ["log-columns", equipmentId],
-    queryFn: () => api.get<LogColumn[]>(`/api/equipment/${equipmentId}/log-columns`),
-    enabled: !!equipmentId,
-  });
-}
-
-export function useCreateLogColumn(equipmentId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      columnKey: string;
-      columnLabel: string;
-      columnType: LogColumnType;
-      enumValues?: string[] | null;
-      required: boolean;
-      defaultValue?: string | null;
-    }) => api.post<LogColumn>(`/api/equipment/${equipmentId}/log-columns`, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["log-columns", equipmentId] }),
-  });
-}
-
-export function useDeleteLogColumn(equipmentId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (columnId: string) => api.delete<void>(`/api/log-columns/${columnId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["log-columns", equipmentId] }),
-  });
-}
-
-export function useLogs(equipmentId: string | null) {
-  return useQuery({
-    queryKey: ["logs", equipmentId],
-    queryFn: () => api.get<LogEntry[]>(`/api/equipment/${equipmentId}/logs`),
-    enabled: !!equipmentId,
-  });
-}
-
-export function useCreateLog(equipmentId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      loggedAt?: string | null;
-      values: Record<string, string>;
-      notes?: string | null;
-    }) => api.post<LogEntry>(`/api/equipment/${equipmentId}/logs`, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["logs", equipmentId] }),
-  });
-}
-
-// ── 공용 캘린더 + 공지 ─────────────────────────────────────────────────────
-// 주제 공유 공지 게시판. 캘린더(여러 개 가능, 장비 연동 1:1 또는 일반) + 날짜 범위 공지.
-
-export interface SharedCalendar {
-  id: string;
-  equipmentId: string | null;
-  name: string;
-  color: string | null;
-  defaultView: string | null;
-  announcementOnly: boolean;
-  createdAt: string;
-}
-
-export interface Announcement {
-  id: string;
-  sharedCalendarId: string;
-  postedBy: string;
-  startAt: string;
-  endAt: string | null;
-  title: string;
-  bodyMd: string | null;
-  createdAt: string;
-}
-
-export function useSharedCalendars() {
-  return useQuery({
-    queryKey: ["shared-calendars"],
-    queryFn: () => api.get<SharedCalendar[]>("/api/shared-calendars"),
-  });
-}
-
-export function useCreateSharedCalendar() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      name: string;
-      announcementOnly: boolean;
-      equipmentId?: string | null;
-      color?: string | null;
-    }) =>
-      api.post<SharedCalendar>("/api/shared-calendars", {
-        name: input.name,
-        announcementOnly: input.announcementOnly,
-        equipmentId: input.equipmentId ?? null,
-        color: input.color ?? null,
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["shared-calendars"] }),
-  });
-}
-
-export function useDeleteSharedCalendar() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (calendarId: string) => api.delete<void>(`/api/shared-calendars/${calendarId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["shared-calendars"] }),
-  });
-}
-
-export function useAnnouncements(calendarId: string | null, fromIso: string, toIso: string) {
-  return useQuery({
-    queryKey: ["announcements", calendarId, fromIso, toIso],
-    queryFn: () =>
-      api.get<Announcement[]>(
-        `/api/shared-calendars/${calendarId}/announcements?from=${encodeURIComponent(
-          fromIso,
-        )}&to=${encodeURIComponent(toIso)}`,
-      ),
-    enabled: !!calendarId,
-  });
-}
-
-export function usePostAnnouncement(calendarId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      startAt: string;
-      endAt?: string | null;
-      title: string;
-      bodyMd?: string | null;
-    }) =>
-      api.post<Announcement>(`/api/shared-calendars/${calendarId}/announcements`, {
-        startAt: input.startAt,
-        endAt: input.endAt ?? null,
-        title: input.title,
-        bodyMd: input.bodyMd ?? null,
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements"] }),
-  });
-}
-
-export function useDeleteAnnouncement() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (announcementId: string) =>
-      api.delete<void>(`/api/announcements/${announcementId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: equipmentKeys.equipment }),
   });
 }

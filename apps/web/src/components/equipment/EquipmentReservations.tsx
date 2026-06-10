@@ -1,12 +1,7 @@
 import { useMemo, useState } from "react";
 import { ApiError } from "../../lib/api";
-import {
-  useCancelReservation,
-  useCreateReservation,
-  useReservations,
-  type Equipment,
-  type Reservation,
-} from "../../lib/equipment";
+import type { Equipment, Reservation } from "../../lib/equipmentTypes";
+import { useCancelReservation, useCreateReservation, useReservations } from "../../lib/reservations";
 import { useDialogs } from "../ui/DialogProvider";
 import { CardPicker, LinkedCardChip } from "./CardPicker";
 

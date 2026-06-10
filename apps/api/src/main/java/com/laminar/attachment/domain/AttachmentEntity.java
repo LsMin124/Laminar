@@ -1,6 +1,7 @@
 package com.laminar.attachment.domain;
 
 import com.laminar.common.domain.PersonalBaseEntity;
+import com.laminar.common.domain.SoftDeletable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -17,7 +18,7 @@ import org.hibernate.annotations.Filter;
     condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
-public class AttachmentEntity extends PersonalBaseEntity {
+public class AttachmentEntity extends PersonalBaseEntity implements SoftDeletable {
 
   @Column(name = "uploaded_by")
   private UUID uploadedBy;

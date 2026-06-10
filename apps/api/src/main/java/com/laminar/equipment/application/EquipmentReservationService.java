@@ -7,6 +7,7 @@ import com.laminar.equipment.domain.EquipmentReservationEntity;
 import com.laminar.equipment.repository.EquipmentRepository;
 import com.laminar.equipment.repository.EquipmentReservationRepository;
 import com.laminar.error.ConflictException;
+import com.laminar.error.NotFoundException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -60,7 +61,7 @@ public class EquipmentReservationService {
         .filter(e -> e.getDeletedAt() == null)
         .filter(e -> ctx.ownsUser(e.getCreatedBy()))
         .filter(EquipmentEntity::isActive)
-        .orElseThrow(() -> new IllegalArgumentException("equipment not found or inactive"));
+        .orElseThrow(() -> new NotFoundException("equipment not found or inactive"));
 
     // 단일 예약 (rrule null)만 겹침 사전 검증 — DB EXCLUDE도 같은 정책.
     if (rrule == null || rrule.isBlank()) {
@@ -93,7 +94,7 @@ public class EquipmentReservationService {
             .findById(reservationId)
             .filter(r -> r.getDeletedAt() == null)
             .filter(r -> ctx.ownsUser(r.getReservedBy()))
-            .orElseThrow(() -> new IllegalArgumentException("reservation not found"));
+            .orElseThrow(() -> new NotFoundException("reservation not found"));
     // 본인 예약 또는 OWNER만 취소 (owner-scoped: 사용자 자신의 예약만 보이므로 reserved_by 선검증)
     if (!ctx.isOwner() && !reservation.getReservedBy().equals(ctx.userId())) {
       throw new IllegalStateException("can only cancel own reservation (OWNER override allowed)");

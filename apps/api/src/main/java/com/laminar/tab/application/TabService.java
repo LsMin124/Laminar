@@ -75,10 +75,7 @@ public class TabService {
   @Transactional(readOnly = true)
   public Optional<TabEntity> findById(UUID tabId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    return tabRepo
-        .findById(tabId)
-        .filter(b -> b.getDeletedAt() == null)
-        .filter(b -> ctx.ownsPersonal(b.getSubjectId(), b.getUserId()));
+    return tabRepo.findOwnedActive(tabId, ctx);
   }
 
   @Transactional
@@ -91,12 +88,7 @@ public class TabService {
       String bodyMd,
       Map<String, Object> settings) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("boards");
-    TabEntity tab =
-        tabRepo
-            .findById(tabId)
-            .filter(b -> b.getDeletedAt() == null)
-            .filter(b -> ctx.ownsPersonal(b.getSubjectId(), b.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("tab not found: " + tabId));
+    TabEntity tab = tabRepo.findOwnedActiveOrThrow(tabId, ctx, "tab");
 
     if (name != null && !name.isBlank()) tab.setName(name);
     if (defaultView != null) tab.setDefaultView(defaultView);
@@ -122,9 +114,7 @@ public class TabService {
       UUID tabId = orderedTabIds.get(i);
       int newPriority = (i + 1) * PRIORITY_STEP;
       tabRepo
-          .findById(tabId)
-          .filter(b -> b.getDeletedAt() == null)
-          .filter(b -> ctx.ownsPersonal(b.getSubjectId(), b.getUserId()))
+          .findOwnedActive(tabId, ctx)
           .ifPresent(
               b -> {
                 b.setPriority(newPriority);
@@ -138,9 +128,7 @@ public class TabService {
   public void softDelete(UUID tabId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("boards");
     tabRepo
-        .findById(tabId)
-        .filter(b -> b.getDeletedAt() == null)
-        .filter(b -> ctx.ownsPersonal(b.getSubjectId(), b.getUserId()))
+        .findOwnedActive(tabId, ctx)
         .ifPresent(
             tab -> {
               tab.setDeletedAt(OffsetDateTime.now());

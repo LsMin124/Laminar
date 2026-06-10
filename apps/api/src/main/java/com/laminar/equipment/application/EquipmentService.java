@@ -5,6 +5,7 @@ import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.EquipmentEntity;
 import com.laminar.equipment.repository.EquipmentRepository;
 import com.laminar.error.ConflictException;
+import com.laminar.error.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +86,7 @@ public class EquipmentService {
             .findById(equipmentId)
             .filter(e -> e.getDeletedAt() == null)
             .filter(e -> ctx.ownsUser(e.getCreatedBy()))
-            .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
+            .orElseThrow(() -> new NotFoundException("equipment not found"));
     if (name != null && !name.isBlank()) equipment.setName(name);
     if (description != null) equipment.setDescription(description);
     if (location != null) equipment.setLocation(location);
@@ -101,7 +102,7 @@ public class EquipmentService {
             .findById(equipmentId)
             .filter(e -> e.getDeletedAt() == null)
             .filter(e -> ctx.ownsUser(e.getCreatedBy()))
-            .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
+            .orElseThrow(() -> new NotFoundException("equipment not found"));
     equipment.setActive(active);
     return equipmentRepo.save(equipment);
   }

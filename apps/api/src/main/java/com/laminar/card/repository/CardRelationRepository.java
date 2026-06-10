@@ -1,12 +1,12 @@
 package com.laminar.card.repository;
 
 import com.laminar.card.domain.CardRelationEntity;
+import com.laminar.common.repository.PersonalOwnedRepository;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 /** 카드 관계 Repository — Personal-First (@Filter 자동). */
-public interface CardRelationRepository extends JpaRepository<CardRelationEntity, UUID> {
+public interface CardRelationRepository extends PersonalOwnedRepository<CardRelationEntity> {
 
   List<CardRelationEntity> findByTabIdAndDeletedAtIsNull(UUID tabId);
 

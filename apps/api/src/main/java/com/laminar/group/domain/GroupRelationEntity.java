@@ -1,6 +1,7 @@
 package com.laminar.group.domain;
 
 import com.laminar.common.domain.PersonalBaseEntity;
+import com.laminar.common.domain.SoftDeletable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -21,7 +22,7 @@ import org.hibernate.type.SqlTypes;
     condition = "subject_id = :ctxSubjectId and user_id = :ctxUserId")
 @Getter
 @Setter
-public class GroupRelationEntity extends PersonalBaseEntity {
+public class GroupRelationEntity extends PersonalBaseEntity implements SoftDeletable {
 
   @Column(name = "created_by")
   private UUID createdBy;

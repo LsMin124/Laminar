@@ -71,22 +71,14 @@ public class GroupService {
   @Transactional(readOnly = true)
   public Optional<GroupEntity> findById(UUID groupId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    return groupRepo
-        .findById(groupId)
-        .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()));
+    return groupRepo.findOwnedActive(groupId, ctx);
   }
 
   @Transactional
   public GroupEntity update(
       UUID groupId, String name, String color, String bodyMd, Map<String, Object> attrs) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
-    GroupEntity group =
-        groupRepo
-            .findById(groupId)
-            .filter(g -> g.getDeletedAt() == null)
-            .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
+    GroupEntity group = groupRepo.findOwnedActiveOrThrow(groupId, ctx, "group");
     if (name != null && !name.isBlank()) group.setName(name);
     if (color != null) group.setColor(color);
     if (bodyMd != null) group.setBodyMd(bodyMd);
@@ -105,9 +97,7 @@ public class GroupService {
       UUID groupId = orderedGroupIds.get(i);
       int newPriority = (i + 1) * PRIORITY_STEP;
       groupRepo
-          .findById(groupId)
-          .filter(g -> g.getDeletedAt() == null)
-          .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
+          .findOwnedActive(groupId, ctx)
           .filter(g -> tabId == null || tabId.equals(g.getTabId()))
           .ifPresent(
               g -> {
@@ -122,9 +112,7 @@ public class GroupService {
   public void softDelete(UUID groupId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     groupRepo
-        .findById(groupId)
-        .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
+        .findOwnedActive(groupId, ctx)
         .ifPresent(
             group -> {
               group.setDeletedAt(OffsetDateTime.now());
@@ -136,16 +124,8 @@ public class GroupService {
   @Transactional
   public GroupMemberEntity addMember(UUID groupId, UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
-    groupRepo
-        .findById(groupId)
-        .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
-        .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
-    cardRepo
-        .findById(cardId)
-        .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
-        .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+    groupRepo.findOwnedActiveOrThrow(groupId, ctx, "group");
+    cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
 
     GroupMemberEntity member = new GroupMemberEntity();
     member.setId(new GroupMemberId(groupId, cardId));
@@ -157,33 +137,21 @@ public class GroupService {
   public void removeMember(UUID groupId, UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     // group/card 격리 검증 후 삭제 — 다른 user 그룹은 소유권 불일치로 빈 Optional
-    groupRepo
-        .findById(groupId)
-        .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
-        .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
+    groupRepo.findOwnedActiveOrThrow(groupId, ctx, "group");
     memberRepo.findById(new GroupMemberId(groupId, cardId)).ifPresent(memberRepo::delete);
   }
 
   @Transactional(readOnly = true)
   public List<UUID> listCardIdsInGroup(UUID groupId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    groupRepo
-        .findById(groupId)
-        .filter(g -> g.getDeletedAt() == null)
-        .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
-        .orElseThrow(() -> new IllegalArgumentException("group not found: " + groupId));
+    groupRepo.findOwnedActiveOrThrow(groupId, ctx, "group");
     return memberRepo.findByIdGroupId(groupId).stream().map(m -> m.getId().getCardId()).toList();
   }
 
   @Transactional(readOnly = true)
   public List<UUID> listGroupIdsForCard(UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    cardRepo
-        .findById(cardId)
-        .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
-        .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+    cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
     return memberRepo.findByIdCardId(cardId).stream().map(m -> m.getId().getGroupId()).toList();
   }
 }

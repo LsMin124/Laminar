@@ -5,6 +5,7 @@ import com.laminar.context.SubjectContextHolder;
 import com.laminar.equipment.domain.SharedCalendarAnnouncementEntity;
 import com.laminar.equipment.repository.SharedCalendarAnnouncementRepository;
 import com.laminar.equipment.repository.SharedCalendarRepository;
+import com.laminar.error.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -43,7 +44,7 @@ public class SharedCalendarAnnouncementService {
         .findById(sharedCalendarId)
         .filter(c -> c.getDeletedAt() == null)
         .filter(c -> ctx.ownsUser(c.getCreatedBy()))
-        .orElseThrow(() -> new IllegalArgumentException("shared calendar not found"));
+        .orElseThrow(() -> new NotFoundException("shared calendar not found"));
 
     SharedCalendarAnnouncementEntity announcement = new SharedCalendarAnnouncementEntity();
     announcement.setSubjectId(ctx.subjectId());

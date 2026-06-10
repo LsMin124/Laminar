@@ -9,6 +9,7 @@ import com.laminar.equipment.repository.EquipmentLogColumnRepository;
 import com.laminar.equipment.repository.EquipmentLogRepository;
 import com.laminar.equipment.repository.EquipmentRepository;
 import com.laminar.error.ConflictException;
+import com.laminar.error.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ public class EquipmentLogService {
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
         .filter(e -> ctx.ownsUser(e.getCreatedBy()))
-        .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
+        .orElseThrow(() -> new NotFoundException("equipment not found"));
     if (columnRepo
         .findByEquipmentIdAndColumnKeyAndDeletedAtIsNull(equipmentId, columnKey)
         .isPresent()) {
@@ -118,7 +119,7 @@ public class EquipmentLogService {
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
         .filter(e -> ctx.ownsUser(e.getCreatedBy()))
-        .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
+        .orElseThrow(() -> new NotFoundException("equipment not found"));
     validateValues(equipmentId, values);
 
     EquipmentLogEntity entry = new EquipmentLogEntity();

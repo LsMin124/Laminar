@@ -1,12 +1,12 @@
 package com.laminar.group.repository;
 
+import com.laminar.common.repository.PersonalOwnedRepository;
 import com.laminar.group.domain.GroupRelationEntity;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 /** 그룹 관계 Repository — Personal-First (@Filter 자동). */
-public interface GroupRelationRepository extends JpaRepository<GroupRelationEntity, UUID> {
+public interface GroupRelationRepository extends PersonalOwnedRepository<GroupRelationEntity> {
 
   List<GroupRelationEntity> findByTabIdAndDeletedAtIsNull(UUID tabId);
 

@@ -1,10 +1,10 @@
 package com.laminar.card.repository;
 
 import com.laminar.card.domain.CardEntity;
+import com.laminar.common.repository.PersonalOwnedRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
  *
  * <p>캘린더 뷰 hot path 메서드만 1차. RRULE expand·검색은 Phase 5+.
  */
-public interface CardRepository extends JpaRepository<CardEntity, UUID> {
+public interface CardRepository extends PersonalOwnedRepository<CardEntity> {
 
   List<CardEntity> findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(UUID tabId);
 

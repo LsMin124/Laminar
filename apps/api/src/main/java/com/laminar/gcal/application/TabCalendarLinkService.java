@@ -2,6 +2,7 @@ package com.laminar.gcal.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.NotFoundException;
 import com.laminar.gcal.domain.SyncDirection;
 import com.laminar.gcal.domain.TabCalendarLinkEntity;
 import com.laminar.gcal.repository.TabCalendarLinkRepository;
@@ -60,7 +61,7 @@ public class TabCalendarLinkService {
             .filter(l -> l.getDeletedAt() == null)
             .filter(
                 l -> SubjectContextHolder.require().ownsPersonal(l.getSubjectId(), l.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("link not found"));
+            .orElseThrow(() -> new NotFoundException("link not found"));
     link.setSyncToken(syncToken);
     link.setLastSyncAt(OffsetDateTime.now());
     link.setLastSyncError(null);
@@ -76,7 +77,7 @@ public class TabCalendarLinkService {
             .filter(l -> l.getDeletedAt() == null)
             .filter(
                 l -> SubjectContextHolder.require().ownsPersonal(l.getSubjectId(), l.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("link not found"));
+            .orElseThrow(() -> new NotFoundException("link not found"));
     link.setLastSyncError(error);
     link.setLastSyncAt(OffsetDateTime.now());
     return linkRepo.save(link);
@@ -86,9 +87,7 @@ public class TabCalendarLinkService {
   public void revoke(UUID linkId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("calendar links");
     linkRepo
-        .findById(linkId)
-        .filter(l -> l.getDeletedAt() == null)
-        .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()))
+        .findOwnedActive(linkId, ctx)
         .ifPresent(
             link -> {
               link.setActive(false);

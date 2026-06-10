@@ -6,6 +6,7 @@ import com.laminar.equipment.domain.EquipmentAdminEntity;
 import com.laminar.equipment.domain.EquipmentAdminId;
 import com.laminar.equipment.repository.EquipmentAdminRepository;
 import com.laminar.equipment.repository.EquipmentRepository;
+import com.laminar.error.NotFoundException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class EquipmentAdminService {
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
         .filter(e -> ctx.ownsUser(e.getCreatedBy()))
-        .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
+        .orElseThrow(() -> new NotFoundException("equipment not found"));
 
     EquipmentAdminEntity admin = new EquipmentAdminEntity();
     admin.setId(new EquipmentAdminId(equipmentId, userId));
@@ -51,7 +52,7 @@ public class EquipmentAdminService {
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
         .filter(e -> ctx.ownsUser(e.getCreatedBy()))
-        .orElseThrow(() -> new IllegalArgumentException("equipment not found"));
+        .orElseThrow(() -> new NotFoundException("equipment not found"));
     adminRepo.findById(new EquipmentAdminId(equipmentId, userId)).ifPresent(adminRepo::delete);
   }
 

@@ -3,6 +3,7 @@ package com.laminar.outbox.application;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.error.ConflictException;
+import com.laminar.error.NotFoundException;
 import com.laminar.outbox.domain.ImportJobEntity;
 import com.laminar.outbox.domain.ImportJobStatus;
 import com.laminar.outbox.repository.ImportJobRepository;
@@ -66,7 +67,7 @@ public class ImportJobService {
             .filter(j -> j.getDeletedAt() == null)
             .filter(
                 j -> SubjectContextHolder.require().ownsPersonal(j.getSubjectId(), j.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("import job not found"));
+            .orElseThrow(() -> new NotFoundException("import job not found"));
     if (job.getStatus() != ImportJobStatus.RUNNING) {
       throw new ConflictException(
           "progress update requires RUNNING status (got " + job.getStatus() + ")");
@@ -96,7 +97,7 @@ public class ImportJobService {
             .filter(j -> j.getDeletedAt() == null)
             .filter(
                 j -> SubjectContextHolder.require().ownsPersonal(j.getSubjectId(), j.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("import job not found"));
+            .orElseThrow(() -> new NotFoundException("import job not found"));
     job.setStatus(ImportJobStatus.FAILED);
     job.setLastError(errorMessage);
     job.setFinishedAt(OffsetDateTime.now());
@@ -112,7 +113,7 @@ public class ImportJobService {
             .filter(j -> j.getDeletedAt() == null)
             .filter(
                 j -> SubjectContextHolder.require().ownsPersonal(j.getSubjectId(), j.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("import job not found"));
+            .orElseThrow(() -> new NotFoundException("import job not found"));
     if (job.getStatus() == ImportJobStatus.COMPLETED || job.getStatus() == ImportJobStatus.FAILED) {
       throw new ConflictException("cannot cancel terminal status: " + job.getStatus());
     }
@@ -130,10 +131,7 @@ public class ImportJobService {
   @Transactional(readOnly = true)
   public Optional<ImportJobEntity> findById(UUID jobId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    return importRepo
-        .findById(jobId)
-        .filter(j -> j.getDeletedAt() == null)
-        .filter(j -> ctx.ownsPersonal(j.getSubjectId(), j.getUserId()));
+    return importRepo.findOwnedActive(jobId, ctx);
   }
 
   private ImportJobEntity requirePending(UUID jobId) {
@@ -143,7 +141,7 @@ public class ImportJobService {
             .filter(j -> j.getDeletedAt() == null)
             .filter(
                 j -> SubjectContextHolder.require().ownsPersonal(j.getSubjectId(), j.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("import job not found"));
+            .orElseThrow(() -> new NotFoundException("import job not found"));
     if (job.getStatus() != ImportJobStatus.PENDING) {
       throw new ConflictException("start requires PENDING status (got " + job.getStatus() + ")");
     }
@@ -157,7 +155,7 @@ public class ImportJobService {
             .filter(j -> j.getDeletedAt() == null)
             .filter(
                 j -> SubjectContextHolder.require().ownsPersonal(j.getSubjectId(), j.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("import job not found"));
+            .orElseThrow(() -> new NotFoundException("import job not found"));
     if (job.getStatus() != ImportJobStatus.RUNNING) {
       throw new ConflictException("complete requires RUNNING status (got " + job.getStatus() + ")");
     }

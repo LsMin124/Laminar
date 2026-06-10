@@ -49,18 +49,8 @@ public class CardRelationService {
     if (Objects.equals(fromCardId, toCardId)) {
       throw new IllegalArgumentException("from_card_id == to_card_id is not allowed");
     }
-    CardEntity from =
-        cardRepo
-            .findById(fromCardId)
-            .filter(c -> c.getDeletedAt() == null)
-            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("from card not found"));
-    CardEntity to =
-        cardRepo
-            .findById(toCardId)
-            .filter(c -> c.getDeletedAt() == null)
-            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("to card not found"));
+    CardEntity from = cardRepo.findOwnedActiveOrThrow(fromCardId, ctx, "from card");
+    CardEntity to = cardRepo.findOwnedActiveOrThrow(toCardId, ctx, "to card");
     UUID tabId = from.getTabId();
     if (tabId == null || !Objects.equals(tabId, to.getTabId())) {
       throw new IllegalArgumentException("from/to cards must share a tab");
@@ -99,12 +89,7 @@ public class CardRelationService {
   @Transactional
   public CardRelationEntity update(UUID relationId, String summary) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
-    CardRelationEntity relation =
-        relationRepo
-            .findById(relationId)
-            .filter(r -> r.getDeletedAt() == null)
-            .filter(r -> ctx.ownsPersonal(r.getSubjectId(), r.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("relation not found"));
+    CardRelationEntity relation = relationRepo.findOwnedActiveOrThrow(relationId, ctx, "relation");
     relation.setSummary(summary == null || summary.isBlank() ? null : summary);
     return relationRepo.save(relation);
   }
@@ -113,9 +98,7 @@ public class CardRelationService {
   public void softDelete(UUID relationId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     relationRepo
-        .findById(relationId)
-        .filter(r -> r.getDeletedAt() == null)
-        .filter(r -> ctx.ownsPersonal(r.getSubjectId(), r.getUserId()))
+        .findOwnedActive(relationId, ctx)
         .ifPresent(
             r -> {
               r.setDeletedAt(OffsetDateTime.now());

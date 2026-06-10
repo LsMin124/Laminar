@@ -44,18 +44,8 @@ public class GroupRelationService {
     if (Objects.equals(fromGroupId, toGroupId)) {
       throw new IllegalArgumentException("from_group_id == to_group_id is not allowed");
     }
-    GroupEntity from =
-        groupRepo
-            .findById(fromGroupId)
-            .filter(g -> g.getDeletedAt() == null)
-            .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("from group not found"));
-    GroupEntity to =
-        groupRepo
-            .findById(toGroupId)
-            .filter(g -> g.getDeletedAt() == null)
-            .filter(g -> ctx.ownsPersonal(g.getSubjectId(), g.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("to group not found"));
+    GroupEntity from = groupRepo.findOwnedActiveOrThrow(fromGroupId, ctx, "from group");
+    GroupEntity to = groupRepo.findOwnedActiveOrThrow(toGroupId, ctx, "to group");
     if (!Objects.equals(from.getTabId(), to.getTabId())) {
       throw new IllegalArgumentException("from/to groups must belong to the same tab");
     }
@@ -87,12 +77,7 @@ public class GroupRelationService {
   @Transactional
   public GroupRelationEntity update(UUID relationId, String summary) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
-    GroupRelationEntity relation =
-        relationRepo
-            .findById(relationId)
-            .filter(r -> r.getDeletedAt() == null)
-            .filter(r -> ctx.ownsPersonal(r.getSubjectId(), r.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("relation not found"));
+    GroupRelationEntity relation = relationRepo.findOwnedActiveOrThrow(relationId, ctx, "relation");
     relation.setSummary(summary == null || summary.isBlank() ? null : summary);
     return relationRepo.save(relation);
   }
@@ -101,9 +86,7 @@ public class GroupRelationService {
   public void softDelete(UUID relationId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     relationRepo
-        .findById(relationId)
-        .filter(r -> r.getDeletedAt() == null)
-        .filter(r -> ctx.ownsPersonal(r.getSubjectId(), r.getUserId()))
+        .findOwnedActive(relationId, ctx)
         .ifPresent(
             r -> {
               r.setDeletedAt(OffsetDateTime.now());

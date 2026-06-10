@@ -76,11 +76,7 @@ public class AttachmentService {
       UUID attachmentId, Long actualSizeBytes, String actualSha256) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("attachments");
     AttachmentEntity attachment =
-        attachmentRepo
-            .findById(attachmentId)
-            .filter(a -> a.getDeletedAt() == null)
-            .filter(a -> ctx.ownsPersonal(a.getSubjectId(), a.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("attachment not found"));
+        attachmentRepo.findOwnedActiveOrThrow(attachmentId, ctx, "attachment");
     // N-4: 클라이언트 자칭 크기(actualSizeBytes)는 위조 가능 → R2의 실제 객체 크기를 HEAD로
     // 검증한다. 한도 초과 시 R2StorageService가 객체를 삭제하고 거부(스토리지 고갈 차단).
     long verifiedSize = r2Storage.verifyUploadedSize(attachment.getStorageKey(), MAX_SIZE_BYTES);
@@ -93,10 +89,7 @@ public class AttachmentService {
   @Transactional(readOnly = true)
   public Optional<AttachmentEntity> findById(UUID attachmentId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    return attachmentRepo
-        .findById(attachmentId)
-        .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsPersonal(a.getSubjectId(), a.getUserId()));
+    return attachmentRepo.findOwnedActive(attachmentId, ctx);
   }
 
   @Transactional(readOnly = true)
@@ -109,9 +102,7 @@ public class AttachmentService {
   public void softDelete(UUID attachmentId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("attachments");
     attachmentRepo
-        .findById(attachmentId)
-        .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsPersonal(a.getSubjectId(), a.getUserId()))
+        .findOwnedActive(attachmentId, ctx)
         .ifPresent(
             a -> {
               a.setDeletedAt(OffsetDateTime.now());

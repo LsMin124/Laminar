@@ -93,22 +93,14 @@ public class CardService {
   @Transactional(readOnly = true)
   public Optional<CardEntity> findById(UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    return cardRepo
-        .findById(cardId)
-        .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()));
+    return cardRepo.findOwnedActive(cardId, ctx);
   }
 
   /** 카드 카테고리 지정/해제 — categoryId null이면 미분류. (FK가 실재 카테고리를 보장.) */
   @Transactional
   public CardEntity setCategory(UUID cardId, UUID categoryId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
-    CardEntity card =
-        cardRepo
-            .findById(cardId)
-            .filter(c -> c.getDeletedAt() == null)
-            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+    CardEntity card = cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
     card.setCategoryId(categoryId);
     return cardRepo.save(card);
   }
@@ -116,12 +108,7 @@ public class CardService {
   @Transactional
   public CardEntity update(UUID cardId, UpdateInput input) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
-    CardEntity card =
-        cardRepo
-            .findById(cardId)
-            .filter(c -> c.getDeletedAt() == null)
-            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
+    CardEntity card = cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
 
     if (input.title() != null && !input.title().isBlank()) card.setTitle(input.title());
     if (input.bodyMd() != null) card.setBodyMd(input.bodyMd());
@@ -169,9 +156,7 @@ public class CardService {
       UUID cardId = orderedCardIds.get(i);
       int newPriority = (i + 1) * PRIORITY_STEP;
       cardRepo
-          .findById(cardId)
-          .filter(c -> c.getDeletedAt() == null)
-          .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
+          .findOwnedActive(cardId, ctx)
           .filter(c -> tabId == null || tabId.equals(c.getTabId()))
           .ifPresent(
               c -> {
@@ -186,9 +171,7 @@ public class CardService {
   public void archive(UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     cardRepo
-        .findById(cardId)
-        .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
+        .findOwnedActive(cardId, ctx)
         .filter(c -> c.getArchivedAt() == null)
         .ifPresent(
             card -> {
@@ -201,9 +184,7 @@ public class CardService {
   public void softDelete(UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     cardRepo
-        .findById(cardId)
-        .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
+        .findOwnedActive(cardId, ctx)
         .ifPresent(
             card -> {
               card.setDeletedAt(OffsetDateTime.now());

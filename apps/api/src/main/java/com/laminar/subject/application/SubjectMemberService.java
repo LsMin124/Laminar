@@ -2,6 +2,7 @@ package com.laminar.subject.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.NotFoundException;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
@@ -71,7 +72,7 @@ public class SubjectMemberService {
     SubjectContext ctx = SubjectContextHolder.require();
     SubjectMemberId id = new SubjectMemberId(ctx.subjectId(), userId);
     SubjectMemberEntity member =
-        memberRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("member not found"));
+        memberRepo.findById(id).orElseThrow(() -> new NotFoundException("member not found"));
     if (member.getRemovedAt() != null) {
       throw new IllegalArgumentException("member already removed");
     }
@@ -97,7 +98,7 @@ public class SubjectMemberService {
     }
     SubjectMemberId id = new SubjectMemberId(ctx.subjectId(), userId);
     SubjectMemberEntity member =
-        memberRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("member not found"));
+        memberRepo.findById(id).orElseThrow(() -> new NotFoundException("member not found"));
     if (member.getRemovedAt() != null) {
       return;
     }

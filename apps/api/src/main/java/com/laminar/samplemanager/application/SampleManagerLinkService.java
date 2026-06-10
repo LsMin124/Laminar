@@ -66,12 +66,7 @@ public class SampleManagerLinkService {
   @Transactional
   public SampleManagerLinkEntity markSynced(UUID linkId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("SM links");
-    SampleManagerLinkEntity link =
-        linkRepo
-            .findById(linkId)
-            .filter(l -> l.getDeletedAt() == null)
-            .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()))
-            .orElseThrow(() -> new IllegalArgumentException("link not found"));
+    SampleManagerLinkEntity link = linkRepo.findOwnedActiveOrThrow(linkId, ctx, "link");
     link.setSyncedAt(OffsetDateTime.now());
     return linkRepo.save(link);
   }
@@ -85,19 +80,14 @@ public class SampleManagerLinkService {
   @Transactional(readOnly = true)
   public Optional<SampleManagerLinkEntity> findById(UUID linkId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    return linkRepo
-        .findById(linkId)
-        .filter(l -> l.getDeletedAt() == null)
-        .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()));
+    return linkRepo.findOwnedActive(linkId, ctx);
   }
 
   @Transactional
   public void softDelete(UUID linkId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("SM links");
     linkRepo
-        .findById(linkId)
-        .filter(l -> l.getDeletedAt() == null)
-        .filter(l -> ctx.ownsPersonal(l.getSubjectId(), l.getUserId()))
+        .findOwnedActive(linkId, ctx)
         .ifPresent(
             l -> {
               l.setDeletedAt(OffsetDateTime.now());

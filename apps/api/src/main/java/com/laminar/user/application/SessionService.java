@@ -74,6 +74,15 @@ public class SessionService {
         .map(SessionEntity::getUserId);
   }
 
+  /**
+   * 사용자의 모든 refresh 세션 폐기 — "전 기기 로그아웃". 비밀번호 재설정의 전형적 동기가 "계정 탈취 의심"이므로, 공격자가 이미 쥔 refresh(28d)를
+   * 재설정 시점에 끊는다(G3). 향후 refresh 재사용 탐지(G2 token family)의 도난 대응으로도 재사용 예정.
+   */
+  @Transactional
+  public long revokeAllForUser(UUID userId) {
+    return sessionRepo.deleteByUserId(userId);
+  }
+
   /** 쿠키의 raw 토큰을 DB 조회용 해시로 변환 (resolveUserId·revoke에서 사용). */
   public static String hashToken(String rawToken) {
     try {

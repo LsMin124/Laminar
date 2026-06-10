@@ -20,4 +20,7 @@ public interface SessionSystemRepository
   List<SessionEntity> findByUserId(UUID userId);
 
   long deleteByExpiresAtBefore(OffsetDateTime cutoff);
+
+  /** 사용자 전체 세션 일괄 폐기 — 비밀번호 재설정(G3) 등 "전 기기 로그아웃" 시 SessionService가 사용. */
+  long deleteByUserId(UUID userId);
 }

@@ -20,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>토큰: 256-bit SecureRandom, DB엔 SHA-256 해시만(세션 정책 재사용). 1시간 만료·1회용. 요청은 계정 존재 여부와 무관하게 동일 응답
  * (enumeration 차단) — 미존재면 조용히 no-op. 확인 실패(무효·만료·사용됨)는 IllegalArgumentException→400.
+ *
+ * <p>확인 성공 시 해당 사용자의 기존 refresh 세션을 전부 폐기한다(G3) — 재설정의 전형적 동기가 "탈취 의심"인데 공격자가 쥔 refresh(28d)가 살아남으면
+ * 복구 수단이 복구하지 못한다.
  */
 @Service
 public class PasswordResetService {
@@ -29,16 +32,19 @@ public class PasswordResetService {
   private static final SecureRandom RANDOM = new SecureRandom();
 
   private final UserService userService;
+  private final SessionService sessionService;
   private final PasswordResetTokenSystemRepository tokenRepo;
   private final ResendEmailSender mailSender;
   private final MailProperties mailProps;
 
   public PasswordResetService(
       UserService userService,
+      SessionService sessionService,
       PasswordResetTokenSystemRepository tokenRepo,
       ResendEmailSender mailSender,
       MailProperties mailProps) {
     this.userService = userService;
+    this.sessionService = sessionService;
     this.tokenRepo = tokenRepo;
     this.mailSender = mailSender;
     this.mailProps = mailProps;
@@ -73,6 +79,8 @@ public class PasswordResetService {
             .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 링크입니다."));
 
     userService.setPassword(token.getUserId(), newPassword);
+    // G3: 기존 refresh 세션 전체 폐기 — 새 비밀번호로 다시 로그인해야만 세션을 얻는다.
+    sessionService.revokeAllForUser(token.getUserId());
     token.setUsedAt(OffsetDateTime.now());
     tokenRepo.save(token);
   }

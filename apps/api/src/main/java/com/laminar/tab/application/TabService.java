@@ -44,7 +44,7 @@ public class TabService {
       String iconName,
       String iconColor,
       Map<String, Object> settings) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("boards");
 
     int nextPriority =
         tabRepo
@@ -90,7 +90,7 @@ public class TabService {
       String iconColor,
       String bodyMd,
       Map<String, Object> settings) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("boards");
     TabEntity tab =
         tabRepo
             .findById(tabId)
@@ -113,7 +113,7 @@ public class TabService {
    */
   @Transactional
   public List<TabEntity> reorder(List<UUID> orderedTabIds) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("boards");
     if (orderedTabIds == null || orderedTabIds.isEmpty()) {
       return List.of();
     }
@@ -136,7 +136,7 @@ public class TabService {
 
   @Transactional
   public void softDelete(UUID tabId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("boards");
     tabRepo
         .findById(tabId)
         .filter(b -> b.getDeletedAt() == null)
@@ -146,16 +146,5 @@ public class TabService {
               tab.setDeletedAt(OffsetDateTime.now());
               tabRepo.save(tab);
             });
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate boards");
-    }
-    return ctx;
   }
 }

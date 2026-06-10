@@ -29,7 +29,7 @@ public class TabCalendarLinkService {
 
   @Transactional
   public TabCalendarLinkEntity link(UUID tabId, String googleCalendarId, SyncDirection direction) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("calendar links");
     // 이미 있으면 reactivate
     Optional<TabCalendarLinkEntity> existing =
         linkRepo.findByTabIdAndGoogleCalendarIdAndDeletedAtIsNull(tabId, googleCalendarId);
@@ -53,7 +53,7 @@ public class TabCalendarLinkService {
 
   @Transactional
   public TabCalendarLinkEntity markSynced(UUID linkId, String syncToken) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("calendar links");
     TabCalendarLinkEntity link =
         linkRepo
             .findById(linkId)
@@ -69,7 +69,7 @@ public class TabCalendarLinkService {
 
   @Transactional
   public TabCalendarLinkEntity markError(UUID linkId, String error) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("calendar links");
     TabCalendarLinkEntity link =
         linkRepo
             .findById(linkId)
@@ -84,7 +84,7 @@ public class TabCalendarLinkService {
 
   @Transactional
   public void revoke(UUID linkId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("calendar links");
     linkRepo
         .findById(linkId)
         .filter(l -> l.getDeletedAt() == null)
@@ -101,16 +101,5 @@ public class TabCalendarLinkService {
   public List<TabCalendarLinkEntity> listByTab(UUID tabId) {
     SubjectContextHolder.requirePersonal();
     return linkRepo.findByTabIdAndDeletedAtIsNull(tabId);
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate calendar links");
-    }
-    return ctx;
   }
 }

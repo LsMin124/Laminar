@@ -44,6 +44,25 @@ public final class SubjectContextHolder {
     return context;
   }
 
+  /**
+   * 쓰기 경로 공통 가드 — PERSONAL scope + 쓰기 권한(VIEWER 차단)을 한 번에 강제한다. 도메인 서비스의 쓰기 메서드 첫 줄에서 호출한다.
+   *
+   * <p>DX-1①: 과거 10개 서비스가 동일 가드를 private 메서드로 중복 정의하던 것을 통합 — 신규 도메인이 베껴 쓸 단일 정본이며, 정책 변경(예: 권한 단계
+   * 추가)도 이 한 곳에서 끝난다.
+   *
+   * @param resourceNoun VIEWER 거부 메시지에 들어갈 리소스 명사(예: "cards", "groups")
+   */
+  public static SubjectContext requirePersonalWritable(String resourceNoun) {
+    SubjectContext context = require();
+    if (context.scope() != SubjectContext.Scope.PERSONAL) {
+      throw new IllegalStateException("PERSONAL scope required");
+    }
+    if (!context.canWrite()) {
+      throw new IllegalStateException("VIEWER cannot mutate " + resourceNoun);
+    }
+    return context;
+  }
+
   public static void clear() {
     HOLDER.remove();
   }

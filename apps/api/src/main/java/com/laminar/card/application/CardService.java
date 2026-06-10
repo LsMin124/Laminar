@@ -44,7 +44,7 @@ public class CardService {
 
   @Transactional
   public CardEntity create(CreateInput input) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     validateInvariants(input);
 
     int nextPriority =
@@ -100,7 +100,7 @@ public class CardService {
   /** 카드 카테고리 지정/해제 — categoryId null이면 미분류. (FK가 실재 카테고리를 보장.) */
   @Transactional
   public CardEntity setCategory(UUID cardId, UUID categoryId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     CardEntity card =
         cardRepo
             .findById(cardId)
@@ -113,7 +113,7 @@ public class CardService {
 
   @Transactional
   public CardEntity update(UUID cardId, UpdateInput input) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     CardEntity card =
         cardRepo
             .findById(cardId)
@@ -157,7 +157,7 @@ public class CardService {
   /** DnD reorder — tabId 일치 검증 + priority = (index+1) * 100 배치. */
   @Transactional
   public List<CardEntity> reorder(UUID tabId, List<UUID> orderedCardIds) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     if (orderedCardIds == null || orderedCardIds.isEmpty()) {
       return List.of();
     }
@@ -181,7 +181,7 @@ public class CardService {
 
   @Transactional
   public void archive(UUID cardId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
@@ -196,7 +196,7 @@ public class CardService {
 
   @Transactional
   public void softDelete(UUID cardId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("cards");
     cardRepo
         .findById(cardId)
         .filter(c -> c.getDeletedAt() == null)
@@ -206,17 +206,6 @@ public class CardService {
               card.setDeletedAt(OffsetDateTime.now());
               cardRepo.save(card);
             });
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate cards");
-    }
-    return ctx;
   }
 
   private void validateInvariants(CreateInput input) {

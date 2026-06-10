@@ -42,7 +42,7 @@ public class GroupService {
 
   @Transactional
   public GroupEntity create(UUID tabId, String name, String color, Map<String, Object> attrs) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
 
     int nextPriority =
         groupRepo
@@ -80,7 +80,7 @@ public class GroupService {
   @Transactional
   public GroupEntity update(
       UUID groupId, String name, String color, String bodyMd, Map<String, Object> attrs) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     GroupEntity group =
         groupRepo
             .findById(groupId)
@@ -96,7 +96,7 @@ public class GroupService {
 
   @Transactional
   public List<GroupEntity> reorder(UUID tabId, List<UUID> orderedGroupIds) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     if (orderedGroupIds == null || orderedGroupIds.isEmpty()) {
       return List.of();
     }
@@ -120,7 +120,7 @@ public class GroupService {
 
   @Transactional
   public void softDelete(UUID groupId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
@@ -135,7 +135,7 @@ public class GroupService {
   /** 그룹 ↔ 카드 멤버십 추가. group/card는 현재 user의 자원이어야 (Personal-First 격리 자동). */
   @Transactional
   public GroupMemberEntity addMember(UUID groupId, UUID cardId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     groupRepo
         .findById(groupId)
         .filter(g -> g.getDeletedAt() == null)
@@ -155,7 +155,7 @@ public class GroupService {
 
   @Transactional
   public void removeMember(UUID groupId, UUID cardId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     // group/card 격리 검증 후 삭제 — 다른 user 그룹은 소유권 불일치로 빈 Optional
     groupRepo
         .findById(groupId)
@@ -185,16 +185,5 @@ public class GroupService {
         .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
         .orElseThrow(() -> new IllegalArgumentException("card not found: " + cardId));
     return memberRepo.findByIdCardId(cardId).stream().map(m -> m.getId().getGroupId()).toList();
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate groups");
-    }
-    return ctx;
   }
 }

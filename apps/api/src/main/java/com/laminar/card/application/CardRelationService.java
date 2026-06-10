@@ -44,7 +44,7 @@ public class CardRelationService {
       String summary,
       String bodyMd,
       Map<String, Object> attrs) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     if (Objects.equals(fromCardId, toCardId)) {
       throw new IllegalArgumentException("from_card_id == to_card_id is not allowed");
     }
@@ -97,7 +97,7 @@ public class CardRelationService {
    */
   @Transactional
   public CardRelationEntity update(UUID relationId, String summary) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     CardRelationEntity relation =
         relationRepo
             .findById(relationId)
@@ -110,7 +110,7 @@ public class CardRelationService {
 
   @Transactional
   public void softDelete(UUID relationId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     relationRepo
         .findById(relationId)
         .filter(r -> r.getDeletedAt() == null)
@@ -120,16 +120,5 @@ public class CardRelationService {
               r.setDeletedAt(OffsetDateTime.now());
               relationRepo.save(r);
             });
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate relations");
-    }
-    return ctx;
   }
 }

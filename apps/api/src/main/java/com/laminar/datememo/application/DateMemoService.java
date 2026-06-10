@@ -34,7 +34,7 @@ public class DateMemoService {
   @Transactional
   public DateMemoEntity upsert(
       UUID tabId, LocalDate date, String bodyMd, Map<String, Object> attrs) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("date memos");
     if (tabId == null || date == null) {
       throw new IllegalArgumentException("tabId and date required");
     }
@@ -78,18 +78,7 @@ public class DateMemoService {
 
   @Transactional
   public void delete(UUID tabId, LocalDate date) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("date memos");
     memoRepo.findById(new DateMemoId(tabId, ctx.userId(), date)).ifPresent(memoRepo::delete);
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate date memos");
-    }
-    return ctx;
   }
 }

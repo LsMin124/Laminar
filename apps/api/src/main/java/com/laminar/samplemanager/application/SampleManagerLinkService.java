@@ -38,7 +38,7 @@ public class SampleManagerLinkService {
       String stepId,
       String sampleManagerUrl,
       Map<String, Object> payloadSnapshot) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("SM links");
     if (cardId == null || sampleId == null || stepId == null) {
       throw new IllegalArgumentException("cardId/sampleId/stepId required");
     }
@@ -65,7 +65,7 @@ public class SampleManagerLinkService {
   /** SM 동기화 완료 마킹 — synced_at = NOW. */
   @Transactional
   public SampleManagerLinkEntity markSynced(UUID linkId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("SM links");
     SampleManagerLinkEntity link =
         linkRepo
             .findById(linkId)
@@ -93,7 +93,7 @@ public class SampleManagerLinkService {
 
   @Transactional
   public void softDelete(UUID linkId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("SM links");
     linkRepo
         .findById(linkId)
         .filter(l -> l.getDeletedAt() == null)
@@ -103,16 +103,5 @@ public class SampleManagerLinkService {
               l.setDeletedAt(OffsetDateTime.now());
               linkRepo.save(l);
             });
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate SM links");
-    }
-    return ctx;
   }
 }

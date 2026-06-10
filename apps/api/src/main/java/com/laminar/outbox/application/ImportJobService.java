@@ -37,7 +37,7 @@ public class ImportJobService {
 
   @Transactional
   public ImportJobEntity createPending() {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("import jobs");
     ImportJobEntity job = new ImportJobEntity();
     job.setSubjectId(ctx.subjectId());
     job.setUserId(ctx.userId());
@@ -50,7 +50,7 @@ public class ImportJobService {
 
   @Transactional
   public ImportJobEntity start(UUID jobId) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("import jobs");
     ImportJobEntity job = requirePending(jobId);
     job.setStatus(ImportJobStatus.RUNNING);
     job.setStartedAt(OffsetDateTime.now());
@@ -59,7 +59,7 @@ public class ImportJobService {
 
   @Transactional
   public ImportJobEntity updateProgress(UUID jobId, Map<String, Object> progress) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("import jobs");
     ImportJobEntity job =
         importRepo
             .findById(jobId)
@@ -77,7 +77,7 @@ public class ImportJobService {
 
   @Transactional
   public ImportJobEntity complete(UUID jobId, Map<String, Object> finalProgress) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("import jobs");
     ImportJobEntity job = requireRunning(jobId);
     if (finalProgress != null) {
       job.setProgress(finalProgress);
@@ -89,7 +89,7 @@ public class ImportJobService {
 
   @Transactional
   public ImportJobEntity fail(UUID jobId, String errorMessage) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("import jobs");
     ImportJobEntity job =
         importRepo
             .findById(jobId)
@@ -105,7 +105,7 @@ public class ImportJobService {
 
   @Transactional
   public ImportJobEntity cancel(UUID jobId) {
-    requirePersonalWritable();
+    SubjectContextHolder.requirePersonalWritable("import jobs");
     ImportJobEntity job =
         importRepo
             .findById(jobId)
@@ -162,17 +162,6 @@ public class ImportJobService {
       throw new ConflictException("complete requires RUNNING status (got " + job.getStatus() + ")");
     }
     return job;
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate import jobs");
-    }
-    return ctx;
   }
 
   private static String generateToken() {

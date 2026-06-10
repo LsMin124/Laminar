@@ -40,7 +40,7 @@ public class GroupRelationService {
       String summary,
       String bodyMd,
       Map<String, Object> attrs) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     if (Objects.equals(fromGroupId, toGroupId)) {
       throw new IllegalArgumentException("from_group_id == to_group_id is not allowed");
     }
@@ -86,7 +86,7 @@ public class GroupRelationService {
    */
   @Transactional
   public GroupRelationEntity update(UUID relationId, String summary) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     GroupRelationEntity relation =
         relationRepo
             .findById(relationId)
@@ -99,7 +99,7 @@ public class GroupRelationService {
 
   @Transactional
   public void softDelete(UUID relationId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("relations");
     relationRepo
         .findById(relationId)
         .filter(r -> r.getDeletedAt() == null)
@@ -109,16 +109,5 @@ public class GroupRelationService {
               r.setDeletedAt(OffsetDateTime.now());
               relationRepo.save(r);
             });
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate relations");
-    }
-    return ctx;
   }
 }

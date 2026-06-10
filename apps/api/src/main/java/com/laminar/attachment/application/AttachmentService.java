@@ -41,7 +41,7 @@ public class AttachmentService {
       String mime,
       Long sizeBytes,
       String sha256) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("attachments");
     if (parentType == null) {
       throw new IllegalArgumentException("parent_type required");
     }
@@ -74,7 +74,7 @@ public class AttachmentService {
   @Transactional
   public AttachmentEntity finalizeUpload(
       UUID attachmentId, Long actualSizeBytes, String actualSha256) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("attachments");
     AttachmentEntity attachment =
         attachmentRepo
             .findById(attachmentId)
@@ -107,7 +107,7 @@ public class AttachmentService {
 
   @Transactional
   public void softDelete(UUID attachmentId) {
-    SubjectContext ctx = requirePersonalWritable();
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("attachments");
     attachmentRepo
         .findById(attachmentId)
         .filter(a -> a.getDeletedAt() == null)
@@ -117,16 +117,5 @@ public class AttachmentService {
               a.setDeletedAt(OffsetDateTime.now());
               attachmentRepo.save(a);
             });
-  }
-
-  private SubjectContext requirePersonalWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
-    if (!ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate attachments");
-    }
-    return ctx;
   }
 }

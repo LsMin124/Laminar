@@ -1,4 +1,4 @@
-package com.laminar.tab.application;
+package com.laminar.graph.application;
 
 import com.laminar.card.domain.CardEntity;
 import com.laminar.card.repository.CardRepository;

@@ -1,4 +1,4 @@
-package com.laminar.tab.application;
+package com.laminar.graph.application;
 
 import com.laminar.card.application.CardRelationService;
 import com.laminar.card.application.CardService;

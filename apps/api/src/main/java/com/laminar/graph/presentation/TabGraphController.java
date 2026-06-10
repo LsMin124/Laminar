@@ -1,4 +1,4 @@
-package com.laminar.tab.presentation;
+package com.laminar.graph.presentation;
 
 import com.laminar.card.domain.CardEntity;
 import com.laminar.card.domain.CardRelationEntity;
@@ -7,11 +7,11 @@ import com.laminar.card.presentation.CardRelationDtos;
 import com.laminar.category.application.CardCategoryService;
 import com.laminar.category.domain.CardCategoryEntity;
 import com.laminar.category.presentation.CardCategoryDtos;
+import com.laminar.graph.application.TabGraphService;
 import com.laminar.group.domain.GroupEntity;
 import com.laminar.group.domain.GroupRelationEntity;
 import com.laminar.group.presentation.GroupDtos;
 import com.laminar.group.presentation.GroupRelationDtos;
-import com.laminar.tab.application.TabGraphService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;

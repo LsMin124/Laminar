@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useCreateCard, useCreateRelation, useDeleteCard, useDeleteRelation, useMoveCard, useUpdateCard, useUpdateRelation } from "../../lib/cards";
-import { useSetCardCategory } from "../../lib/categories";
+import { useMoveCard, useUpdateCard } from "../../lib/cards";
 import { useTabGraph } from "../../lib/graph";
-import type { Card, CardRelation, Group, GroupRelation } from "../../lib/graphTypes";
-import { useCreateGroupRelation, useDeleteGroup, useDeleteGroupRelation, useRemoveCardFromGroup, useUpdateGroupRelation } from "../../lib/groups";
-import { apiErrorMessage } from "../../lib/apiErrors";
+import type { Card } from "../../lib/graphTypes";
+import { useRemoveCardFromGroup } from "../../lib/groups";
 import { MAX_SPAN_DAYS } from "../../lib/cardRules";
 import { MS_DAY, parseDate, fmtDate, todayUtc } from "../../lib/dateUtil";
 import {
@@ -15,14 +13,18 @@ import {
   PX_PER_DAY,
   TODAY_VIEW_RATIO,
   barWidth,
+  computeGroupRects,
 } from "./dagGeometry";
 import { useDialogs } from "../ui/DialogProvider";
+import { DagAxis } from "./DagAxis";
 import { DagEdges } from "./DagEdges";
 import { DagGroups } from "./DagGroups";
 import { DagNode } from "./DagNode";
 import { DagToolbar } from "./DagToolbar";
 import { NewCardDialog } from "./NewCardDialog";
+import { useCardActions } from "./useCardActions";
 import { useDagDrag, type DragMode } from "./useDagDrag";
+import { useLinkMode } from "./useLinkMode";
 import "./DagCanvas.css";
 
 /**
@@ -47,6 +49,9 @@ function useMonotonicOriginMs(minCardMs: number | null): number {
  * DAG 캔버스 — 노드=카드 막대(가로 x=startDate~endDate 스팬, 세로 y=canvasY), 엣지=관계(A 끝→B 시작).
  * 막대 몸통 드래그=이동(span 보존), 좌/우 끝 핸들=리사이즈(start/end), "⇢"=관계 생성, 더블클릭=카드 생성.
  * 이전 일자로 이동해 선행 관계를 위반하면 그 화살표를 끊을지 확인 후 이동한다.
+ *
+ * DX-11 분해 후 컨테이너 책무 = 좌표계(origin·date↔x)·드래그 커밋(moveCard)·선택. 연결 모드는
+ * useLinkMode, 다이얼로그성 액션은 useCardActions, 날짜축은 DagAxis, 그룹 박스는 computeGroupRects.
  */
 export function DagCanvas({
   tabId,
@@ -58,19 +63,9 @@ export function DagCanvas({
   onOpenGroup?: (groupId: string, title: string) => void;
 }) {
   const graph = useTabGraph(tabId);
-  const createCard = useCreateCard(tabId);
   const updateCard = useUpdateCard(tabId);
   const moveCard = useMoveCard(tabId);
-  const deleteCard = useDeleteCard(tabId);
-  const createRelation = useCreateRelation(tabId);
-  const deleteRelation = useDeleteRelation(tabId);
-  const deleteGroup = useDeleteGroup(tabId);
-  const createGroupRelation = useCreateGroupRelation(tabId);
-  const deleteGroupRelation = useDeleteGroupRelation(tabId);
-  const updateRelation = useUpdateRelation(tabId);
-  const updateGroupRelation = useUpdateGroupRelation(tabId);
   const removeCardFromGroup = useRemoveCardFromGroup(tabId);
-  const setCardCategory = useSetCardCategory(tabId);
   const dialogs = useDialogs();
 
   // 드래그/리사이즈 + 가장자리 자동 스크롤 메커닉(상태 없는 좌표 변환·포인터 추적)은 훅으로 분리.
@@ -88,19 +83,8 @@ export function DagCanvas({
     updateEdgePan,
     stopPan,
   } = useDagDrag();
-  const [linkSource, setLinkSource] = useState<string | null>(null);
-  // 연결 핸들(nub) 드래그 — 임시 라인 좌표(sx,sy=출발 앵커, x,y=커서) + 출발 카드 id.
-  const [linkLine, setLinkLine] = useState<{
-    sx: number;
-    sy: number;
-    x: number;
-    y: number;
-  } | null>(null);
-  const linkFromRef = useRef<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // 그룹 연결 모드 — 라벨 ⇢ 버튼으로 출발 그룹 지정, 대상 그룹 ⇢ 클릭 시 화살표 생성.
-  const [groupLinkSource, setGroupLinkSource] = useState<string | null>(null);
   // 새 카드 생성 다이얼로그 — null=닫힘, {date}=열림(일자 기본값).
   const [newCard, setNewCard] = useState<{ date: string | null } | null>(null);
 
@@ -179,31 +163,6 @@ export function DagCanvas({
   const maxY = cards.reduce((m, c) => Math.max(m, nodeGeom(c).y + BAR_H + 240), 800);
   const days = Math.ceil((maxX - LEFT_PAD) / PX_PER_DAY) + 1;
 
-  // 날짜축 — 세로선(전체 높이, surface)과 라벨(sticky 헤더)을 분리. origin/일수에만 의존 → 메모이즈.
-  const gridLines = useMemo(
-    () =>
-      Array.from({ length: days }, (_, i) => (
-        <div key={`gl-${i}`} className="dag-gridline" style={{ left: LEFT_PAD + i * PX_PER_DAY }} />
-      )),
-    [days],
-  );
-  const axisLabels = useMemo(() => {
-    const t = todayUtc();
-    return Array.from({ length: days }, (_, i) => {
-      const dayMs = originMs + i * MS_DAY;
-      const d = new Date(dayMs);
-      return (
-        <div
-          key={`ax-${i}`}
-          className={`dag-axis-label${dayMs === t ? " today" : ""}`}
-          style={{ left: LEFT_PAD + i * PX_PER_DAY }}
-        >
-          {`${d.getUTCMonth() + 1}/${d.getUTCDate()}`}
-        </div>
-      );
-    });
-  }, [days, originMs]);
-
   /** cardId로 들어오는 관계 중 fromCard.start > newStart 인(시간강제 위반) 관계 id 목록. */
   function violatedIncoming(cardId: string, newStartMs: number): string[] {
     return relations
@@ -215,11 +174,21 @@ export function DagCanvas({
       .map((r) => r.id);
   }
 
-  async function reportError(err: unknown) {
-    // 오류 code 기반 매핑(lib/apiErrors) — 메시지 문자열 매칭 금지(DX-4).
-    const msg = apiErrorMessage(err, "작업에 실패했습니다.");
-    await dialogs.alert({ title: "처리 불가", message: msg });
-  }
+  // 다이얼로그성 액션(제목·시간·삭제·라벨·생성)과 연결 모드(카드 nub·그룹 ⇢)는 훅으로 분리 (DX-11).
+  const actions = useCardActions({
+    tabId,
+    selectedIds,
+    setSelectedIds,
+    closeNewCard: () => setNewCard(null),
+  });
+  const link = useLinkMode({
+    tabId,
+    cards,
+    groupRelations,
+    nodeGeom,
+    canvasPoint,
+    onError: actions.reportError,
+  });
 
   function onCanvasDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target !== e.currentTarget) return;
@@ -236,13 +205,6 @@ export function DagCanvas({
     beginResize(e, c.id, nodeGeom(c), mode);
   }
 
-  async function onEditTitle(c: Card) {
-    const title = await dialogs.prompt({ title: "카드 제목 편집", defaultValue: c.title });
-    if (title && title.trim() && title !== c.title) {
-      updateCard.mutate({ cardId: c.id, title: title.trim() });
-    }
-  }
-
   async function onPointerUp(c: Card) {
     if (!drag || drag.id !== c.id) return;
     stopPan();
@@ -251,14 +213,8 @@ export function DagCanvas({
     if (!d.moved) {
       setDrag(null);
       if (d.mode === "move") {
-        if (linkSource) {
-          if (linkSource !== c.id) {
-            createRelation.mutate(
-              { fromCardId: linkSource, toCardId: c.id },
-              { onError: reportError },
-            );
-          }
-          setLinkSource(null);
+        if (link.linkSource) {
+          link.completeCardLink(c.id);
         } else if (d.shift) {
           setSelectedIds((prev) => {
             const next = new Set(prev);
@@ -278,7 +234,10 @@ export function DagCanvas({
         let endMs = xToDateMs(d.x + d.w) - MS_DAY;
         if (endMs < startMs) endMs = startMs;
         if (endMs > startMs + MAX_SPAN_DAYS * MS_DAY) endMs = startMs + MAX_SPAN_DAYS * MS_DAY;
-        moveCard.mutate({ cardId: c.id, endDate: fmtDate(endMs) }, { onError: reportError });
+        moveCard.mutate(
+          { cardId: c.id, endDate: fmtDate(endMs) },
+          { onError: actions.reportError },
+        );
         return;
       }
       // move 또는 resize-l → startDate 변경
@@ -311,66 +270,20 @@ export function DagCanvas({
           input.endDate = fmtDate(parseDate(c.endDate) + delta);
         }
       }
-      moveCard.mutate(input, { onError: reportError });
+      moveCard.mutate(input, { onError: actions.reportError });
     } finally {
       setDrag(null);
     }
-  }
-
-  async function onToolDelete() {
-    const sel = [...selectedIds];
-    if (sel.length === 0) return;
-    const ok = await dialogs.confirm({
-      title: "카드 삭제",
-      message: `선택한 ${sel.length}개 카드를 삭제할까요?`,
-      confirmLabel: "삭제",
-      danger: true,
-    });
-    if (!ok) return;
-    for (const cardId of sel) deleteCard.mutate(cardId);
-    setSelectedIds(new Set());
-  }
-
-  async function onDeleteRelation(id: string) {
-    const ok = await dialogs.confirm({ title: "연결 삭제", confirmLabel: "삭제", danger: true });
-    if (ok) deleteRelation.mutate(id);
-  }
-
-  /** 엣지 라벨 편집 — 라벨(summary)이 곧 화살표가 나타내는 관계. 비우면 라벨 제거. */
-  async function onEditEdgeLabel(rel: CardRelation) {
-    const v = await dialogs.prompt({
-      title: "엣지 라벨",
-      message: "이 화살표가 나타내는 관계 (비우면 제거)",
-      defaultValue: rel.summary ?? "",
-    });
-    if (v === null) return;
-    updateRelation.mutate({ relationId: rel.id, summary: v.trim() ? v.trim() : null });
   }
 
   function onAddCard() {
     setNewCard({ date: fmtDate(todayUtc()) });
   }
 
-  // 새 카드 확정 — 생성 후 분류 선택 시 지정(일자 비우면 미정/백로그).
-  async function onCreateCard(input: {
-    title: string;
-    startDate: string | null;
-    categoryId: string | null;
-  }) {
-    const card = await createCard.mutateAsync({
-      title: input.title,
-      startDate: input.startDate,
-    });
-    if (input.categoryId) {
-      setCardCategory.mutate({ cardId: card.id, categoryId: input.categoryId });
-    }
-    setNewCard(null);
-  }
-
   function onToolLink() {
     if (selectedIds.size !== 1) return;
     const [id] = [...selectedIds];
-    setLinkSource(id);
+    link.setLinkSource(id);
     setSelectedIds(new Set());
   }
 
@@ -385,147 +298,8 @@ export function DagCanvas({
     }
   }
 
-  async function onDeleteGroup(g: Group) {
-    const ok = await dialogs.confirm({
-      title: "그룹 삭제",
-      message: `"${g.name}" 그룹을 삭제할까요? (카드는 유지됩니다)`,
-      confirmLabel: "삭제",
-      danger: true,
-    });
-    if (ok) deleteGroup.mutate(g.id);
-  }
-
-  // 그룹 경계 박스 geometry(멤버 카드 bounding rect) — 박스 렌더와 그룹 화살표 앵커가 공유.
-  // 멤버가 보이지 않으면 rect 없음(빈/숨김 그룹은 박스·화살표 모두 숨김). 카드 드래그를 따라 갱신.
-  const groupRects = new Map<string, { x: number; y: number; w: number; h: number }>();
-  for (const grp of groups) {
-    const members = (groupMembers[grp.id] ?? [])
-      .map((id) => cards.find((c) => c.id === id))
-      .filter((c): c is Card => !!c && isVisible(c));
-    if (members.length === 0) continue;
-    let gx0 = Infinity;
-    let gy0 = Infinity;
-    let gx1 = -Infinity;
-    let gy1 = -Infinity;
-    for (const m of members) {
-      const gm = nodeGeom(m);
-      gx0 = Math.min(gx0, gm.x);
-      gy0 = Math.min(gy0, gm.y);
-      gx1 = Math.max(gx1, gm.x + gm.w);
-      gy1 = Math.max(gy1, gm.y + BAR_H);
-    }
-    const pad = 16;
-    groupRects.set(grp.id, {
-      x: gx0 - pad,
-      y: gy0 - pad - 8,
-      w: gx1 - gx0 + pad * 2,
-      h: gy1 - gy0 + pad * 2 + 8,
-    });
-  }
-
-  async function onDeleteGroupRelation(id: string) {
-    const ok = await dialogs.confirm({
-      title: "그룹 연결 삭제",
-      confirmLabel: "삭제",
-      danger: true,
-    });
-    if (ok) deleteGroupRelation.mutate(id);
-  }
-
-  /** 그룹 엣지 라벨 편집 — 라벨(summary)이 곧 화살표가 나타내는 관계. 비우면 제거. */
-  async function onEditGroupEdgeLabel(rel: GroupRelation) {
-    const v = await dialogs.prompt({
-      title: "그룹 엣지 라벨",
-      message: "이 화살표가 나타내는 관계 (비우면 제거)",
-      defaultValue: rel.summary ?? "",
-    });
-    if (v === null) return;
-    updateGroupRelation.mutate({ relationId: rel.id, summary: v.trim() ? v.trim() : null });
-  }
-
-  /**
-   * 그룹 라벨 ⇢ 버튼 — 연결 모드 토글/완성. 처음 누르면 출발 그룹 지정(link-src 강조),
-   * 다른 그룹의 ⇢를 누르면 화살표 생성(출발→대상, 중복·self 가드), 같은 그룹 ⇢ 재클릭은 취소.
-   */
-  function onGroupLinkBtn(grp: Group) {
-    if (groupLinkSource === null) {
-      setGroupLinkSource(grp.id);
-      return;
-    }
-    if (groupLinkSource === grp.id) {
-      setGroupLinkSource(null);
-      return;
-    }
-    const exists = groupRelations.some(
-      (gr) => gr.fromGroupId === groupLinkSource && gr.toGroupId === grp.id,
-    );
-    if (!exists) {
-      createGroupRelation.mutate(
-        { fromGroupId: groupLinkSource, toGroupId: grp.id },
-        { onError: reportError },
-      );
-    }
-    setGroupLinkSource(null);
-  }
-
-  /** 시간 설정 — HH:MM 입력 시 allDay=false+startTime, 비우면 종일(allDay=true). */
-  async function onSetTime(c: Card) {
-    const current = c.allDay ? "" : (c.startTime?.slice(0, 5) ?? "");
-    const v = await dialogs.prompt({
-      title: "시간 설정",
-      message: "HH:MM 형식 (비우면 종일)",
-      placeholder: "14:00",
-      defaultValue: current,
-    });
-    if (v === null) return;
-    const trimmed = v.trim();
-    if (!trimmed) {
-      updateCard.mutate({ cardId: c.id, allDay: true });
-      return;
-    }
-    const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(trimmed);
-    if (!m) {
-      await dialogs.alert({ title: "형식 오류", message: "HH:MM으로 입력하세요 (예: 09:30, 14:00)" });
-      return;
-    }
-    updateCard.mutate({
-      cardId: c.id,
-      allDay: false,
-      startTime: `${m[1].padStart(2, "0")}:${m[2]}`,
-    });
-  }
-
-  // 연결 핸들 nub: pointer capture로 드래그하다 다른 카드 위에서 놓으면 from→target 관계 생성.
-  function onNubDown(e: React.PointerEvent<HTMLSpanElement>, c: Card) {
-    e.stopPropagation();
-    e.preventDefault();
-    const g = nodeGeom(c);
-    linkFromRef.current = c.id;
-    setLinkLine({ sx: g.x + g.w, sy: g.y + BAR_H / 2, x: g.x + g.w, y: g.y + BAR_H / 2 });
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function onNubMove(e: React.PointerEvent<HTMLSpanElement>) {
-    if (!linkFromRef.current) return;
-    const p = canvasPoint(e.clientX, e.clientY);
-    setLinkLine((l) => (l ? { ...l, x: p.x, y: p.y } : l));
-  }
-  function onNubUp(e: React.PointerEvent<HTMLSpanElement>) {
-    const from = linkFromRef.current;
-    linkFromRef.current = null;
-    setLinkLine(null);
-    if (!from) return;
-    const p = canvasPoint(e.clientX, e.clientY);
-    const target = cards.find((t) => {
-      const tg = nodeGeom(t);
-      return p.x >= tg.x && p.x <= tg.x + tg.w && p.y >= tg.y && p.y <= tg.y + BAR_H;
-    });
-    if (target && target.id !== from) {
-      createRelation.mutate(
-        { fromCardId: from, toCardId: target.id },
-        { onError: reportError },
-      );
-    }
-  }
+  // 그룹 경계 박스 — 박스 렌더와 그룹 화살표 앵커가 공유(드래그 좌표 추종, dagGeometry 순수함수).
+  const groupRects = computeGroupRects(groups, groupMembers, cards, isVisible, nodeGeom);
 
   const selCount = selectedIds.size;
   const sole = selCount === 1 ? (cards.find((c) => selectedIds.has(c.id)) ?? null) : null;
@@ -534,7 +308,7 @@ export function DagCanvas({
   const selectedCards = cards.filter((c) => selectedIds.has(c.id));
 
   return (
-    <div className={`dag${linkSource || groupLinkSource ? " linking" : ""}`}>
+    <div className={`dag${link.linkSource || link.groupLinkSource ? " linking" : ""}`}>
       <DagToolbar
         tabId={tabId}
         categories={categories}
@@ -547,18 +321,18 @@ export function DagCanvas({
         selCount={selCount}
         hideCompleted={hideCompleted}
         setHideCompleted={setHideCompleted}
-        linkSource={linkSource}
-        groupLinkSource={groupLinkSource}
+        linkSource={link.linkSource}
+        groupLinkSource={link.groupLinkSource}
         onAddCard={onAddCard}
         onToolLink={onToolLink}
-        onSetTime={onSetTime}
-        onEditTitle={onEditTitle}
+        onSetTime={actions.onSetTime}
+        onEditTitle={actions.onEditTitle}
         onOpenCard={onOpenCard}
         onUngroup={onUngroup}
-        onToolDelete={onToolDelete}
+        onToolDelete={actions.onToolDelete}
         scrollToToday={scrollToToday}
-        setLinkSource={setLinkSource}
-        setGroupLinkSource={setGroupLinkSource}
+        setLinkSource={link.setLinkSource}
+        setGroupLinkSource={link.setGroupLinkSource}
       />
       <div
         className="dag-canvas"
@@ -566,8 +340,8 @@ export function DagCanvas({
         onDoubleClick={onCanvasDoubleClick}
         onPointerDown={() => {
           setSelectedIds(new Set());
-          if (linkSource) setLinkSource(null);
-          if (groupLinkSource) setGroupLinkSource(null);
+          if (link.linkSource) link.setLinkSource(null);
+          if (link.groupLinkSource) link.setGroupLinkSource(null);
         }}
         onPointerMove={(e) => {
           if (!dragRef.current) updateEdgePan(e.clientX);
@@ -577,20 +351,17 @@ export function DagCanvas({
         }}
       >
         <div className="dag-surface" style={{ width: maxX, height: maxY }}>
-          {gridLines}
-          <div className="dag-axis" style={{ width: maxX }}>
-            {axisLabels}
-          </div>
+          <DagAxis days={days} originMs={originMs} maxX={maxX} />
           <div className="dag-today" style={{ left: todayX, width: PX_PER_DAY }} />
           <div className="dag-backlog-label">날짜 미정</div>
 
           <DagGroups
             groups={groups}
             groupRects={groupRects}
-            groupLinkSource={groupLinkSource}
+            groupLinkSource={link.groupLinkSource}
             onOpenGroup={onOpenGroup}
-            onGroupLinkBtn={onGroupLinkBtn}
-            onDeleteGroup={onDeleteGroup}
+            onGroupLinkBtn={link.onGroupLinkBtn}
+            onDeleteGroup={actions.onDeleteGroup}
           />
 
           <DagEdges
@@ -602,11 +373,11 @@ export function DagCanvas({
             cards={cards}
             nodeGeom={nodeGeom}
             isVisible={isVisible}
-            linkLine={linkLine}
-            onDeleteGroupRelation={onDeleteGroupRelation}
-            onDeleteRelation={onDeleteRelation}
-            onEditLabel={onEditEdgeLabel}
-            onEditGroupLabel={onEditGroupEdgeLabel}
+            linkLine={link.linkLine}
+            onDeleteGroupRelation={actions.onDeleteGroupRelation}
+            onDeleteRelation={actions.onDeleteRelation}
+            onEditLabel={actions.onEditEdgeLabel}
+            onEditGroupLabel={actions.onEditGroupEdgeLabel}
           />
 
           {cards.filter(isVisible).map((c) => {
@@ -622,7 +393,7 @@ export function DagCanvas({
                 card={c}
                 geom={nodeGeom(c)}
                 selected={selectedIds.has(c.id)}
-                isLinkSource={linkSource === c.id}
+                isLinkSource={link.linkSource === c.id}
                 overdue={overdue}
                 excerpt={c.bodyExcerpt ?? undefined}
                 rels={relCount.get(c.id) ?? 0}
@@ -635,9 +406,9 @@ export function DagCanvas({
                 onPointerUp={onPointerUp}
                 onOpenCard={onOpenCard}
                 onToggleComplete={(cardId, completed) => updateCard.mutate({ cardId, completed })}
-                onNubDown={onNubDown}
-                onNubMove={onNubMove}
-                onNubUp={onNubUp}
+                onNubDown={link.onNubDown}
+                onNubMove={link.onNubMove}
+                onNubUp={link.onNubUp}
               />
             );
           })}
@@ -649,7 +420,7 @@ export function DagCanvas({
         <NewCardDialog
           defaultDate={newCard.date}
           categories={categories}
-          onSubmit={onCreateCard}
+          onSubmit={actions.onCreateCard}
           onClose={() => setNewCard(null)}
         />
       )}

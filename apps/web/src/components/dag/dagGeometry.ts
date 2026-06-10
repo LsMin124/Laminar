@@ -1,4 +1,4 @@
-import type { Card } from "../../lib/graphTypes";
+import type { Card, Group } from "../../lib/graphTypes";
 import { MS_DAY, parseDate, shortDate } from "../../lib/dateUtil";
 
 /**
@@ -56,4 +56,44 @@ export function barWidth(c: Card): number {
     return Math.max(PX_PER_DAY, span * PX_PER_DAY);
   }
   return PX_PER_DAY;
+}
+
+/**
+ * 그룹 경계 박스 geometry(멤버 카드 bounding rect) — 박스 렌더와 그룹 화살표 앵커가 공유.
+ * 멤버가 보이지 않으면 rect 없음(빈/숨김 그룹은 박스·화살표 모두 숨김). nodeGeom을 주입받아
+ * 드래그 중 좌표를 따라 갱신된다(순수함수 — 상태는 호출부 소유, DX-11).
+ */
+export function computeGroupRects(
+  groups: Group[],
+  groupMembers: Record<string, string[]>,
+  cards: Card[],
+  isVisible: (c: Card) => boolean,
+  nodeGeom: (c: Card) => { x: number; y: number; w: number },
+): Map<string, { x: number; y: number; w: number; h: number }> {
+  const rects = new Map<string, { x: number; y: number; w: number; h: number }>();
+  for (const grp of groups) {
+    const members = (groupMembers[grp.id] ?? [])
+      .map((id) => cards.find((c) => c.id === id))
+      .filter((c): c is Card => !!c && isVisible(c));
+    if (members.length === 0) continue;
+    let gx0 = Infinity;
+    let gy0 = Infinity;
+    let gx1 = -Infinity;
+    let gy1 = -Infinity;
+    for (const m of members) {
+      const gm = nodeGeom(m);
+      gx0 = Math.min(gx0, gm.x);
+      gy0 = Math.min(gy0, gm.y);
+      gx1 = Math.max(gx1, gm.x + gm.w);
+      gy1 = Math.max(gy1, gm.y + BAR_H);
+    }
+    const pad = 16;
+    rects.set(grp.id, {
+      x: gx0 - pad,
+      y: gy0 - pad - 8,
+      w: gx1 - gx0 + pad * 2,
+      h: gy1 - gy0 + pad * 2 + 8,
+    });
+  }
+  return rects;
 }

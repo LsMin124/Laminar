@@ -43,7 +43,7 @@ function schedule(): void {
 
 async function tick(): Promise<void> {
   if (!refresher) return;
-  let ok = false;
+  let ok: boolean;
   try {
     ok = await refresher();
   } catch {

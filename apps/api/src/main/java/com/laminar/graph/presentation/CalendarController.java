@@ -52,31 +52,9 @@ public class CalendarController {
   public record DateMemoResponse(
       UUID tabId, UUID userId, LocalDate date, String bodyMd, Map<String, Object> attrs) {}
 
+  // 캘린더는 현재 전체 bodyMd를 싣는다(그래프와 달리 발췌 미적용 — 경감 여부는 백로그 메모).
   private static CardDtos.CardResponse toCardResponse(CardEntity c) {
-    return new CardDtos.CardResponse(
-        c.getId(),
-        c.getSubjectId(),
-        c.getUserId(),
-        c.getTabId(),
-        c.getTitle(),
-        c.getSlug(),
-        c.getBodyMd(),
-        null,
-        c.getStartDate(),
-        c.getEndDate(),
-        c.getStartTime(),
-        c.isAllDay(),
-        c.getTimeZone(),
-        c.getImportance(),
-        c.isCompleted(),
-        c.getRrule(),
-        c.getOrigin(),
-        c.getPriority(),
-        c.getAttrs(),
-        c.getArchivedAt(),
-        c.getCreatedAt(),
-        c.getUpdatedAt(),
-        c.getCanvasY());
+    return CardDtos.CardResponse.of(c);
   }
 
   private static DateMemoResponse toDateMemoResponse(DateMemoEntity m) {

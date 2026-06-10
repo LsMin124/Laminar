@@ -134,29 +134,6 @@ public class CardController {
   }
 
   private CardDtos.CardResponse toResponse(CardEntity c) {
-    return new CardDtos.CardResponse(
-        c.getId(),
-        c.getSubjectId(),
-        c.getUserId(),
-        c.getTabId(),
-        c.getTitle(),
-        c.getSlug(),
-        c.getBodyMd(),
-        null, // 단건 응답은 전체 bodyMd를 그대로 제공(발췌 불필요)
-        c.getStartDate(),
-        c.getEndDate(),
-        c.getStartTime(),
-        c.isAllDay(),
-        c.getTimeZone(),
-        c.getImportance(),
-        c.isCompleted(),
-        c.getRrule(),
-        c.getOrigin(),
-        c.getPriority(),
-        c.getAttrs(),
-        c.getArchivedAt(),
-        c.getCreatedAt(),
-        c.getUpdatedAt(),
-        c.getCanvasY());
+    return CardDtos.CardResponse.of(c);
   }
 }

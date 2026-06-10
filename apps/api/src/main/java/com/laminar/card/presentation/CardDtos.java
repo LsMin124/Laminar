@@ -1,5 +1,6 @@
 package com.laminar.card.presentation;
 
+import com.laminar.card.domain.CardEntity;
 import com.laminar.card.domain.CardImportance;
 import com.laminar.card.domain.CardOrigin;
 import jakarta.validation.constraints.NotBlank;
@@ -96,5 +97,44 @@ public final class CardDtos {
       OffsetDateTime archivedAt,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt,
-      Double canvasY) {}
+      Double canvasY) {
+
+    /** 단건 응답 — 전체 bodyMd 포함(발췌 null). 위치 인자 23개 직접 나열 금지, 본 팩토리 경유(DX-7). */
+    public static CardResponse of(CardEntity c) {
+      return build(c, c.getBodyMd(), null);
+    }
+
+    /** 그래프 응답 — 페이로드 경감: bodyMd 제외, 서버 산출 발췌만(전체 본문은 GET /api/cards/{id}). */
+    public static CardResponse excerptOf(CardEntity c) {
+      // 한정 호출 — 비한정 bodyExcerpt는 레코드 자신의 컴포넌트 접근자(무인자)로 해석된다.
+      return build(c, null, CardDtos.bodyExcerpt(c.getBodyMd()));
+    }
+
+    private static CardResponse build(CardEntity c, String bodyMd, String excerpt) {
+      return new CardResponse(
+          c.getId(),
+          c.getSubjectId(),
+          c.getUserId(),
+          c.getTabId(),
+          c.getTitle(),
+          c.getSlug(),
+          bodyMd,
+          excerpt,
+          c.getStartDate(),
+          c.getEndDate(),
+          c.getStartTime(),
+          c.isAllDay(),
+          c.getTimeZone(),
+          c.getImportance(),
+          c.isCompleted(),
+          c.getRrule(),
+          c.getOrigin(),
+          c.getPriority(),
+          c.getAttrs(),
+          c.getArchivedAt(),
+          c.getCreatedAt(),
+          c.getUpdatedAt(),
+          c.getCanvasY());
+    }
+  }
 }

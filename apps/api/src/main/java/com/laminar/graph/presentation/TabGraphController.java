@@ -67,30 +67,7 @@ public class TabGraphController {
       Map<UUID, UUID> cardCategoryIds) {}
 
   private static CardDtos.CardResponse toCard(CardEntity c) {
-    return new CardDtos.CardResponse(
-        c.getId(),
-        c.getSubjectId(),
-        c.getUserId(),
-        c.getTabId(),
-        c.getTitle(),
-        c.getSlug(),
-        null, // 그래프엔 전체 bodyMd를 싣지 않음(페이로드 경감) — 전체 본문은 GET /api/cards/{id}
-        CardDtos.bodyExcerpt(c.getBodyMd()),
-        c.getStartDate(),
-        c.getEndDate(),
-        c.getStartTime(),
-        c.isAllDay(),
-        c.getTimeZone(),
-        c.getImportance(),
-        c.isCompleted(),
-        c.getRrule(),
-        c.getOrigin(),
-        c.getPriority(),
-        c.getAttrs(),
-        c.getArchivedAt(),
-        c.getCreatedAt(),
-        c.getUpdatedAt(),
-        c.getCanvasY());
+    return CardDtos.CardResponse.excerptOf(c);
   }
 
   private static CardCategoryDtos.CategoryResponse toCategory(CardCategoryEntity c) {

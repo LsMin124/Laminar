@@ -3,6 +3,8 @@ package com.laminar.integration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -27,4 +29,15 @@ public abstract class IsolationIntegrationBase {
           .withUsername("test")
           .withPassword("test")
           .withReuse(false);
+
+  /**
+   * cron 전용 보조 DataSource(app.datasource.cron.*)는 property 기반이라 @ServiceConnection이 채워주지 않는다 —
+   * 같은 컨테이너를 가리키도록 동적 주입(미설정 시 컨텍스트 부팅이 driver 미결정으로 실패).
+   */
+  @DynamicPropertySource
+  static void cronDataSourceProperties(DynamicPropertyRegistry registry) {
+    registry.add("app.datasource.cron.url", POSTGRES::getJdbcUrl);
+    registry.add("app.datasource.cron.username", POSTGRES::getUsername);
+    registry.add("app.datasource.cron.password", POSTGRES::getPassword);
+  }
 }

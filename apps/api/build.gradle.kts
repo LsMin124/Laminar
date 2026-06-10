@@ -30,7 +30,9 @@ val bucket4jVersion = "8.10.1" // groupId 주의: com.bucket4j (구 io.github.bu
 val shedlockVersion = "7.7.0" // 5.x→7.x major bump (코드 없으니 마이그레이션 부담 없음)
 val sentryVersion = "8.41.0"
 val archunitVersion = "1.4.2"
-val testcontainersVersion = "1.21.0"
+// 1.x 최신 패치. 로컬 Docker 29.1.3에선 1.21.0/1.21.4 모두 클라이언트 전략 실패(로컬은 -PexcludeIT 경로),
+// CI(GitHub Actions 러너)에선 정상 기동 확인. Boot 3.5의 @ServiceConnection은 TC 1.x 전제 — 2.x 이행은 Boot 4와 함께.
+val testcontainersVersion = "1.21.4"
 val jjwtVersion = "0.12.6" // JWT access 토큰 서명·검증 (HS256)
 
 dependencies {

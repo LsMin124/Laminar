@@ -105,7 +105,7 @@ public class TabGraphController {
         g.getTabId(),
         g.getName(),
         g.getColor(),
-        g.getBodyMd(),
+        null, // 그래프엔 전체 bodyMd를 싣지 않음(페이로드 경감) — 전체 본문은 GET /api/groups/{id}
         g.getPriority(),
         g.getAttrs(),
         g.getCreatedAt(),

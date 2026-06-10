@@ -62,7 +62,10 @@ export interface Group {
   id: Uuid;
   name: string;
   color: string | null;
-  /** 그룹도 카드처럼 독립 마크다운 문서를 가진다(서브그래프 목표·메모). */
+  /**
+   * 그룹도 카드처럼 독립 마크다운 문서를 가진다(서브그래프 목표·메모).
+   * 그래프 응답엔 null(페이로드 경감) — 단건 GET /api/groups/{id}에서만 채워진다.
+   */
   bodyMd: string | null;
 }
 
@@ -418,6 +421,16 @@ export function useUpdateRelation(tabId: string) {
   });
 }
 
+/** 그룹 단건 조회 — 본문(bodyMd)은 그래프 페이로드에서 빠져 단건으로만 온다(카드와 동형). */
+export function useGroupById(groupId: string | null) {
+  return useQuery({
+    queryKey: ["group", groupId],
+    queryFn: () => api.get<Group>(`/api/groups/${groupId}`),
+    enabled: !!groupId,
+    retry: false,
+  });
+}
+
 export function useCreateGroup(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -439,7 +452,7 @@ export function useDeleteGroup(tabId: string) {
   });
 }
 
-/** 그룹 속성(이름·색·본문) 수정 — 본문 자동저장이 깜빡이지 않도록 낙관적 반영. */
+/** 그룹 속성(이름·색·본문) 수정 — 캔버스 표시 필드(이름·색)는 낙관적 반영. */
 export function useUpdateGroup(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -464,7 +477,6 @@ export function useUpdateGroup(tabId: string) {
                       ...grp,
                       ...(input.name !== undefined ? { name: input.name } : {}),
                       ...(input.color !== undefined ? { color: input.color } : {}),
-                      ...(input.bodyMd !== undefined ? { bodyMd: input.bodyMd } : {}),
                     }
                   : grp,
               ),
@@ -474,6 +486,9 @@ export function useUpdateGroup(tabId: string) {
       await qc.cancelQueries({ queryKey: graphKey(tabId) });
       return { prev };
     },
+    // 본문(bodyMd)은 그래프 페이로드에서 빠져 단건 캐시(useGroupById)에 산다 — PATCH 응답으로
+    // 단건 캐시를 갱신해 본문 편집 후 '완료' 시 옛 본문으로 되돌아가지 않게 한다(카드와 동형).
+    onSuccess: (data, input) => qc.setQueryData(["group", input.groupId], data),
     onError: (_err, _input, ctx) => {
       const snapshot = ctx as { prev?: TabGraph } | undefined;
       if (snapshot?.prev) qc.setQueryData(graphKey(tabId), snapshot.prev);

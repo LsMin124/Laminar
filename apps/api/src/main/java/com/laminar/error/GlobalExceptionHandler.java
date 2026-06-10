@@ -18,10 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * 전역 예외 핸들러 (H-2) — 도메인/검증 예외를 정확한 HTTP 상태코드 + 표준 envelope로 매핑.
  *
- * <p>본 코드베이스 관례상: - IllegalArgumentException = 잘못된 입력/도메인 invariant 위반 → 400 -
- * IllegalStateException = scope/role/소유권 등 인가 위반 전용 → 403 (N-2 이후 도메인 충돌· 내부 오류는
- * ConflictException/RuntimeException으로 분리됨) - ConflictException = 도메인 충돌(중복·상태전이) → 409 (안전 메시지 노출)
- * - ResponseStatusException = 컨트롤러가 명시한 상태 (예: 로그인 실패 401) → passthrough - 검증(@Valid) → 400 -
+ * <p>본 코드베이스 관례상: - IllegalArgumentException = 잘못된 입력/도메인 invariant 위반 → 400 - BadRequestException
+ * = 입력 위반 중 기계 판독 code가 필요한 경우 → 400 + code (DX-4) - IllegalStateException = scope/role/소유권 등 인가
+ * 위반(레거시 관례) → 403 - ForbiddenException = 인가 거부의 명시 타입(신규 코드 권장, DX-5) → 403 - NotFoundException =
+ * 리소스 부재/비소유 → 404 (DX-5) - ConflictException = 도메인 충돌(중복·상태전이) → 409 (안전 메시지 노출 + 선택적 code) -
+ * ResponseStatusException = 컨트롤러가 명시한 상태 (예: 로그인 실패 401) → passthrough - 검증(@Valid) → 400 -
  * DataIntegrityViolation → 409 (DB unique 등) - 그 외 → 500 (메시지 일반화 + 서버 로그)
  */
 @RestControllerAdvice
@@ -62,6 +63,28 @@ public class GlobalExceptionHandler {
     return build(HttpStatus.BAD_REQUEST, safe(ex.getMessage(), "잘못된 요청입니다"), req);
   }
 
+  @ExceptionHandler(BadRequestException.class)
+  public ResponseEntity<ApiErrorResponse> handleBadRequest(
+      BadRequestException ex, HttpServletRequest req) {
+    // DX-4: 400 중 프론트 분기가 필요한 규칙 위반 — 메시지에 더해 기계 판독 code를 싣는다.
+    return build(HttpStatus.BAD_REQUEST, safe(ex.getMessage(), "잘못된 요청입니다"), req, ex.code());
+  }
+
+  @ExceptionHandler(NotFoundException.class)
+  public ResponseEntity<ApiErrorResponse> handleNotFound(
+      NotFoundException ex, HttpServletRequest req) {
+    // DX-5: 리소스 부재/비소유 → 404. 메시지는 큐레이트된 도메인 사실만(존재 enumeration 방지 측면에서도 404가 정답).
+    return build(HttpStatus.NOT_FOUND, safe(ex.getMessage(), "리소스를 찾을 수 없습니다"), req);
+  }
+
+  @ExceptionHandler(ForbiddenException.class)
+  public ResponseEntity<ApiErrorResponse> handleForbidden(
+      ForbiddenException ex, HttpServletRequest req) {
+    // DX-5: 의도적 인가 거부 타입 — 블랭킷 IllegalStateException 403과 달리 메시지가 큐레이트되어 있어 노출 가능.
+    log.debug("forbidden at {} {}: {}", req.getMethod(), req.getRequestURI(), ex.getMessage());
+    return build(HttpStatus.FORBIDDEN, safe(ex.getMessage(), "요청을 수행할 권한이 없습니다"), req);
+  }
+
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<ApiErrorResponse> handleIllegalState(
       IllegalStateException ex, HttpServletRequest req) {
@@ -83,7 +106,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleDomainConflict(
       ConflictException ex, HttpServletRequest req) {
     // N-2: 도메인 충돌(중복·상태전이) → 409. 메시지는 큐레이트된 안전 도메인 사실만 노출.
-    return build(HttpStatus.CONFLICT, safe(ex.getMessage(), "리소스 충돌이 발생했습니다"), req);
+    return build(HttpStatus.CONFLICT, safe(ex.getMessage(), "리소스 충돌이 발생했습니다"), req, ex.code());
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)
@@ -111,6 +134,11 @@ public class GlobalExceptionHandler {
 
   private static ResponseEntity<ApiErrorResponse> build(
       HttpStatus status, String message, HttpServletRequest req) {
+    return build(status, message, req, null);
+  }
+
+  private static ResponseEntity<ApiErrorResponse> build(
+      HttpStatus status, String message, HttpServletRequest req, ErrorCode code) {
     return ResponseEntity.status(status)
         .body(
             new ApiErrorResponse(
@@ -118,6 +146,7 @@ public class GlobalExceptionHandler {
                 status.value(),
                 status.getReasonPhrase(),
                 message,
-                req.getRequestURI()));
+                req.getRequestURI(),
+                code == null ? null : code.name()));
   }
 }

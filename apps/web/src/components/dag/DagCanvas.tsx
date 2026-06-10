@@ -19,7 +19,7 @@ import {
   type Group,
   type GroupRelation,
 } from "../../lib/dag";
-import { ApiError } from "../../lib/api";
+import { apiErrorMessage } from "../../lib/apiErrors";
 import { MS_DAY, parseDate, fmtDate, todayUtc } from "../../lib/dateUtil";
 import {
   BACKLOG_X,
@@ -231,18 +231,8 @@ export function DagCanvas({
   }
 
   async function reportError(err: unknown) {
-    let msg = "작업에 실패했습니다.";
-    if (err instanceof ApiError && err.status === 409) {
-      const body = err.body as { message?: string } | string;
-      const m = typeof body === "object" && body?.message ? body.message : "";
-      msg = m.includes("cycle")
-        ? "두 카드를 연결하면 순환이 생겨 차단되었습니다."
-        : m.includes("predecessor")
-          ? "선행 카드보다 앞 날짜로 옮길 수 없습니다."
-          : m.includes("span")
-            ? `기간은 최대 ${MAX_SPAN_DAYS}일까지입니다.`
-            : "충돌이 발생했습니다.";
-    }
+    // 오류 code 기반 매핑(lib/apiErrors) — 메시지 문자열 매칭 금지(DX-4).
+    const msg = apiErrorMessage(err, "작업에 실패했습니다.");
     await dialogs.alert({ title: "처리 불가", message: msg });
   }
 

@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMoveCard, useTabGraph, useUpdateCard, type Card } from "../../lib/dag";
-import { ApiError } from "../../lib/api";
 import { MS_DAY, parseDate, fmtDate, todayUtc, startOfMonth } from "../../lib/dateUtil";
-import { MAX_SPAN_DAYS } from "./dagGeometry";
+import { apiErrorMessage } from "../../lib/apiErrors";
 import { useDialogs } from "../ui/DialogProvider";
 import "./CalendarView.css";
 
@@ -96,16 +95,10 @@ export function CalendarView({ tabId }: { tabId: string }) {
   }, [days, cards, hideCompleted]);
 
   async function reportError(err: unknown) {
-    let msg = "작업에 실패했습니다.";
-    if (err instanceof ApiError && err.status === 409) {
-      const body = err.body as { message?: string } | string;
-      const m = typeof body === "object" && body?.message ? body.message : "";
-      msg = m.includes("predecessor")
-        ? "선행 카드보다 앞 날짜로 옮길 수 없습니다. (캔버스에서 화살표를 끊고 이동하세요)"
-        : m.includes("span")
-          ? `기간은 최대 ${MAX_SPAN_DAYS}일까지입니다.`
-          : "충돌이 발생했습니다.";
-    }
+    // 오류 code 기반 매핑(lib/apiErrors) — 캘린더에서는 화살표를 끊을 수 없어 안내를 override(DX-4).
+    const msg = apiErrorMessage(err, "작업에 실패했습니다.", {
+      CARD_BEFORE_PREDECESSOR: "선행 카드보다 앞 날짜로 옮길 수 없습니다. (캔버스에서 화살표를 끊고 이동하세요)",
+    });
     await dialogs.alert({ title: "처리 불가", message: msg });
   }
 

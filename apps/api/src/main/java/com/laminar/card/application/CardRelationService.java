@@ -7,6 +7,7 @@ import com.laminar.card.repository.CardRepository;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.error.ConflictException;
+import com.laminar.error.ErrorCode;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +66,7 @@ public class CardRelationService {
       throw new IllegalArgumentException("from/to cards must share a tab");
     }
     if (dagService.wouldCreateCycle(tabId, fromCardId, toCardId)) {
-      throw new ConflictException("relation would create a cycle");
+      throw new ConflictException("relation would create a cycle", ErrorCode.CARD_CYCLE);
     }
 
     CardRelationEntity relation = new CardRelationEntity();

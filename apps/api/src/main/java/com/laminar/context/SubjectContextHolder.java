@@ -1,5 +1,7 @@
 package com.laminar.context;
 
+import com.laminar.error.ForbiddenException;
+
 /**
  * ThreadLocal 기반 SubjectContext 보관소.
  *
@@ -54,11 +56,12 @@ public final class SubjectContextHolder {
    */
   public static SubjectContext requirePersonalWritable(String resourceNoun) {
     SubjectContext context = require();
+    // DX-5: 의도적 인가 거부는 ForbiddenException(403 명시 타입) — 메시지는 기존 가드 문구 보존.
     if (context.scope() != SubjectContext.Scope.PERSONAL) {
-      throw new IllegalStateException("PERSONAL scope required");
+      throw new ForbiddenException("PERSONAL scope required");
     }
     if (!context.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate " + resourceNoun);
+      throw new ForbiddenException("VIEWER cannot mutate " + resourceNoun);
     }
     return context;
   }

@@ -9,6 +9,7 @@ import com.laminar.card.domain.CardImportance;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.BadRequestException;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
@@ -120,7 +121,7 @@ class CardServiceIT extends IsolationIntegrationBase {
                         null,
                         null,
                         null)))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("30");
   }
 

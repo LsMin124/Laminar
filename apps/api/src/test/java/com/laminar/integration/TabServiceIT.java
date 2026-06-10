@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.ForbiddenException;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
@@ -127,7 +128,7 @@ class TabServiceIT extends IsolationIntegrationBase {
     filterActivator.activate();
 
     assertThatThrownBy(() -> tabService.create("X", "x", null, null, null, null))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(ForbiddenException.class)
         .hasMessageContaining("VIEWER");
   }
 

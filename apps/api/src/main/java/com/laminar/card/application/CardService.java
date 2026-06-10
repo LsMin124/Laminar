@@ -6,7 +6,9 @@ import com.laminar.card.domain.CardOrigin;
 import com.laminar.card.repository.CardRepository;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.BadRequestException;
 import com.laminar.error.ConflictException;
+import com.laminar.error.ErrorCode;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -143,7 +145,8 @@ public class CardService {
         throw new ConflictException(
             "cannot move card before its predecessor (predecessor starts "
                 + maxPredecessorStart
-                + ")");
+                + ")",
+            ErrorCode.CARD_BEFORE_PREDECESSOR);
       }
     }
     CardEntity saved = cardRepo.save(card);
@@ -225,7 +228,8 @@ public class CardService {
     }
     long days = ChronoUnit.DAYS.between(start, end);
     if (days > MAX_SPAN_DAYS) {
-      throw new IllegalArgumentException("date span exceeds " + MAX_SPAN_DAYS + " days");
+      throw new BadRequestException(
+          "date span exceeds " + MAX_SPAN_DAYS + " days", ErrorCode.CARD_SPAN_EXCEEDED);
     }
   }
 

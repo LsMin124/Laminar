@@ -7,11 +7,17 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.laminar.system.SystemRepository;
+import com.tngtech.archunit.core.domain.Dependency;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import jakarta.persistence.Entity;
+import java.util.Set;
 
 /**
  * 패키지 의존성 룰 (Task 1.10).
@@ -146,4 +152,45 @@ public class ArchitectureTest {
                               "com.laminar.common..",
                               "com.laminar.error..",
                               "com.laminar.security.."))));
+
+  /**
+   * DX-20 — 도메인 리포지토리 원정 접근 차단: {도메인}.repository는 자기 도메인 또는 집계·시스템 작업 패키지에서만 사용.
+   *
+   * <p>타 도메인 리포지토리 직접 사용은 도메인 쓰기 불변식(카드 이동 시 DAG 연쇄 등)을 우회하는 경로다. 정당한 원정은 전부 읽기·시스템 작업 — graph(화면
+   * 집계 BFF)·cron(스케줄 워커)·rrule(반복 전개)·admin(운영 콘솔)만 예외 허용.
+   * common.repository(PersonalOwnedRepository 믹스인)는 도메인 리포지토리가 상속하는 기반이라 대상에서 제외. system 리포지토리는
+   * .repository 하위 패키지가 아니라 본 룰 비대상(자체 룰로 격리).
+   */
+  @ArchTest
+  static final ArchRule domain_repositories_only_accessed_from_own_domain =
+      classes()
+          .that()
+          .resideInAPackage("com.laminar.(*).repository..")
+          .and()
+          .resideOutsideOfPackage("com.laminar.common..")
+          .should(onlyBeDependedOnByOwnDomainOr(Set.of("graph", "cron", "admin", "rrule")));
+
+  private static ArchCondition<JavaClass> onlyBeDependedOnByOwnDomainOr(Set<String> exempt) {
+    return new ArchCondition<>("only be depended on by own domain or " + exempt) {
+      @Override
+      public void check(JavaClass repoClass, ConditionEvents events) {
+        String targetDomain = laminarDomainSegment(repoClass.getPackageName());
+        for (Dependency dep : repoClass.getDirectDependenciesToSelf()) {
+          String originDomain = laminarDomainSegment(dep.getOriginClass().getPackageName());
+          if (!targetDomain.equals(originDomain) && !exempt.contains(originDomain)) {
+            events.add(SimpleConditionEvent.violated(dep, dep.getDescription()));
+          }
+        }
+      }
+    };
+  }
+
+  /** {@code com.laminar.{segment}...} → segment (com.laminar 외부 클래스는 빈 문자열). */
+  private static String laminarDomainSegment(String packageName) {
+    String prefix = "com.laminar.";
+    if (!packageName.startsWith(prefix)) return "";
+    String rest = packageName.substring(prefix.length());
+    int dot = rest.indexOf('.');
+    return dot < 0 ? rest : rest.substring(0, dot);
+  }
 }

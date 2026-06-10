@@ -96,6 +96,16 @@ public class CardService {
     return cardRepo.findOwnedActive(cardId, ctx);
   }
 
+  /**
+   * 카드 소유·활성 검증 — 타 도메인 협력용(그룹 멤버십 등). 부재/남의 것은 NotFoundException 404. 타 도메인은 CardRepository 원정 접근
+   * 대신 본 메서드를 경유한다 (DX-20, ArchUnit 강제).
+   */
+  @Transactional(readOnly = true)
+  public CardEntity requireOwnedActive(UUID cardId) {
+    SubjectContext ctx = SubjectContextHolder.requirePersonal();
+    return cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
+  }
+
   /** 카드 카테고리 지정/해제 — categoryId null이면 미분류. (FK가 실재 카테고리를 보장.) */
   @Transactional
   public CardEntity setCategory(UUID cardId, UUID categoryId) {

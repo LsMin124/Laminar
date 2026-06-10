@@ -29,15 +29,16 @@ public class GroupService {
 
   private final GroupRepository groupRepo;
   private final GroupMemberRepository memberRepo;
-  private final com.laminar.card.repository.CardRepository cardRepo;
+  // 카드 검증은 CardService 경유 — CardRepository 원정 접근 금지 (DX-20, ArchUnit 강제).
+  private final com.laminar.card.application.CardService cardService;
 
   public GroupService(
       GroupRepository groupRepo,
       GroupMemberRepository memberRepo,
-      com.laminar.card.repository.CardRepository cardRepo) {
+      com.laminar.card.application.CardService cardService) {
     this.groupRepo = groupRepo;
     this.memberRepo = memberRepo;
-    this.cardRepo = cardRepo;
+    this.cardService = cardService;
   }
 
   @Transactional
@@ -125,7 +126,7 @@ public class GroupService {
   public GroupMemberEntity addMember(UUID groupId, UUID cardId) {
     SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("groups");
     groupRepo.findOwnedActiveOrThrow(groupId, ctx, "group");
-    cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
+    cardService.requireOwnedActive(cardId);
 
     GroupMemberEntity member = new GroupMemberEntity();
     member.setId(new GroupMemberId(groupId, cardId));
@@ -150,8 +151,8 @@ public class GroupService {
 
   @Transactional(readOnly = true)
   public List<UUID> listGroupIdsForCard(UUID cardId) {
-    SubjectContext ctx = SubjectContextHolder.requirePersonal();
-    cardRepo.findOwnedActiveOrThrow(cardId, ctx, "card");
+    SubjectContextHolder.requirePersonal();
+    cardService.requireOwnedActive(cardId);
     return memberRepo.findByIdCardId(cardId).stream().map(m -> m.getId().getGroupId()).toList();
   }
 }

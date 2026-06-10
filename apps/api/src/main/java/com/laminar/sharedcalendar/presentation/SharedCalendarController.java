@@ -1,9 +1,9 @@
-package com.laminar.equipment.presentation;
+package com.laminar.sharedcalendar.presentation;
 
-import com.laminar.equipment.application.SharedCalendarAnnouncementService;
-import com.laminar.equipment.application.SharedCalendarService;
-import com.laminar.equipment.domain.SharedCalendarAnnouncementEntity;
-import com.laminar.equipment.domain.SharedCalendarEntity;
+import com.laminar.sharedcalendar.application.SharedCalendarAnnouncementService;
+import com.laminar.sharedcalendar.application.SharedCalendarService;
+import com.laminar.sharedcalendar.domain.SharedCalendarAnnouncementEntity;
+import com.laminar.sharedcalendar.domain.SharedCalendarEntity;
 import com.laminar.tab.domain.TabDefaultView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

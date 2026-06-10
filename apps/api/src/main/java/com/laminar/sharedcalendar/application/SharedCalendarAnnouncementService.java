@@ -1,10 +1,10 @@
-package com.laminar.equipment.application;
+package com.laminar.sharedcalendar.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
-import com.laminar.equipment.domain.SharedCalendarAnnouncementEntity;
-import com.laminar.equipment.repository.SharedCalendarAnnouncementRepository;
-import com.laminar.equipment.repository.SharedCalendarRepository;
+import com.laminar.sharedcalendar.domain.SharedCalendarAnnouncementEntity;
+import com.laminar.sharedcalendar.repository.SharedCalendarAnnouncementRepository;
+import com.laminar.sharedcalendar.repository.SharedCalendarRepository;
 import com.laminar.error.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -1,6 +1,6 @@
-package com.laminar.equipment.repository;
+package com.laminar.sharedcalendar.repository;
 
-import com.laminar.equipment.domain.SharedCalendarAnnouncementEntity;
+import com.laminar.sharedcalendar.domain.SharedCalendarAnnouncementEntity;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package com.laminar.equipment.domain;
+package com.laminar.sharedcalendar.domain;
 
 import com.laminar.common.domain.SubjectScopedBaseEntity;
 import com.laminar.tab.domain.TabDefaultView;

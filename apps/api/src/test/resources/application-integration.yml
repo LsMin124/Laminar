@@ -5,7 +5,8 @@
 spring:
   datasource:
     hikari:
-      maximum-pool-size: 5
+      # 백그라운드 워커(outbox 30s·메일 60s 폴링) + audit REQUIRES_NEW + 테스트 트랜잭션 동시 수요 여유.
+      maximum-pool-size: 10
   flyway:
     enabled: true
     locations: classpath:db/migration

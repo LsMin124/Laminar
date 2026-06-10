@@ -2,6 +2,8 @@ package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.laminar.attachment.application.AttachmentService;
 import com.laminar.attachment.domain.AttachmentEntity;
@@ -24,6 +26,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 class AttachmentServiceIT extends IsolationIntegrationBase {
 
@@ -85,6 +89,10 @@ class AttachmentServiceIT extends IsolationIntegrationBase {
             1024L,
             "sha-abc");
     assertThat(att.isAccessCheckRequired()).isTrue();
+
+    // N-4: finalize는 클라이언트 자칭 크기를 무시하고 R2 HEAD 실측을 쓴다 — mock으로 2048B 응답.
+    when(s3Client.headObject(any(HeadObjectRequest.class)))
+        .thenReturn(HeadObjectResponse.builder().contentLength(2048L).build());
 
     AttachmentEntity finalized = attachmentService.finalizeUpload(att.getId(), 2048L, "sha-xyz");
 

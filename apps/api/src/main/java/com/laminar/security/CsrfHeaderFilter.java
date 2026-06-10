@@ -1,6 +1,5 @@
 package com.laminar.security;
 
-import com.laminar.auth.presentation.AuthCookies;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;

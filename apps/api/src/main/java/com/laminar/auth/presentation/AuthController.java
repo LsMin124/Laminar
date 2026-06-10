@@ -2,6 +2,7 @@ package com.laminar.auth.presentation;
 
 import com.laminar.auth.application.AuthService;
 import com.laminar.auth.application.PasswordResetService;
+import com.laminar.security.AuthCookies;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.user.domain.UserEntity;
 import jakarta.servlet.http.HttpServletRequest;

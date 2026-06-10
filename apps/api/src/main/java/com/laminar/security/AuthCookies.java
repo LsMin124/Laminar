@@ -1,4 +1,4 @@
-package com.laminar.auth.presentation;
+package com.laminar.security;
 
 import com.laminar.config.CookieProperties;
 import com.laminar.config.JwtProperties;
@@ -12,7 +12,8 @@ import org.springframework.stereotype.Component;
  * 인증 쿠키(access/refresh) 발급·삭제·추출 공통 유틸.
  *
  * <p>AuthController·OAuth2LoginSuccessHandler·JwtAuthenticationFilter가 공유 — 쿠키 정책(HttpOnly ·
- * Secure(prod) · SameSite=Lax · Path=/)의 단일 출처. max-age는 JWT TTL(access/refresh)에서 파생.
+ * Secure(prod) · SameSite=Lax · Path=/)의 단일 출처. max-age는 JWT TTL(access/refresh)에서 파생. 실소비자 3/4이
+ * security 필터(JWT·CSRF·OAuth 핸들러)라 전송 계층 어휘로서 security 소속이다(DX-22).
  */
 @Component
 public class AuthCookies {

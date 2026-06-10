@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Category } from "../../lib/dag";
+import type { Category } from "../../lib/graphTypes";
 
 /**
  * 새 카드 생성 폼 — 제목(필수) + 일자(선택, 비우면 미정) + 분류(선택).

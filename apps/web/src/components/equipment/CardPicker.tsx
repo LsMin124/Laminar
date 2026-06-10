@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useCardById, useTabGraph, useTabs } from "../../lib/dag";
+import { useCardById } from "../../lib/cards";
+import { useTabGraph } from "../../lib/graph";
+import { useTabs } from "../../lib/tabs";
 
 /**
  * 예약 폼 카드 연결 picker — 탭 선택 → 그 탭의 카드 선택.

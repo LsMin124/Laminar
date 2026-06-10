@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSubjectId, setCurrentSubjectId } from "../../lib/api";
-import {
-  useCreateSubject,
-  useDeleteSubject,
-  useSubjects,
-  useUpdateSubject,
-  type Subject,
-} from "../../lib/dag";
+import type { Subject } from "../../lib/graphTypes";
+import { useCreateSubject, useDeleteSubject, useSubjects, useUpdateSubject } from "../../lib/subjects";
 import { useDialogs } from "../ui/DialogProvider";
 import { SubjectWorkspace } from "./SubjectWorkspace";
 import { Identicon } from "./Identicon";

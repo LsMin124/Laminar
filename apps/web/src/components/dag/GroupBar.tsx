@@ -1,11 +1,6 @@
 import { useState } from "react";
-import {
-  useAddCardToGroup,
-  useCreateGroup,
-  useRemoveCardFromGroup,
-  type Card,
-  type Group,
-} from "../../lib/dag";
+import type { Card, Group } from "../../lib/graphTypes";
+import { useAddCardToGroup, useCreateGroup, useRemoveCardFromGroup } from "../../lib/groups";
 import { useDialogs } from "../ui/DialogProvider";
 import "./CategoryBar.css";
 import "./GroupBar.css";

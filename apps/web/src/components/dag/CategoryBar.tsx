@@ -1,12 +1,6 @@
 import { useRef, useState } from "react";
-import {
-  useCreateCategory,
-  useDeleteCategory,
-  useSetCardCategory,
-  useUpdateCategory,
-  type Card,
-  type Category,
-} from "../../lib/dag";
+import { useCreateCategory, useDeleteCategory, useSetCardCategory, useUpdateCategory } from "../../lib/categories";
+import type { Card, Category } from "../../lib/graphTypes";
 import { useDialogs } from "../ui/DialogProvider";
 import "./CategoryBar.css";
 

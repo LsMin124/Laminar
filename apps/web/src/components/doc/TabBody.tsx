@@ -1,4 +1,4 @@
-import { useTabs, useUpdateTab } from "../../lib/dag";
+import { useTabs, useUpdateTab } from "../../lib/tabs";
 import { MarkdownDoc } from "./MarkdownDoc";
 
 /**

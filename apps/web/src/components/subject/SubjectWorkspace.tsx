@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, setCurrentSubjectId } from "../../lib/api";
-import { useCreateTab, useTabs } from "../../lib/dag";
+import { useCreateTab, useTabs } from "../../lib/tabs";
 import { useDialogs } from "../ui/DialogProvider";
 import { CalendarView } from "../calendar/CalendarView";
 import { DagCanvas } from "../dag/DagCanvas";

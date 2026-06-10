@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useCreateCategory, useSetCardCategory, type Category } from "../../lib/dag";
+import { useCreateCategory, useSetCardCategory } from "../../lib/categories";
+import type { Category } from "../../lib/graphTypes";
 import { useDialogs } from "../ui/DialogProvider";
 
 // 새 분류 기본색 — 웜·건조 톤. (관리 모달[툴바 🏷]에서 색 변경 가능)

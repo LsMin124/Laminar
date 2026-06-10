@@ -1,6 +1,6 @@
 import { CategoryBar } from "./CategoryBar";
 import { GroupBar } from "./GroupBar";
-import type { Card, Category, Group } from "../../lib/dag";
+import type { Card, Category, Group } from "../../lib/graphTypes";
 
 /**
  * DAG 캔버스 상단 툴바 — 선택 상태에 따라 작용하는 액션 버튼 모음(선행조건 미충족 시 disabled).

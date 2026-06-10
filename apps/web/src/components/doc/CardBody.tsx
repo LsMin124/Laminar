@@ -1,4 +1,4 @@
-import { useCardById, useUpdateCard } from "../../lib/dag";
+import { useCardById, useUpdateCard } from "../../lib/cards";
 import { MarkdownDoc } from "./MarkdownDoc";
 
 /**

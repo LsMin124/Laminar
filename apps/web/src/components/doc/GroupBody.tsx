@@ -1,4 +1,4 @@
-import { useGroupById, useUpdateGroup } from "../../lib/dag";
+import { useGroupById, useUpdateGroup } from "../../lib/groups";
 import { MarkdownDoc } from "./MarkdownDoc";
 
 /**

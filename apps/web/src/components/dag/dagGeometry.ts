@@ -1,4 +1,4 @@
-import type { Card } from "../../lib/dag";
+import type { Card } from "../../lib/graphTypes";
 import { MS_DAY, parseDate, shortDate } from "../../lib/dateUtil";
 
 /**

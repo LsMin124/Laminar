@@ -1,6 +1,6 @@
 import { BAR_H, cardMeta } from "./dagGeometry";
 import { CardCategoryTag } from "./CardCategoryTag";
-import type { Card, Category } from "../../lib/dag";
+import type { Card, Category } from "../../lib/graphTypes";
 
 interface NodeGeom {
   x: number;

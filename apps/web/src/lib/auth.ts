@@ -1,6 +1,6 @@
 /**
  * 인증 TanStack Query 훅 — 레거시 lib/queries.ts에서 추출 (DAG 개편 Phase 6 정리).
- * /api/auth/me·login·signup만 다룬다. 워크스페이스/카드 등 데이터는 lib/dag.ts.
+ * /api/auth/me·login·signup만 다룬다. 워크스페이스/카드 등 데이터는 리소스별 lib 모듈(subjects·tabs·graph·cards·groups·categories).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";

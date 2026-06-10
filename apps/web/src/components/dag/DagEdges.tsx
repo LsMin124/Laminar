@@ -1,4 +1,4 @@
-import type { Card, CardRelation, GroupRelation } from "../../lib/dag";
+import type { Card, CardRelation, GroupRelation } from "../../lib/graphTypes";
 import { BAR_H, edgePath } from "./dagGeometry";
 import type { GroupRect } from "./DagGroups";
 

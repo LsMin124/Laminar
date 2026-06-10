@@ -1,4 +1,4 @@
-import type { Group } from "../../lib/dag";
+import type { Group } from "../../lib/graphTypes";
 
 /** 그룹 경계 박스 geometry(멤버 카드 bounding rect) — DagGroups 박스 렌더와 DagEdges 그룹 화살표 앵커가 공유. */
 export interface GroupRect {

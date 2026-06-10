@@ -1,4 +1,4 @@
-import { useSubjects, useUpdateSubject } from "../../lib/dag";
+import { useSubjects, useUpdateSubject } from "../../lib/subjects";
 import { MarkdownDoc } from "./MarkdownDoc";
 
 /**

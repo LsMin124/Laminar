@@ -7,6 +7,7 @@ import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.datememo.application.DateMemoService;
 import com.laminar.datememo.domain.DateMemoEntity;
+import com.laminar.datememo.domain.DateMemoId;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
@@ -74,11 +75,16 @@ class DateMemoServiceIT extends IsolationIntegrationBase {
     LocalDate today = LocalDate.of(2026, 6, 15);
 
     DateMemoEntity first = dateMemoService.upsert(tabId, today, "초안", null);
+    // 같은 트랜잭션(영속성 컨텍스트)에선 두 번째 upsert가 동일 managed 엔티티를 갱신하므로
+    // first 참조도 "수정본"이 된다 — 생성 시점 값은 호출 직후 스냅샷으로 검증.
+    DateMemoId firstId = first.getId();
+    String firstBody = first.getBodyMd();
+
     DateMemoEntity updated = dateMemoService.upsert(tabId, today, "수정본", null);
 
-    assertThat(first.getBodyMd()).isEqualTo("초안");
+    assertThat(firstBody).isEqualTo("초안");
     assertThat(updated.getBodyMd()).isEqualTo("수정본");
-    assertThat(updated.getId()).isEqualTo(first.getId());
+    assertThat(updated.getId()).isEqualTo(firstId);
   }
 
   @Test

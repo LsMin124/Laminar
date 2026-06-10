@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
@@ -52,8 +51,10 @@ public class AuditLogEntity {
   @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
   private Map<String, Object> payload = new HashMap<>();
 
-  @Column(name = "occurred_at", nullable = false, insertable = false, updatable = false)
-  @Setter(AccessLevel.NONE)
+  // append 시 서비스가 app clock으로 채운다(updatable=false = append-only 불변).
+  // 과거 insertable=false(DB default now() 의존)는 ① 반환 엔티티의 occurredAt이 null이고
+  // ② 한 트랜잭션 안 now()가 고정이라 연속 append의 desc 정렬이 불정이었다. DB default는 안전망으로 잔존.
+  @Column(name = "occurred_at", nullable = false, updatable = false)
   private OffsetDateTime occurredAt;
 
   @Override

@@ -56,6 +56,9 @@ public class AuditLogService {
     entry.setTargetId(targetId);
     entry.setSummary(summary);
     entry.setPayload(payload == null ? new HashMap<>() : payload);
+    // app clock으로 기록 — DB default(now())는 트랜잭션 내 고정이라 연속 append의 순서가 뭉개지고,
+    // 반환 엔티티의 occurredAt도 null이 된다(엔티티 매핑 주석 참조).
+    entry.setOccurredAt(OffsetDateTime.now());
     return auditRepo.save(entry);
   }
 

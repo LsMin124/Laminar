@@ -1,6 +1,8 @@
 package com.laminar.subject.presentation;
 
+import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.context.SubjectRole;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.subject.application.InvitationService;
 import jakarta.validation.Valid;
@@ -19,8 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * /api/subjects/current/invitations + /api/auth/invitations/accept.
  *
- * <p>invite는 워크스페이스 진입 후 (PERSONAL scope) OWNER/MEMBER만 (canWrite). accept는 인증 후 SYSTEM scope에서 호출
- * (워크스페이스 미선택 상태에서 토큰 제출).
+ * <p>invite·revoke는 워크스페이스 진입 후 ADMIN+만(LAB재설계 §1.3 — 초대 발급이 곧 가입 승인 행위이므로 관리자 전용). 부여 역할 차등: OWNER
+ * 역할 초대는 항상 금지, ADMIN 역할 초대는 OWNER만(임명 권한), ADMIN은 MEMBER 초대만. accept는 인증 후 SYSTEM scope에서
+ * 호출(워크스페이스 미선택 상태에서 토큰 제출).
  */
 @RestController
 public class InvitationController {
@@ -35,11 +38,17 @@ public class InvitationController {
   public ResponseEntity<InvitationDtos.InviteResponse> invite(
       Authentication authentication, @Valid @RequestBody InvitationDtos.InviteRequest request) {
     LaminarPrincipal principal = requirePrincipal(authentication);
-    UUID subjectId = SubjectContextHolder.require().subjectId();
+    SubjectContext ctx = SubjectContextHolder.require();
+    UUID subjectId = ctx.subjectId();
     if (subjectId == null) {
       throw new IllegalStateException("subject context required");
     }
-    if (!SubjectContextHolder.require().canWrite()) {
+    if (!ctx.isAdmin()) {
+      return ResponseEntity.status(403).build();
+    }
+    // 부여 역할 차등(§1.3): OWNER 초대 금지, ADMIN 역할 부여는 OWNER만.
+    if (request.role() == SubjectRole.OWNER
+        || (request.role() == SubjectRole.ADMIN && !ctx.isOwner())) {
       return ResponseEntity.status(403).build();
     }
     InvitationService.InvitationIssue issue =
@@ -67,7 +76,7 @@ public class InvitationController {
 
   @DeleteMapping("/api/subjects/current/invitations/{invitationId}")
   public ResponseEntity<Void> revoke(@PathVariable UUID invitationId) {
-    if (!SubjectContextHolder.require().canWrite()) {
+    if (!SubjectContextHolder.require().isAdmin()) {
       return ResponseEntity.status(403).build();
     }
     invitationService.revoke(invitationId);

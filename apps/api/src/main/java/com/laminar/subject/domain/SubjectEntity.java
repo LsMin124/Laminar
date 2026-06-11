@@ -1,5 +1,6 @@
 package com.laminar.subject.domain;
 
+import com.laminar.context.SubjectKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -38,6 +39,10 @@ public class SubjectEntity {
 
   @Column(name = "owner_user_id", nullable = false)
   private UUID ownerUserId;
+
+  /** 주제 종별 — personal(기본) | lab(승격, LAB재설계 §1.1). 강등 미지원. */
+  @Column(name = "kind", nullable = false)
+  private SubjectKind kind = SubjectKind.PERSONAL;
 
   @Column(name = "default_timezone", nullable = false)
   private String defaultTimezone = "Asia/Seoul";

@@ -55,12 +55,15 @@ public class SubjectContextRequestFilter extends OncePerRequestFilter {
       context = SubjectContext.system();
     } else {
       UUID userId = maybePrincipal.get().userId();
-      Optional<SubjectRole> role = membershipResolver.activeRole(subjectId, userId);
-      if (role.isEmpty()) {
+      Optional<MembershipResolver.Membership> membership =
+          membershipResolver.activeMembership(subjectId, userId);
+      if (membership.isEmpty()) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "not a member of subject");
         return;
       }
-      context = SubjectContext.personal(subjectId, userId, role.get());
+      context =
+          SubjectContext.personal(
+              subjectId, userId, membership.get().role(), membership.get().kind());
     }
 
     SubjectContextHolder.set(context);

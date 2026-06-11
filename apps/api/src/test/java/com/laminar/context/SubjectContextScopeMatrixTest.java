@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
  *
  * <p>검증 매트릭스: 1. SYSTEM: system() 팩터리 → subjectId·userId null, scope == SYSTEM 2. SUBJECT_SHARED:
  * subject(wsId) → userId null, scope == SUBJECT_SHARED 3. PERSONAL/OWNER: personal(wsId, uId,
- * OWNER) → scope == PERSONAL, canWrite, isOwner 4. PERSONAL/VIEWER: personal(wsId, uId, VIEWER) →
- * scope == PERSONAL, !canWrite, !isOwner 5. invariant: subject(null) / personal(_, null) →
- * IllegalArgumentException
+ * OWNER) → scope == PERSONAL, canWrite, isOwner, isAdmin 4. PERSONAL/ADMIN: personal(wsId, uId,
+ * ADMIN) → isAdmin이되 !isOwner (LAB재설계 §1.3 3등급) 5. invariant: subject(null) / personal(_, null) →
+ * IllegalArgumentException 6. kind: 3-인자 personal은 PERSONAL 종별 기본, 4-인자 LAB만 isLab
  *
  * <p>Hibernate Filter 동작 (cross-user/cross-subject SQL 누출 0건)은 Phase 4 통합 테스트에서 Testcontainers
  * PostgreSQL로 검증 — 본 unit은 scope 도출 규칙만 격리.
@@ -55,16 +55,18 @@ class SubjectContextScopeMatrixTest {
     assertEquals(SUBJECT_A, ctx.subjectId());
     assertEquals(USER_A, ctx.userId());
     assertTrue(ctx.isOwner());
+    assertTrue(ctx.isAdmin());
     assertTrue(ctx.canWrite());
   }
 
   @Test
-  void matrix_4_personal_viewer_read_only() {
-    SubjectContext ctx = SubjectContext.personal(SUBJECT_B, USER_B, SubjectRole.VIEWER);
+  void matrix_4_personal_admin_manages_but_not_owner() {
+    SubjectContext ctx = SubjectContext.personal(SUBJECT_B, USER_B, SubjectRole.ADMIN);
 
     assertEquals(SubjectContext.Scope.PERSONAL, ctx.scope());
     assertFalse(ctx.isOwner());
-    assertFalse(ctx.canWrite());
+    assertTrue(ctx.isAdmin());
+    assertTrue(ctx.canWrite());
   }
 
   @Test
@@ -79,10 +81,19 @@ class SubjectContextScopeMatrixTest {
   }
 
   @Test
-  void member_role_can_write_but_not_owner() {
+  void member_role_can_write_but_not_admin_nor_owner() {
     SubjectContext ctx = SubjectContext.personal(SUBJECT_A, USER_A, SubjectRole.MEMBER);
 
     assertTrue(ctx.canWrite());
+    assertFalse(ctx.isAdmin());
     assertFalse(ctx.isOwner());
+  }
+
+  @Test
+  void matrix_6_kind_defaults_personal_and_lab_flag() {
+    assertFalse(SubjectContext.personal(SUBJECT_A, USER_A, SubjectRole.MEMBER).isLab());
+    assertTrue(
+        SubjectContext.personal(SUBJECT_A, USER_A, SubjectRole.MEMBER, SubjectKind.LAB).isLab());
+    assertFalse(SubjectContext.system().isLab());
   }
 }

@@ -31,7 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
  * TabService 통합 검증 (실제 PostgreSQL + Flyway + @Filter).
  *
  * <p>검증: - create: priority 자동 부여 + subject/user 자동 set - listActive: priority 정렬 + soft-deleted 제외
- * - reorder: 배치 priority 갱신 - 격리: 다른 user의 board는 listActive에 노출 안 됨 - VIEWER 권한은 create 차단
+ * - reorder: 배치 priority 갱신 - 격리: 다른 user의 board는 listActive에 노출 안 됨 - 무역할 컨텍스트는 create
+ * 차단(fail-closed)
  */
 class TabServiceIT extends IsolationIntegrationBase {
 
@@ -123,13 +124,14 @@ class TabServiceIT extends IsolationIntegrationBase {
 
   @Test
   @Transactional
-  void viewer_cannot_mutate() {
-    SubjectContextHolder.set(SubjectContext.personal(subjectId, userA, SubjectRole.VIEWER));
+  void roleless_context_cannot_mutate() {
+    // 구 VIEWER는 V29에서 퇴역 — 가드의 fail-closed 분기는 무역할 컨텍스트로 검증.
+    SubjectContextHolder.set(SubjectContext.personal(subjectId, userA, null));
     filterActivator.activate();
 
     assertThatThrownBy(() -> tabService.create("X", "x", null, null, null, null))
         .isInstanceOf(ForbiddenException.class)
-        .hasMessageContaining("VIEWER");
+        .hasMessageContaining("cannot mutate");
   }
 
   private void enterAsOwner() {

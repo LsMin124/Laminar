@@ -1,12 +1,13 @@
 package com.laminar.subject.presentation;
 
+import com.laminar.context.SubjectKind;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-/** /api/subjects/** 요청·응답 DTO 모음. */
+/** /api/subjects/** 요청·응답 DTO 모음. kind는 enum name(PERSONAL|LAB)으로 직렬화 — FE Subject.kind 거울. */
 public final class SubjectDtos {
 
   private SubjectDtos() {}
@@ -27,6 +28,7 @@ public final class SubjectDtos {
       String name,
       String slug,
       UUID ownerUserId,
+      SubjectKind kind,
       String defaultTimezone,
       String bodyMd,
       Map<String, Object> settings,

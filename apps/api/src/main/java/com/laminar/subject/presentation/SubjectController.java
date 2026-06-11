@@ -62,6 +62,12 @@ public class SubjectController {
     return ResponseEntity.ok(toResponse(updated));
   }
 
+  /** 현재 주제를 LAB으로 승격 — OWNER 전용(서비스 가드), 멱등. 강등 미지원(LAB재설계 §1.1). */
+  @PostMapping("/current/promote-to-lab")
+  public ResponseEntity<SubjectDtos.SubjectResponse> promoteToLab() {
+    return ResponseEntity.ok(toResponse(subjectService.promoteCurrentToLab()));
+  }
+
   @DeleteMapping("/current")
   public ResponseEntity<Void> deleteCurrent(Authentication authentication) {
     LaminarPrincipal principal = requirePrincipal(authentication);
@@ -83,6 +89,7 @@ public class SubjectController {
         ws.getName(),
         ws.getSlug(),
         ws.getOwnerUserId(),
+        ws.getKind(),
         ws.getDefaultTimezone(),
         ws.getBodyMd(),
         ws.getSettings(),

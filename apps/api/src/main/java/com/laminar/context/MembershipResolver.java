@@ -11,6 +11,12 @@ import java.util.UUID;
  */
 public interface MembershipResolver {
 
-  /** subjectId×userId의 활성(미제거) 멤버십 역할. 비멤버면 empty (fail-closed). */
-  Optional<SubjectRole> activeRole(UUID subjectId, UUID userId);
+  /**
+   * subjectId×userId의 활성(미제거) 멤버십 — 역할 + 주제 종별(kind). 비멤버·삭제된 주제면 empty (fail-closed). kind는 lab 전용
+   * 표면(장비·가입 흐름)의 진입 판정에 쓰인다(LAB재설계 §1.1).
+   */
+  Optional<Membership> activeMembership(UUID subjectId, UUID userId);
+
+  /** SubjectContext.personal 탑재용 멤버십 뷰. */
+  record Membership(SubjectRole role, SubjectKind kind) {}
 }

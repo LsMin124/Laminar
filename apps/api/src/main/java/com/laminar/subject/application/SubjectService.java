@@ -2,7 +2,9 @@ package com.laminar.subject.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.context.SubjectKind;
 import com.laminar.context.SubjectRole;
+import com.laminar.error.ForbiddenException;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
@@ -120,6 +122,24 @@ public class SubjectService {
     if (settings != null) {
       subject.setSettings(settings);
     }
+    return subjectRepo.save(subject);
+  }
+
+  /**
+   * 현재 주제를 LAB으로 승격 — OWNER 전용, 멱등(이미 lab이면 no-op 반환). 강등(lab→personal)은 미지원: 장비·가입 흐름이 lab을 전제하므로
+   * 역방향은 데이터 고아를 만든다(LAB재설계 §1.1).
+   */
+  @Transactional
+  public SubjectEntity promoteCurrentToLab() {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL || !ctx.isOwner()) {
+      throw new ForbiddenException("only OWNER can promote subject to lab");
+    }
+    SubjectEntity subject = requireCurrent();
+    if (subject.getKind() == SubjectKind.LAB) {
+      return subject;
+    }
+    subject.setKind(SubjectKind.LAB);
     return subjectRepo.save(subject);
   }
 

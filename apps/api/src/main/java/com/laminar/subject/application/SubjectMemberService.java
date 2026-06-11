@@ -3,6 +3,7 @@ package com.laminar.subject.application;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.context.SubjectRole;
+import com.laminar.error.ForbiddenException;
 import com.laminar.error.NotFoundException;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
@@ -22,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 워크스페이스 멤버십 조회·관리 서비스.
  *
- * <p>멤버 응답에는 user email/displayName이 필요해 UserSystemRepository로 batch fetch. 역할 변경·강퇴는 OWNER만
- * (canWrite + 자기 자신 보호).
+ * <p>멤버 응답에는 user email/displayName이 필요해 UserSystemRepository로 batch fetch. LAB재설계 §1.3: 역할 변경은
+ * OWNER 전용(컨트롤러 가드), 제거는 ADMIN+이되 ADMIN은 MEMBER만(본 서비스 가드) + 원소유자·마지막 OWNER 보호.
  */
 @Service
 public class SubjectMemberService {
@@ -101,6 +102,10 @@ public class SubjectMemberService {
         memberRepo.findById(id).orElseThrow(() -> new NotFoundException("member not found"));
     if (member.getRemovedAt() != null) {
       return;
+    }
+    // §1.3 차등: ADMIN은 MEMBER만 제거 가능 — OWNER·ADMIN 제거는 OWNER 전용.
+    if (!ctx.isOwner() && member.getRole() != SubjectRole.MEMBER) {
+      throw new ForbiddenException("ADMIN can remove MEMBER only");
     }
     member.setRemovedAt(OffsetDateTime.now());
     memberRepo.save(member);

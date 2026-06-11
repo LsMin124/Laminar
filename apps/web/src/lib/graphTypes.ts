@@ -11,6 +11,9 @@ export interface Subject {
   id: Uuid;
   name: string;
   slug: string;
+  ownerUserId: Uuid;
+  /** 주제 종별 — LAB 승격 시 장비·가입 표면 활성(서버 SubjectResponse.kind 거울, LAB재설계 L4). */
+  kind: "PERSONAL" | "LAB";
   /** 주제(워크스페이스) 전반 개요 — 독립 마크다운 문서. */
   bodyMd: string | null;
 }

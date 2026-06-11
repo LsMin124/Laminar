@@ -265,3 +265,74 @@
   color: #fff;
   border-color: #555;
 }
+
+/* ---- LAB (L4) — 배지·관리 패널. 각진 칩 + 웜 오렌지 액센트(디자인 방향 유지) ---- */
+.lab-badge,
+.lab-role-chip {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  padding: 1px 5px;
+  border-radius: 2px;
+  margin-left: 6px;
+}
+.lab-panel {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.lab-section {
+  padding: 10px 14px 4px;
+  border-top: 1px solid #262626;
+}
+.lab-section h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #8a8a8a;
+  text-transform: uppercase;
+}
+.lab-member-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #ddd;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lab-role-select {
+  flex: none;
+  background: #1d1d1d;
+  color: #ccc;
+  border: 1px solid #3a3a3a;
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 3px 5px;
+}
+.lab-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 6px;
+}
+.lab-code {
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  color: var(--accent-bright);
+  background: #1d1d1d;
+  border: 1px solid #3a3a3a;
+  padding: 5px 10px;
+  border-radius: 3px;
+}
+.lab-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: #6a6a6a;
+}

@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getCurrentSubjectId, setCurrentSubjectId } from "../../lib/api";
+import { ApiError, getCurrentSubjectId, setCurrentSubjectId } from "../../lib/api";
+import { useMe } from "../../lib/auth";
 import { dagKeys } from "../../lib/dagKeys";
 import type { Subject } from "../../lib/graphTypes";
+import { useJoinLab, usePromoteToLab } from "../../lib/labs";
 import { useCreateSubject, useDeleteSubject, useSubjects, useUpdateSubject } from "../../lib/subjects";
 import { pushRoute, replaceRoute, useRoute } from "../../lib/useRoute";
 import { useDialogs } from "../ui/DialogProvider";
+import { LabPanel } from "./LabPanel";
 import { SubjectWorkspace } from "./SubjectWorkspace";
 import { Identicon } from "./Identicon";
 import "./SubjectLayout.css";
@@ -21,14 +24,18 @@ import "./SubjectLayout.css";
  */
 export function SubjectLayout() {
   const subjects = useSubjects();
+  const me = useMe();
   const createSubject = useCreateSubject();
   const updateSubject = useUpdateSubject();
   const deleteSubject = useDeleteSubject();
+  const promoteToLab = usePromoteToLab();
+  const joinLab = useJoinLab();
   const dialogs = useDialogs();
   const qc = useQueryClient();
   const route = useRoute();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [labPanelFor, setLabPanelFor] = useState<Subject | null>(null);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 SubjectWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
   // '장비 관리' 신호 — 증가시키면 SubjectWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
@@ -118,7 +125,46 @@ export function SubjectLayout() {
     await qc.invalidateQueries({ queryKey: dagKeys.subjects });
   }
 
+  /** LAB 승격 — OWNER 전용·비가역. /current 대상이라 비활성이면 먼저 전환(onRename 선례). */
+  async function onPromote(s: Subject) {
+    const ok = await dialogs.confirm({
+      title: "LAB으로 승격",
+      message: `"${s.name}"을(를) LAB으로 승격합니다. 연구원을 초대해 장비·공지를 공유할 수 있게 되며, 되돌릴 수 없습니다. 계속할까요?`,
+      confirmLabel: "승격",
+    });
+    if (!ok) return;
+    if (s.id !== activeId) switchSubject(s.id);
+    await promoteToLab.mutateAsync();
+  }
+
+  /** LAB 관리 패널 — /current 기반 API라 해당 lab으로 먼저 전환. */
+  function onOpenLabPanel(s: Subject) {
+    if (s.id !== activeId) switchSubject(s.id);
+    setLabPanelFor(s);
+  }
+
+  /** 초대코드로 LAB 가입 신청 — 승인 후 멤버가 되면 주제 목록에 나타난다. */
+  async function onJoinByCode() {
+    const code = await dialogs.prompt({ title: "LAB 가입", placeholder: "초대코드 입력 (예: ABCD2345)" });
+    if (!code || !code.trim()) return;
+    try {
+      const outcome = await joinLab.mutateAsync(code.trim());
+      await dialogs.alert({
+        title: "가입 신청 완료",
+        message: `"${outcome.labName}"에 가입을 신청했습니다. 관리자 승인 후 주제 목록에 나타납니다.`,
+      });
+    } catch (e) {
+      // lab 가입 오류는 서버가 한국어 사용자 문구를 envelope.message로 보낸다(코드 매핑 대상 아님).
+      const body = e instanceof ApiError ? (e.body as { message?: string } | null) : null;
+      await dialogs.alert({
+        title: "가입 신청 실패",
+        message: body?.message ?? "초대코드를 확인하세요.",
+      });
+    }
+  }
+
   const activeValid = !!activeId && list.some((s) => s.id === activeId);
+  const activeSubject = list.find((s) => s.id === activeId) ?? null;
 
   return (
     <div className="lay">
@@ -162,8 +208,8 @@ export function SubjectLayout() {
         </div>
 
         <div className="rail-future">
-          {/* 장비 관리(공용 자원) — 전역 도구. 클릭 시 활성 주제의 SubjectWorkspace가 장비 doctab 창을 연다. */}
-          {activeValid && (
+          {/* 장비 관리(공용 자원) — LAB 전용 표면(L3 재스코프): 활성 주제가 lab일 때만 노출. */}
+          {activeValid && activeSubject?.kind === "LAB" && (
             <button
               type="button"
               className="rail-tile tool"
@@ -246,7 +292,19 @@ export function SubjectLayout() {
                   >
                     <Identicon seed={s.id} size={18} />
                     {s.name}
+                    {s.kind === "LAB" && <span className="lab-badge">LAB</span>}
                   </button>
+                  {s.kind === "LAB" ? (
+                    <button type="button" className="subj-act" onClick={() => onOpenLabPanel(s)}>
+                      LAB 관리
+                    </button>
+                  ) : (
+                    s.ownerUserId === me.data?.userId && (
+                      <button type="button" className="subj-act" onClick={() => void onPromote(s)}>
+                        LAB 승격
+                      </button>
+                    )
+                  )}
                   <button type="button" className="subj-act" onClick={() => onRename(s)}>
                     이름변경
                   </button>
@@ -262,9 +320,16 @@ export function SubjectLayout() {
               <button type="button" className="subj-create" onClick={onCreateSubject}>
                 ＋ 새 주제
               </button>
+              <button type="button" className="subj-create" onClick={() => void onJoinByCode()}>
+                ⌗ 코드로 LAB 가입
+              </button>
             </footer>
           </div>
         </div>
+      )}
+
+      {labPanelFor && (
+        <LabPanel subject={labPanelFor} onClose={() => setLabPanelFor(null)} />
       )}
     </div>
   );

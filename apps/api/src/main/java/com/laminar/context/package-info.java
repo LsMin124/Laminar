@@ -16,9 +16,6 @@
 @FilterDef(
     name = "subjectSharedFilter",
     parameters = @ParamDef(name = "ctxSubjectId", type = UUID.class))
-@FilterDef(
-    name = "ownerScopedFilter",
-    parameters = @ParamDef(name = "ctxUserId", type = UUID.class))
 package com.laminar.context;
 
 import org.hibernate.annotations.FilterDef;

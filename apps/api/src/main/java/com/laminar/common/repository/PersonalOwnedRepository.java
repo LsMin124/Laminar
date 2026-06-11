@@ -19,7 +19,7 @@ import org.springframework.data.repository.NoRepositoryBean;
  * <p>"없음"과 "남의 것"을 모두 {@link NotFoundException}(404)으로 동일하게 응답한다 — 존재 여부 노출(enumeration) 방지. 입력 검증
  * 실패(400)와는 의미가 다르다(DX-15: 과거 IllegalArgumentException→400으로 뭉개지던 것 교정).
  *
- * <p>OWNER_SCOPED(장비, ownsUser)·SUBJECT_SHARED(ownsShared) 엔티티는 소유 술어가 달라 이 믹스인 대상이 아니다.
+ * <p>SUBJECT_SHARED(ownsShared — 장비 시리즈 포함, L3 lab 재스코프) 엔티티는 소유 술어가 달라 이 믹스인 대상이 아니다.
  */
 @NoRepositoryBean
 public interface PersonalOwnedRepository<T extends PersonalBaseEntity & SoftDeletable>

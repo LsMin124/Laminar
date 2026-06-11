@@ -13,7 +13,7 @@ import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "shared_calendars")
-@Filter(name = "ownerScopedFilter", condition = "created_by = :ctxUserId")
+@Filter(name = "subjectSharedFilter", condition = "subject_id = :ctxSubjectId")
 @Getter
 @Setter
 public class SharedCalendarEntity extends SubjectScopedBaseEntity {

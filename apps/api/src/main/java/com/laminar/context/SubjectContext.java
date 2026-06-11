@@ -81,16 +81,11 @@ public record SubjectContext(
         && userId.equals(entityUserId);
   }
 
-  /** Subject-Shared 엔티티(subject_id) 소유권 검증. 컨텍스트 workspace와 엔티티 subject 일치 시 true (fail-closed). */
+  /**
+   * Subject-Shared 엔티티(subject_id) 소유권 검증. 컨텍스트 workspace와 엔티티 subject 일치 시 true (fail-closed). 장비
+   * 시리즈도 L3(user→lab 재스코프)부터 이 술어를 쓴다 — 구 ownsUser(사용자 단일 소유)는 퇴역.
+   */
   public boolean ownsShared(UUID entitySubjectId) {
     return subjectId != null && subjectId.equals(entitySubjectId);
-  }
-
-  /**
-   * Owner-Scoped 엔티티(사용자 단일 소유) 검증 — 장비 시리즈처럼 주제와 무관하게 사용자 전체에 통합되는 자원용. 컨텍스트 user와 엔티티의 소유
-   * 사용자(created_by/reserved_by 등) 일치 시 true (fail-closed). L3 장비 lab 재스코프와 함께 퇴역 예정.
-   */
-  public boolean ownsUser(UUID entityUserId) {
-    return userId != null && userId.equals(entityUserId);
   }
 }

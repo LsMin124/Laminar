@@ -7,6 +7,7 @@ import com.laminar.equipment.domain.EquipmentReservationEntity;
 import com.laminar.equipment.repository.EquipmentRepository;
 import com.laminar.equipment.repository.EquipmentReservationRepository;
 import com.laminar.error.ConflictException;
+import com.laminar.error.ForbiddenException;
 import com.laminar.error.NotFoundException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -16,12 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 장비 예약 — subject-shared, 시간 겹침 차단.
+ * 장비 예약 — LAB 스코프 (L3), 시간 겹침 차단.
  *
- * <p>검증 (V11 §2.10.6 + DB EXCLUDE): - start_at < end_at - 길이 ≤ 7일 (chk_er_max_span) - 같은 equipment
- * + 같은 시간대 겹침 차단 (단일 예약, rrule IS NULL에 한정)
- *
- * <p>RRULE 반복 예약은 DB EXCLUDE 미적용 — service에서 인스턴스 확장 후 개별 검증 책임.
+ * <p>§1.3 매트릭스: 예약은 lab 멤버 전원(MEMBER+), 취소는 본인 또는 ADMIN+. 검증 (V11 §2.10.6 + DB EXCLUDE): start_at <
+ * end_at, 길이 ≤ 7일(chk_er_max_span), 같은 equipment+시간대 겹침 차단(단일 예약, rrule IS NULL에 한정). RRULE 반복 예약은
+ * DB EXCLUDE 미적용 — service에서 인스턴스 확장 후 개별 검증 책임.
  */
 @Service
 public class EquipmentReservationService {
@@ -45,7 +45,7 @@ public class EquipmentReservationService {
       String purpose,
       String rrule,
       UUID cardId) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabMember("equipment reservations");
     if (startAt == null || endAt == null) {
       throw new IllegalArgumentException("start_at and end_at required");
     }
@@ -59,7 +59,7 @@ public class EquipmentReservationService {
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .filter(EquipmentEntity::isActive)
         .orElseThrow(() -> new NotFoundException("equipment not found or inactive"));
 
@@ -88,16 +88,16 @@ public class EquipmentReservationService {
 
   @Transactional
   public void cancel(UUID reservationId) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabMember("equipment reservations");
     EquipmentReservationEntity reservation =
         reservationRepo
             .findById(reservationId)
             .filter(r -> r.getDeletedAt() == null)
-            .filter(r -> ctx.ownsUser(r.getReservedBy()))
+            .filter(r -> ctx.ownsShared(r.getSubjectId()))
             .orElseThrow(() -> new NotFoundException("reservation not found"));
-    // 본인 예약 또는 OWNER만 취소 (owner-scoped: 사용자 자신의 예약만 보이므로 reserved_by 선검증)
-    if (!ctx.isOwner() && !reservation.getReservedBy().equals(ctx.userId())) {
-      throw new IllegalStateException("can only cancel own reservation (OWNER override allowed)");
+    // 본인 예약 또는 ADMIN+만 취소 (§1.3 — 타인 예약 정리는 관리자 권한)
+    if (!ctx.isAdmin() && !reservation.getReservedBy().equals(ctx.userId())) {
+      throw new ForbiddenException("can only cancel own reservation (ADMIN override allowed)");
     }
     reservation.setDeletedAt(OffsetDateTime.now());
     reservationRepo.save(reservation);
@@ -106,28 +106,15 @@ public class EquipmentReservationService {
   @Transactional(readOnly = true)
   public List<EquipmentReservationEntity> listByEquipmentRange(
       UUID equipmentId, OffsetDateTime from, OffsetDateTime to) {
-    SubjectContextHolder.require();
+    SubjectContextHolder.requireLabMember("equipment reservations");
     return reservationRepo.findByEquipmentIdAndStartAtBetweenAndDeletedAtIsNull(
         equipmentId, from, to);
   }
 
+  /** 내 예약 — 현재 lab 내 본인 예약(컨텍스트 필터가 lab을, reservedBy가 본인을 한정). */
   @Transactional(readOnly = true)
   public List<EquipmentReservationEntity> listMyReservations() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.userId() == null) {
-      throw new IllegalStateException("PERSONAL scope required");
-    }
+    SubjectContext ctx = SubjectContextHolder.requireLabMember("equipment reservations");
     return reservationRepo.findByReservedByAndDeletedAtIsNullOrderByStartAtDesc(ctx.userId());
-  }
-
-  private SubjectContext requireSubjectWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.subjectId() == null) {
-      throw new IllegalStateException("subject scope required");
-    }
-    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot reserve equipment");
-    }
-    return ctx;
   }
 }

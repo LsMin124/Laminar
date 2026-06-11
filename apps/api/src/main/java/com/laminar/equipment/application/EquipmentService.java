@@ -16,9 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 공용 자원 (장비) CRUD — subject-shared.
+ * 공용 자원 (장비) CRUD — LAB(주제 kind=lab) 스코프 (L3, LAB재설계 §3).
  *
- * <p>모든 워크스페이스 멤버 read·write, OWNER만 일부 수정 (활성화 토글 등 정책 — 필요 시 service에서 강제).
+ * <p>§1.3 매트릭스: 조회는 lab 멤버 전원, 등록/수정/활성/삭제는 ADMIN+. personal 주제에서는 장비 표면이 존재하지
+ * 않는다(requireLabMember가 403). 구 사용자(owner) 스코프의 ownsUser 검증은 ownsShared(lab)로 대체.
  */
 @Service
 public class EquipmentService {
@@ -35,7 +36,7 @@ public class EquipmentService {
       String description,
       String location,
       List<Map<String, Object>> defaultLogColumns) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("equipment");
     if (equipmentRepo.findByNameAndDeletedAtIsNull(name).isPresent()) {
       throw new ConflictException("equipment name already exists: " + name);
     }
@@ -54,23 +55,24 @@ public class EquipmentService {
 
   @Transactional(readOnly = true)
   public List<EquipmentEntity> listActive() {
-    SubjectContextHolder.require();
+    SubjectContextHolder.requireLabMember("equipment");
     return equipmentRepo.findByActiveTrueAndDeletedAtIsNullOrderByName();
   }
 
   @Transactional(readOnly = true)
   public List<EquipmentEntity> listAll() {
-    SubjectContextHolder.require();
+    SubjectContextHolder.requireLabMember("equipment");
     return equipmentRepo.findByDeletedAtIsNullOrderByName();
   }
 
   @Transactional(readOnly = true)
   public Optional<EquipmentEntity> findById(UUID equipmentId) {
-    SubjectContext ctx = SubjectContextHolder.require();
+    SubjectContext ctx = SubjectContextHolder.requireLabMember("equipment");
     return equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsUser(e.getCreatedBy()));
+        // PK 로드는 @Filter 비적용 — 명시 lab 소유 검증 (fail-closed)
+        .filter(e -> ctx.ownsShared(e.getSubjectId()));
   }
 
   @Transactional
@@ -80,12 +82,12 @@ public class EquipmentService {
       String description,
       String location,
       List<Map<String, Object>> defaultLogColumns) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("equipment");
     EquipmentEntity equipment =
         equipmentRepo
             .findById(equipmentId)
             .filter(e -> e.getDeletedAt() == null)
-            .filter(e -> ctx.ownsUser(e.getCreatedBy()))
+            .filter(e -> ctx.ownsShared(e.getSubjectId()))
             .orElseThrow(() -> new NotFoundException("equipment not found"));
     if (name != null && !name.isBlank()) equipment.setName(name);
     if (description != null) equipment.setDescription(description);
@@ -96,12 +98,12 @@ public class EquipmentService {
 
   @Transactional
   public EquipmentEntity toggleActive(UUID equipmentId, boolean active) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("equipment");
     EquipmentEntity equipment =
         equipmentRepo
             .findById(equipmentId)
             .filter(e -> e.getDeletedAt() == null)
-            .filter(e -> ctx.ownsUser(e.getCreatedBy()))
+            .filter(e -> ctx.ownsShared(e.getSubjectId()))
             .orElseThrow(() -> new NotFoundException("equipment not found"));
     equipment.setActive(active);
     return equipmentRepo.save(equipment);
@@ -109,34 +111,15 @@ public class EquipmentService {
 
   @Transactional
   public void softDelete(UUID equipmentId) {
-    SubjectContext ctx = requireOwner();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("equipment");
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .ifPresent(
             e -> {
               e.setDeletedAt(OffsetDateTime.now());
               equipmentRepo.save(e);
             });
-  }
-
-  private SubjectContext requireSubjectWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.subjectId() == null) {
-      throw new IllegalStateException("subject scope required");
-    }
-    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate equipment");
-    }
-    return ctx;
-  }
-
-  private SubjectContext requireOwner() {
-    SubjectContext ctx = requireSubjectWritable();
-    if (!ctx.isOwner()) {
-      throw new IllegalStateException("OWNER role required for equipment delete");
-    }
-    return ctx;
   }
 }

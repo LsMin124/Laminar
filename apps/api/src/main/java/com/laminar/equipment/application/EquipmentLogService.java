@@ -20,10 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 장비 log 시트 — 동적 컬럼 정의 + 행 단위 값 JSONB.
+ * 장비 log 시트 — 동적 컬럼 정의 + 행 단위 값 JSONB. LAB 스코프 (L3).
  *
- * <p>Spec §2.10.10 + §2.10.12: text/number/enum/bool/datetime 5종 컬럼, key+label, priority로 정렬. 값은
- * JSONB로 컬럼 key → value 저장.
+ * <p>§1.3 매트릭스: 로그 기록·조회는 lab 멤버 전원(MEMBER+), 컬럼 정의/삭제는 ADMIN+. Spec §2.10.10 + §2.10.12:
+ * text/number/enum/bool/datetime 5종 컬럼, key+label, priority로 정렬. 값은 JSONB로 컬럼 key → value 저장.
  */
 @Service
 public class EquipmentLogService {
@@ -52,11 +52,11 @@ public class EquipmentLogService {
       List<String> enumValues,
       boolean required,
       String defaultValue) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("equipment log columns");
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .orElseThrow(() -> new NotFoundException("equipment not found"));
     if (columnRepo
         .findByEquipmentIdAndColumnKeyAndDeletedAtIsNull(equipmentId, columnKey)
@@ -89,17 +89,17 @@ public class EquipmentLogService {
 
   @Transactional(readOnly = true)
   public List<EquipmentLogColumnEntity> listColumns(UUID equipmentId) {
-    SubjectContextHolder.requirePersonal();
+    SubjectContextHolder.requireLabMember("equipment log columns");
     return columnRepo.findByEquipmentIdAndDeletedAtIsNullOrderByPriorityAsc(equipmentId);
   }
 
   @Transactional
   public void softDeleteColumn(UUID columnId) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("equipment log columns");
     columnRepo
         .findById(columnId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsUser(c.getCreatedBy()))
+        .filter(c -> ctx.ownsShared(c.getSubjectId()))
         .ifPresent(
             c -> {
               c.setDeletedAt(OffsetDateTime.now());
@@ -114,11 +114,11 @@ public class EquipmentLogService {
       UUID reservationId,
       Map<String, Object> values,
       String notes) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabMember("equipment logs");
     equipmentRepo
         .findById(equipmentId)
         .filter(e -> e.getDeletedAt() == null)
-        .filter(e -> ctx.ownsUser(e.getCreatedBy()))
+        .filter(e -> ctx.ownsShared(e.getSubjectId()))
         .orElseThrow(() -> new NotFoundException("equipment not found"));
     validateValues(equipmentId, values);
 
@@ -135,14 +135,14 @@ public class EquipmentLogService {
 
   @Transactional(readOnly = true)
   public List<EquipmentLogEntity> listLogs(UUID equipmentId) {
-    SubjectContextHolder.requirePersonal();
+    SubjectContextHolder.requireLabMember("equipment logs");
     return logRepo.findByEquipmentIdAndDeletedAtIsNullOrderByLoggedAtDesc(equipmentId);
   }
 
   @Transactional(readOnly = true)
   public List<EquipmentLogEntity> listLogsInRange(
       UUID equipmentId, OffsetDateTime from, OffsetDateTime to) {
-    SubjectContextHolder.requirePersonal();
+    SubjectContextHolder.requireLabMember("equipment logs");
     return logRepo.findByEquipmentIdAndLoggedAtBetweenAndDeletedAtIsNull(equipmentId, from, to);
   }
 
@@ -195,16 +195,5 @@ public class EquipmentLogService {
         }
       }
     }
-  }
-
-  private SubjectContext requireSubjectWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.subjectId() == null) {
-      throw new IllegalStateException("subject scope required");
-    }
-    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate equipment logs");
-    }
-    return ctx;
   }
 }

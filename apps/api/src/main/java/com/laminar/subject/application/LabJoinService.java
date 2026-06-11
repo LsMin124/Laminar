@@ -5,7 +5,6 @@ import com.laminar.context.SubjectContextHolder;
 import com.laminar.context.SubjectKind;
 import com.laminar.context.SubjectRole;
 import com.laminar.error.ConflictException;
-import com.laminar.error.ForbiddenException;
 import com.laminar.error.NotFoundException;
 import com.laminar.subject.domain.LabInviteCodeEntity;
 import com.laminar.subject.domain.LabJoinRequestEntity;
@@ -216,16 +215,9 @@ public class LabJoinService {
     return new JoinOutcome(lab.getId(), lab.getName(), LabJoinStatus.PENDING);
   }
 
-  /** lab PERSONAL 컨텍스트 + ADMIN+ 강제 — lab 관리 표면 공통 가드. */
+  /** lab 관리 가드 — SubjectContextHolder 정본 위임 (L3에서 장비 서비스와 통합). */
   private SubjectContext requireLabAdmin() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.scope() != SubjectContext.Scope.PERSONAL || !ctx.isLab()) {
-      throw new ForbiddenException("lab subject required");
-    }
-    if (!ctx.isAdmin()) {
-      throw new ForbiddenException("lab admin required");
-    }
-    return ctx;
+    return SubjectContextHolder.requireLabAdmin("lab join");
   }
 
   private static String generateCode() {

@@ -12,7 +12,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 공용 캘린더 공지 — subject-shared. */
+/**
+ * 공용 캘린더 공지 — LAB 스코프 (L3). §1.3 매트릭스: 조회는 lab 멤버 전원, 작성/삭제는 ADMIN+(공지는 lab 공식 채널 — 작성자가 전부 관리자이므로
+ * 본인 확인은 불요, 관리자 간 상호 삭제 허용).
+ */
 @Service
 public class SharedCalendarAnnouncementService {
 
@@ -33,7 +36,7 @@ public class SharedCalendarAnnouncementService {
       OffsetDateTime endAt,
       String title,
       String bodyMd) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("announcements");
     if (startAt == null) {
       throw new IllegalArgumentException("start_at required");
     }
@@ -43,7 +46,7 @@ public class SharedCalendarAnnouncementService {
     calendarRepo
         .findById(sharedCalendarId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsUser(c.getCreatedBy()))
+        .filter(c -> ctx.ownsShared(c.getSubjectId()))
         .orElseThrow(() -> new NotFoundException("shared calendar not found"));
 
     SharedCalendarAnnouncementEntity announcement = new SharedCalendarAnnouncementEntity();
@@ -60,7 +63,7 @@ public class SharedCalendarAnnouncementService {
   @Transactional(readOnly = true)
   public List<SharedCalendarAnnouncementEntity> listInRange(
       UUID sharedCalendarId, OffsetDateTime from, OffsetDateTime to) {
-    SubjectContextHolder.requirePersonal();
+    SubjectContextHolder.requireLabMember("announcements");
     return announcementRepo
         .findBySharedCalendarIdAndStartAtBetweenAndDeletedAtIsNullOrderByStartAtAsc(
             sharedCalendarId, from, to);
@@ -68,30 +71,15 @@ public class SharedCalendarAnnouncementService {
 
   @Transactional
   public void softDelete(UUID announcementId) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("announcements");
     announcementRepo
         .findById(announcementId)
         .filter(a -> a.getDeletedAt() == null)
-        .filter(a -> ctx.ownsUser(a.getPostedBy()))
+        .filter(a -> ctx.ownsShared(a.getSubjectId()))
         .ifPresent(
             a -> {
-              if (!ctx.isOwner() && !a.getPostedBy().equals(ctx.userId())) {
-                throw new IllegalStateException(
-                    "can only delete own announcement (OWNER override)");
-              }
               a.setDeletedAt(OffsetDateTime.now());
               announcementRepo.save(a);
             });
-  }
-
-  private SubjectContext requireSubjectWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.subjectId() == null) {
-      throw new IllegalStateException("subject scope required");
-    }
-    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot post announcements");
-    }
-    return ctx;
   }
 }

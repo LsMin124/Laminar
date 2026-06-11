@@ -66,6 +66,27 @@ public final class SubjectContextHolder {
     return context;
   }
 
+  /**
+   * lab 전용 표면(장비 시리즈·가입 흐름)의 멤버 가드 — lab PERSONAL 컨텍스트 + 쓰기 역할 강제(LAB재설계 §1.3). personal 주제에서는 장비
+   * 표면이 존재하지 않는다(L3 user→lab 재스코프).
+   */
+  public static SubjectContext requireLabMember(String resourceNoun) {
+    SubjectContext context = requirePersonalWritable(resourceNoun);
+    if (!context.isLab()) {
+      throw new ForbiddenException("lab subject required for " + resourceNoun);
+    }
+    return context;
+  }
+
+  /** lab 관리 표면(장비 CRUD·로그 컬럼·공지·초대·가입 승인)의 ADMIN+ 가드 (LAB재설계 §1.3). */
+  public static SubjectContext requireLabAdmin(String resourceNoun) {
+    SubjectContext context = requireLabMember(resourceNoun);
+    if (!context.isAdmin()) {
+      throw new ForbiddenException("lab admin required for " + resourceNoun);
+    }
+    return context;
+  }
+
   public static void clear() {
     HOLDER.remove();
   }

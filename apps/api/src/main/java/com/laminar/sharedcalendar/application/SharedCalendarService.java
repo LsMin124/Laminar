@@ -14,9 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 공용 캘린더 — 장비별 1:1 또는 일반 공지.
+ * 공용 캘린더 — 장비별 1:1 또는 일반 공지. LAB 스코프 (L3).
  *
- * <p>Spec §2.10.4: equipment_id 1:1 unique (active rows) + is_announcement_only 플래그.
+ * <p>§1.3 매트릭스: 조회는 lab 멤버 전원, 생성/삭제는 ADMIN+(공지 채널 관리는 관리 행위). Spec §2.10.4: equipment_id 1:1
+ * unique(active rows) + is_announcement_only 플래그.
  */
 @Service
 public class SharedCalendarService {
@@ -34,7 +35,7 @@ public class SharedCalendarService {
       String color,
       TabDefaultView defaultView,
       boolean announcementOnly) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("shared calendars");
     if (equipmentId != null
         && calendarRepo.findByEquipmentIdAndDeletedAtIsNull(equipmentId).isPresent()) {
       throw new ConflictException("equipment already has a shared calendar");
@@ -53,38 +54,27 @@ public class SharedCalendarService {
 
   @Transactional(readOnly = true)
   public List<SharedCalendarEntity> listAll() {
-    SubjectContextHolder.requirePersonal();
+    SubjectContextHolder.requireLabMember("shared calendars");
     return calendarRepo.findByDeletedAtIsNullOrderByName();
   }
 
   @Transactional(readOnly = true)
   public Optional<SharedCalendarEntity> findByEquipment(UUID equipmentId) {
-    SubjectContextHolder.requirePersonal();
+    SubjectContextHolder.requireLabMember("shared calendars");
     return calendarRepo.findByEquipmentIdAndDeletedAtIsNull(equipmentId);
   }
 
   @Transactional
   public void softDelete(UUID calendarId) {
-    SubjectContext ctx = requireSubjectWritable();
+    SubjectContext ctx = SubjectContextHolder.requireLabAdmin("shared calendars");
     calendarRepo
         .findById(calendarId)
         .filter(c -> c.getDeletedAt() == null)
-        .filter(c -> ctx.ownsUser(c.getCreatedBy()))
+        .filter(c -> ctx.ownsShared(c.getSubjectId()))
         .ifPresent(
             c -> {
               c.setDeletedAt(OffsetDateTime.now());
               calendarRepo.save(c);
             });
-  }
-
-  private SubjectContext requireSubjectWritable() {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.subjectId() == null) {
-      throw new IllegalStateException("subject scope required");
-    }
-    if (ctx.scope() == SubjectContext.Scope.PERSONAL && !ctx.canWrite()) {
-      throw new IllegalStateException("VIEWER cannot mutate shared calendars");
-    }
-    return ctx;
   }
 }

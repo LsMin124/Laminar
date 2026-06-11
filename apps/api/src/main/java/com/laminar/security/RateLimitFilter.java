@@ -33,7 +33,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
           new Rule("POST", "/api/auth/login", 10),
           new Rule("POST", "/api/auth/signup", 5),
           new Rule("POST", "/api/attachments/upload-url", 30),
-          new Rule("POST", "/api/subjects/current/invitations", 20));
+          new Rule("POST", "/api/subjects/current/invitations", 20),
+          // LAB 초대코드는 사람이 입력하는 8자리 — 무차별 대입 억제(LAB재설계 §2)
+          new Rule("POST", "/api/labs/join", 10));
 
   private static final int MAX_TRACKED_KEYS = 50_000;
 

@@ -10,9 +10,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -44,6 +48,34 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({ConstraintViolationException.class, HttpMessageNotReadableException.class})
   public ResponseEntity<ApiErrorResponse> handleBadInput(Exception ex, HttpServletRequest req) {
     return build(HttpStatus.BAD_REQUEST, "요청 본문이 올바르지 않습니다", req);
+  }
+
+  // R2² 발견: 아래 4종은 전용 핸들러가 없으면 catch-all(Exception→500)이 먼저 잡는다 —
+  // ExceptionHandlerExceptionResolver가 DefaultHandlerExceptionResolver보다 앞서므로 스프링 기본
+  // 매핑(400/405/415)이 영영 안 탄다. 클라이언트 입력 오류가 500 + ERROR 스택트레이스로 새던 것을 교정.
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+      MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+    return build(HttpStatus.BAD_REQUEST, "요청 경로 또는 파라미터 형식이 올바르지 않습니다", req);
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ApiErrorResponse> handleMissingParam(
+      MissingServletRequestParameterException ex, HttpServletRequest req) {
+    return build(HttpStatus.BAD_REQUEST, "필수 파라미터가 누락되었습니다: " + ex.getParameterName(), req);
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ApiErrorResponse> handleMethodNotSupported(
+      HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
+    return build(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다", req);
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<ApiErrorResponse> handleMediaTypeNotSupported(
+      HttpMediaTypeNotSupportedException ex, HttpServletRequest req) {
+    return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 Content-Type입니다", req);
   }
 
   @ExceptionHandler(ResponseStatusException.class)

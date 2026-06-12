@@ -170,6 +170,80 @@ public class ArchitectureTest {
           .resideOutsideOfPackage("com.laminar.common..")
           .should(onlyBeDependedOnByOwnDomainOr(Set.of("graph", "cron", "admin", "rrule")));
 
+  /**
+   * DX-1③ — 리포지토리에 쓰는 application 서비스는 쓰기 가드 정본을 호출해야 한다.
+   *
+   * <p>가드 정본 = {@code SubjectContextHolder.requirePersonalWritable / requireLabMember /
+   * requireLabAdmin} (DX-1①·L3). 신규 도메인이 가드 호출을 통째로 빠뜨리는 회귀(실사례: CardCategoryService가 scope·역할 검사
+   * 없이 쓰기 — 본 룰 도입 시 검출·교정)를 기계 차단한다. 클래스 단위 검사라 "어느 메서드에 거는가"는 여전히 리뷰 몫 — 가드 0개인 쓰기 서비스만 잡는다.
+   *
+   * <p>면제 목록(각 사유): SYSTEM 스코프 표면(자기 계정·토큰·아웃박스 워커·반복 전개 — 컨텍스트 자체가 없음) = UserService ·
+   * SessionService · PasswordResetService · JobsOutboxService · RruleExpansionService. 시스템성
+   * append(SUBJECT_SHARED 감사) = AuditLogService. 주제·멤버십 관리 표면(§1.3 isOwner/isAdmin 자체 검사 + 컨텍스트 진입
+   * 전 생성 표면) = SubjectService · SubjectMemberService · InvitationService. 진입점 가드 뒤 내부 협력자(정본은
+   * CardService) = CardDagService. 사설 가드 잔존(gcal 데드표면 — cron의 SUBJECT_SHARED 컨텍스트를 허용해야 해 정본 부적합,
+   * 구현/제거 결정 시 재논의) = CardEventLinkService.
+   */
+  private static final Set<String> WRITE_GUARD_EXEMPT =
+      Set.of(
+          "UserService",
+          "SessionService",
+          "PasswordResetService",
+          "JobsOutboxService",
+          "RruleExpansionService",
+          "AuditLogService",
+          "SubjectService",
+          "SubjectMemberService",
+          "InvitationService",
+          "CardDagService",
+          "CardEventLinkService");
+
+  private static final Set<String> CANONICAL_WRITE_GUARDS =
+      Set.of("requirePersonalWritable", "requireLabMember", "requireLabAdmin");
+
+  @ArchTest
+  static final ArchRule write_services_must_call_canonical_write_guard =
+      classes()
+          .that()
+          .resideInAPackage("..application..")
+          .and(
+              com.tngtech.archunit.base.DescribedPredicate.describe(
+                  "리포지토리 쓰기(save*/delete*)를 호출한다", ArchitectureTest::callsRepositoryWrite))
+          .and(
+              com.tngtech.archunit.base.DescribedPredicate.describe(
+                  "쓰기 가드 면제 목록이 아니다", c -> !WRITE_GUARD_EXEMPT.contains(c.getSimpleName())))
+          .should(callCanonicalWriteGuard());
+
+  private static boolean callsRepositoryWrite(JavaClass clazz) {
+    return clazz.getMethodCallsFromSelf().stream()
+        .anyMatch(
+            call ->
+                call.getTargetOwner()
+                        .isAssignableTo(org.springframework.data.repository.Repository.class)
+                    && (call.getName().startsWith("save") || call.getName().startsWith("delete")));
+  }
+
+  private static ArchCondition<JavaClass> callCanonicalWriteGuard() {
+    return new ArchCondition<>(
+        "SubjectContextHolder 쓰기 가드 정본(requirePersonalWritable/requireLabMember/requireLabAdmin)을 호출") {
+      @Override
+      public void check(JavaClass clazz, ConditionEvents events) {
+        boolean guarded =
+            clazz.getMethodCallsFromSelf().stream()
+                .anyMatch(
+                    call ->
+                        "com.laminar.context.SubjectContextHolder"
+                                .equals(call.getTargetOwner().getFullName())
+                            && CANONICAL_WRITE_GUARDS.contains(call.getName()));
+        if (!guarded) {
+          events.add(
+              SimpleConditionEvent.violated(
+                  clazz, clazz.getFullName() + "가 리포지토리에 쓰지만 쓰기 가드 정본을 호출하지 않는다"));
+        }
+      }
+    };
+  }
+
   private static ArchCondition<JavaClass> onlyBeDependedOnByOwnDomainOr(Set<String> exempt) {
     return new ArchCondition<>("only be depended on by own domain or " + exempt) {
       @Override

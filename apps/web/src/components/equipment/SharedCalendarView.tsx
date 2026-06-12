@@ -35,9 +35,9 @@ interface PostForm {
 /**
  * 공용 캘린더 공지 — 주제 공유 공지 게시판. 캘린더(여러 개 가능) 선택/생성 + 날짜 공지 작성/삭제.
  * 공지 본문은 마크다운 렌더(카드 본문과 동일한 MarkdownView, lazy). 기본 4줄 클램프, 클릭으로 펼침.
- * 시각은 브라우저 로컬↔ISO.
+ * 시각은 브라우저 로컬↔ISO. 캘린더·공지의 생성/삭제는 ADMIN+(§1.3) — 비관리자는 열람만.
  */
-export function SharedCalendarView() {
+export function SharedCalendarView({ isAdmin }: { isAdmin: boolean }) {
   const dialogs = useDialogs();
   const calendarsQ = useSharedCalendars();
   const createCal = useCreateSharedCalendar();
@@ -173,9 +173,11 @@ export function SharedCalendarView() {
     return (
       <div className="eq-empty">
         <p>공지 캘린더가 없습니다.</p>
-        <button type="button" className="eq-add" onClick={onCreateCalendar}>
-          ＋ 공지 캘린더 만들기
-        </button>
+        {isAdmin && (
+          <button type="button" className="eq-add" onClick={onCreateCalendar}>
+            ＋ 공지 캘린더 만들기
+          </button>
+        )}
       </div>
     );
   }
@@ -198,22 +200,26 @@ export function SharedCalendarView() {
           </select>
         </label>
         <div className="eq-resv-bar-acts">
-          <button type="button" className="eq-close" onClick={onCreateCalendar}>
-            ＋ 캘린더
-          </button>
-          {selectedCal && (
-            <button
-              type="button"
-              className="eq-close"
-              onClick={onDeleteCalendar}
-              title="캘린더 삭제"
-            >
-              ✕ 캘린더
-            </button>
+          {isAdmin && (
+            <>
+              <button type="button" className="eq-close" onClick={onCreateCalendar}>
+                ＋ 캘린더
+              </button>
+              {selectedCal && (
+                <button
+                  type="button"
+                  className="eq-close"
+                  onClick={onDeleteCalendar}
+                  title="캘린더 삭제"
+                >
+                  ✕ 캘린더
+                </button>
+              )}
+              <button type="button" className="eq-add" onClick={openPost}>
+                ＋ 공지
+              </button>
+            </>
           )}
-          <button type="button" className="eq-add" onClick={openPost}>
-            ＋ 공지
-          </button>
         </div>
       </div>
 
@@ -222,9 +228,11 @@ export function SharedCalendarView() {
       ) : sorted.length === 0 ? (
         <div className="eq-empty">
           <p>공지가 없습니다.</p>
-          <button type="button" className="eq-add" onClick={openPost}>
-            ＋ 첫 공지
-          </button>
+          {isAdmin && (
+            <button type="button" className="eq-add" onClick={openPost}>
+              ＋ 첫 공지
+            </button>
+          )}
         </div>
       ) : (
         <ul className="eq-anc-list">
@@ -247,9 +255,11 @@ export function SharedCalendarView() {
                     </div>
                   )}
                 </div>
-                <button type="button" className="eq-act danger" onClick={() => onDeleteAnc(a)}>
-                  삭제
-                </button>
+                {isAdmin && (
+                  <button type="button" className="eq-act danger" onClick={() => onDeleteAnc(a)}>
+                    삭제
+                  </button>
+                )}
               </li>
             );
           })}

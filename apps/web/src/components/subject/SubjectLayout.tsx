@@ -250,6 +250,7 @@ export function SubjectLayout() {
             key={activeId}
             subjectId={activeId ?? ""}
             subjectName={list.find((s) => s.id === activeId)?.name ?? ""}
+            subjectKind={list.find((s) => s.id === activeId)?.kind ?? "PERSONAL"}
             openSubjectBodyNonce={bodyNonce}
             openEquipmentNonce={equipmentNonce}
           />

@@ -45,11 +45,14 @@ const DOC_PREFIX: Record<DocKind, string> = {
 export function SubjectWorkspace({
   subjectId,
   subjectName,
+  subjectKind,
   openSubjectBodyNonce,
   openEquipmentNonce,
 }: {
   subjectId: string;
   subjectName: string;
+  /** 활성 주제 종별 — personal 주제로의 장비 doctab 딥링크를 차단한다(LAB-P, 런처 게이팅과 짝). */
+  subjectKind: "PERSONAL" | "LAB";
   /** 좌측 레일의 '주제 본문' 버튼이 증가시키는 신호 — 변경될 때마다 주제 본문 문서를 연다(마운트 시 제외). */
   openSubjectBodyNonce?: number;
   /** 좌측 레일의 '장비 관리' 버튼이 증가시키는 신호 — 변경될 때마다 장비 doctab을 연다(마운트 시 제외). */
@@ -165,6 +168,11 @@ export function SubjectWorkspace({
       if (route.subjectId !== subjectId) return; // 주제 전환 과도 구간 — 남의 URL 문서를 열지 않음
       const doc = route.doc;
       if (!doc) return;
+      if (doc.kind === "equipment" && subjectKind !== "LAB") {
+        // 장비 표면은 lab 전용(L3) — personal 주제로의 딥링크는 열지 않고 URL만 보드로 보정.
+        replaceRoute({ subjectId, tabId: route.tabId, view, doc: null });
+        return;
+      }
       if (openDocs.some((d) => d.id === doc.id)) return; // 이미 열려 있음 — 복원 불요
       const title =
         doc.kind === "equipment"
@@ -221,7 +229,13 @@ export function SubjectWorkspace({
   function renderDoc(d: OpenDoc) {
     switch (d.kind) {
       case "equipment":
-        return <EquipmentView key={d.id} onClose={() => closeDoc(EQUIPMENT_DOC_ID)} />;
+        return (
+          <EquipmentView
+            key={d.id}
+            subjectId={subjectId}
+            onClose={() => closeDoc(EQUIPMENT_DOC_ID)}
+          />
+        );
       case "subject":
         return <SubjectBody key={d.id} subjectId={d.id} />;
       case "tab":

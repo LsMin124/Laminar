@@ -38,15 +38,20 @@ interface ResvForm {
 /**
  * 장비 예약 서브뷰 — 장비 선택 + 해당 장비의 예약 목록(최근~향후 90일) + 예약 생성/취소.
  * 시간 겹침 차단은 백엔드(409), 시작<종료·최대 7일은 클라+백엔드 양쪽 검증.
+ * 취소 버튼은 본인 예약 또는 ADMIN+에게만(§1.3 거울 — 서버도 동일 가드).
  */
 export function EquipmentReservations({
   equipment,
   selectedId,
   onSelect,
+  meId,
+  isAdmin,
 }: {
   equipment: Equipment[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  meId: string | null;
+  isAdmin: boolean;
 }) {
   const dialogs = useDialogs();
   const createResv = useCreateReservation();
@@ -200,11 +205,11 @@ export function EquipmentReservations({
                 {r.cardId && <LinkedCardChip cardId={r.cardId} />}
                 {past ? (
                   <span className="eq-resv-tag">종료</span>
-                ) : (
+                ) : r.reservedBy === meId || isAdmin ? (
                   <button type="button" className="eq-act danger" onClick={() => onCancel(r)}>
                     취소
                   </button>
-                )}
+                ) : null}
               </li>
             );
           })}

@@ -1,4 +1,3 @@
-import { useMe } from "../../lib/auth";
 import type { Subject } from "../../lib/graphTypes";
 import {
   type LabMember,
@@ -7,6 +6,7 @@ import {
   useLabInviteCode,
   useLabJoinRequests,
   useLabMembers,
+  useMyLabRole,
   useRemoveMember,
   useRotateInviteCode,
   useUpdateMemberRole,
@@ -20,13 +20,9 @@ import { useDialogs } from "../ui/DialogProvider";
  * 멤버 목록=전원, 역할 변경=OWNER, 제거=ADMIN+(ADMIN은 MEMBER만), 초대코드·승인=ADMIN+.
  */
 export function LabPanel({ subject, onClose }: { subject: Subject; onClose: () => void }) {
-  const me = useMe();
   const dialogs = useDialogs();
   const members = useLabMembers(subject.id, true);
-  const myRole: LabRole | null =
-    members.data?.find((m) => m.userId === me.data?.userId)?.role ?? null;
-  const isOwner = myRole === "OWNER";
-  const isAdmin = myRole === "OWNER" || myRole === "ADMIN";
+  const { role: myRole, isOwner, isAdmin } = useMyLabRole(subject.id);
 
   const inviteCode = useLabInviteCode(subject.id, isAdmin);
   const rotateCode = useRotateInviteCode(subject.id);

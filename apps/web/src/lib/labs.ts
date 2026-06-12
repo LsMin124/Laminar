@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
+import { useMe } from "./auth";
 import { dagKeys } from "./dagKeys";
 
 export type LabRole = "OWNER" | "ADMIN" | "MEMBER";
@@ -51,6 +52,23 @@ export function useLabMembers(subjectId: string, enabled: boolean) {
     queryFn: () => api.get<LabMember[]>("/api/subjects/current/members"),
     enabled,
   });
+}
+
+/**
+ * 활성 lab에서 나의 역할 — 멤버 목록(전원 조회 가능) × me()로 도출. EquipmentView·LabPanel 등
+ * §1.3 역할별 UI 게이팅의 공용 정본(LAB-P). 멤버 목록 도착 전·비멤버는 role=null(버튼 숨김 쪽 fail-closed).
+ */
+export function useMyLabRole(subjectId: string, enabled = true) {
+  const me = useMe();
+  const members = useLabMembers(subjectId, enabled);
+  const role: LabRole | null =
+    members.data?.find((m) => m.userId === me.data?.userId)?.role ?? null;
+  return {
+    role,
+    isOwner: role === "OWNER",
+    isAdmin: role === "OWNER" || role === "ADMIN",
+    meId: me.data?.userId ?? null,
+  };
 }
 
 /** 역할 변경 — OWNER 전용(서버 가드). */

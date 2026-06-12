@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ApiError } from "../../lib/api";
 import { useCreateEquipment, useDeleteEquipment, useEquipment, useToggleEquipmentActive, useUpdateEquipment } from "../../lib/equipment";
 import type { Equipment } from "../../lib/equipmentTypes";
+import { useMyLabRole } from "../../lib/labs";
 import { useDialogs } from "../ui/DialogProvider";
 import { EquipmentLogs } from "./EquipmentLogs";
 import { EquipmentReservations } from "./EquipmentReservations";
@@ -17,16 +18,18 @@ interface FormState {
 }
 
 /**
- * 장비 관리 전용 화면 — 주제(워크스페이스) 공유 장비 레지스트리(목록/등록/수정/활성토글/삭제).
- * 좌측 레일 '장' 타일에서 진입. 예약·로그·공용 캘린더는 다음 증분.
+ * 장비 관리 전용 화면 — lab 공유 장비 레지스트리(목록/등록/수정/활성토글/삭제).
+ * 좌측 레일 '장' 타일에서 진입. 관리 액션(등록/수정/토글/삭제·컬럼·공지)은 ADMIN+에게만
+ * 노출(LAB-P §1.3 — 서버 가드의 거울, 최종 강제는 서버).
  */
-export function EquipmentView({ onClose }: { onClose: () => void }) {
+export function EquipmentView({ subjectId, onClose }: { subjectId: string; onClose: () => void }) {
   const equipment = useEquipment();
   const createEquipment = useCreateEquipment();
   const updateEquipment = useUpdateEquipment();
   const toggleActive = useToggleEquipmentActive();
   const deleteEquipment = useDeleteEquipment();
   const dialogs = useDialogs();
+  const { isAdmin, meId } = useMyLabRole(subjectId);
 
   const [tab, setTab] = useState<"list" | "reserve" | "log" | "calendar" | "mine">("list");
   const [selEquipId, setSelEquipId] = useState<string | null>(null);
@@ -94,7 +97,7 @@ export function EquipmentView({ onClose }: { onClose: () => void }) {
   async function onDelete(e: Equipment) {
     const ok = await dialogs.confirm({
       title: "장비 삭제",
-      message: `"${e.name}"을(를) 삭제할까요? (소유자만 삭제할 수 있습니다)`,
+      message: `"${e.name}"을(를) 삭제할까요? 예약·로그도 함께 사라집니다.`,
       confirmLabel: "삭제",
       danger: true,
     });
@@ -105,7 +108,7 @@ export function EquipmentView({ onClose }: { onClose: () => void }) {
       const forbidden = err instanceof ApiError && err.status === 403;
       await dialogs.alert({
         title: "삭제 불가",
-        message: forbidden ? "소유자만 장비를 삭제할 수 있습니다." : "삭제에 실패했습니다.",
+        message: forbidden ? "LAB 관리자만 장비를 삭제할 수 있습니다." : "삭제에 실패했습니다.",
       });
     }
   }
@@ -165,9 +168,11 @@ export function EquipmentView({ onClose }: { onClose: () => void }) {
                 />
                 비활성 포함{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
               </label>
-              <button type="button" className="eq-add" onClick={openNew}>
-                ＋ 장비 등록
-              </button>
+              {isAdmin && (
+                <button type="button" className="eq-add" onClick={openNew}>
+                  ＋ 장비 등록
+                </button>
+              )}
             </>
           )}
           <button type="button" className="eq-close" onClick={onClose} title="보드로 돌아가기">
@@ -184,11 +189,18 @@ export function EquipmentView({ onClose }: { onClose: () => void }) {
             equipment={activeList}
             selectedId={selEquipId}
             onSelect={setSelEquipId}
+            meId={meId}
+            isAdmin={isAdmin}
           />
         ) : tab === "log" ? (
-          <EquipmentLogs equipment={activeList} selectedId={selEquipId} onSelect={setSelEquipId} />
+          <EquipmentLogs
+            equipment={activeList}
+            selectedId={selEquipId}
+            onSelect={setSelEquipId}
+            isAdmin={isAdmin}
+          />
         ) : tab === "calendar" ? (
-          <SharedCalendarView />
+          <SharedCalendarView isAdmin={isAdmin} />
         ) : equipment.isLoading ? (
           <div className="eq-msg">불러오는 중...</div>
         ) : equipment.isError ? (
@@ -196,9 +208,11 @@ export function EquipmentView({ onClose }: { onClose: () => void }) {
         ) : visible.length === 0 ? (
           <div className="eq-empty">
             <p>{all.length === 0 ? "등록된 장비가 없습니다." : "활성 장비가 없습니다."}</p>
-            <button type="button" className="eq-add" onClick={openNew}>
-              ＋ 첫 장비 등록
-            </button>
+            {isAdmin && (
+              <button type="button" className="eq-add" onClick={openNew}>
+                ＋ 첫 장비 등록
+              </button>
+            )}
           </div>
         ) : (
           <ul className="eq-list">
@@ -223,19 +237,23 @@ export function EquipmentView({ onClose }: { onClose: () => void }) {
                       로그
                     </button>
                   )}
-                  <button type="button" className="eq-act" onClick={() => openEdit(e)}>
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    className="eq-act"
-                    onClick={() => toggleActive.mutate({ id: e.id, active: !e.active })}
-                  >
-                    {e.active ? "비활성화" : "활성화"}
-                  </button>
-                  <button type="button" className="eq-act danger" onClick={() => onDelete(e)}>
-                    삭제
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button type="button" className="eq-act" onClick={() => openEdit(e)}>
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        className="eq-act"
+                        onClick={() => toggleActive.mutate({ id: e.id, active: !e.active })}
+                      >
+                        {e.active ? "비활성화" : "활성화"}
+                      </button>
+                      <button type="button" className="eq-act danger" onClick={() => onDelete(e)}>
+                        삭제
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}

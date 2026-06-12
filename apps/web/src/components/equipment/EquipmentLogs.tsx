@@ -44,15 +44,18 @@ interface ColForm {
 /**
  * 장비 로그 시트 — 동적 컬럼 정의(관리) + 행 기록 + 테이블. 컬럼 type별 입력/렌더.
  * 시각(loggedAt·DATETIME 값)은 브라우저 로컬↔ISO 변환.
+ * 기록은 MEMBER+, 컬럼 관리는 ADMIN+(§1.3 — isAdmin이 ⚙ 진입을 게이팅).
  */
 export function EquipmentLogs({
   equipment,
   selectedId,
   onSelect,
+  isAdmin,
 }: {
   equipment: Equipment[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  isAdmin: boolean;
 }) {
   const dialogs = useDialogs();
   const selected = selectedId ?? equipment[0]?.id ?? null;
@@ -202,14 +205,16 @@ export function EquipmentLogs({
           </select>
         </label>
         <div className="eq-resv-bar-acts">
-          <button
-            type="button"
-            className="eq-close"
-            onClick={() => setManageCols((v) => !v)}
-            title="로그 컬럼 정의 관리"
-          >
-            ⚙ 컬럼 관리
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="eq-close"
+              onClick={() => setManageCols((v) => !v)}
+              title="로그 컬럼 정의 관리"
+            >
+              ⚙ 컬럼 관리
+            </button>
+          )}
           <button type="button" className="eq-add" onClick={openEntry}>
             ＋ 기록
           </button>

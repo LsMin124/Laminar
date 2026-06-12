@@ -12,7 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
  * 카드 카테고리 도메인 서비스 — 현재 주제(SubjectContext) 기준 목록/생성/수정/삭제.
  *
  * <p>list는 subjectSharedFilter로 현재 주제만. find/update/delete by id는 PK 로드라 필터 미적용 → subjectId 소유 검증으로
- * 교차 주제 접근을 차단(소유 위반은 IllegalStateException→403, 미존재는 IllegalArgumentException→400).
+ * 교차 주제 접근을 차단(소유 위반은 IllegalStateException→403, 미존재는 IllegalArgumentException→400). 쓰기 경로는
+ * requirePersonalWritable 가드(DX-1③ 도입 시 누락 검출·교정 — 이전엔 scope·역할 무검사로 무역할 컨텍스트도 쓰기 가능했다).
  */
 @Service
 public class CardCategoryService {
@@ -31,7 +32,8 @@ public class CardCategoryService {
   @Transactional
   public CardCategoryEntity create(String name, String color) {
     CardCategoryEntity category = new CardCategoryEntity();
-    category.setSubjectId(currentSubjectId());
+    category.setSubjectId(
+        SubjectContextHolder.requirePersonalWritable("card categories").subjectId());
     category.setName(name);
     category.setColor(color);
     return repo.save(category);
@@ -39,6 +41,7 @@ public class CardCategoryService {
 
   @Transactional
   public CardCategoryEntity update(UUID id, String name, String color) {
+    SubjectContextHolder.requirePersonalWritable("card categories");
     CardCategoryEntity category = requireOwned(id);
     if (name != null && !name.isBlank()) {
       category.setName(name);
@@ -51,6 +54,7 @@ public class CardCategoryService {
 
   @Transactional
   public void delete(UUID id) {
+    SubjectContextHolder.requirePersonalWritable("card categories");
     repo.delete(requireOwned(id));
   }
 

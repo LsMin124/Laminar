@@ -42,7 +42,9 @@ export function SubjectLayout() {
   const route = useRoute();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
-  const [labPopover, setLabPopover] = useState(false);
+  // 연구실 팝오버 — 위치(버튼 우하단 rect)를 담아 fixed로 띄운다. null=닫힘.
+  // .rail이 overflow-y:auto라 가로도 clip → absolute 팝오버는 레일 밖에서 잘린다(툴팁처럼 fixed로 회피).
+  const [labPop, setLabPop] = useState<{ x: number; y: number } | null>(null);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 SubjectWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
   // '장비 관리' 신호 — 증가시키면 SubjectWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
@@ -234,8 +236,15 @@ export function SubjectLayout() {
           <div className="rail-lab">
             <button
               type="button"
-              className={`rail-tile tool${labPopover ? " active" : ""}`}
-              onClick={() => setLabPopover((v) => !v)}
+              className={`rail-tile tool${labPop ? " active" : ""}`}
+              onClick={(e) => {
+                if (labPop) {
+                  setLabPop(null);
+                  return;
+                }
+                const r = e.currentTarget.getBoundingClientRect();
+                setLabPop({ x: r.right, y: r.bottom });
+              }}
               onMouseEnter={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
                 setHoverTip({ name: "연구실", y: r.top + r.height / 2 });
@@ -243,7 +252,7 @@ export function SubjectLayout() {
               onMouseLeave={() => setHoverTip(null)}
               aria-label="연구실"
               aria-haspopup="menu"
-              aria-expanded={labPopover}
+              aria-expanded={labPop != null}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -261,10 +270,15 @@ export function SubjectLayout() {
                 <path d="M10 21 V15 H14 V21" />
               </svg>
             </button>
-            {labPopover && (
+            {labPop && (
               <>
-                <div className="rail-pop-scrim" onClick={() => setLabPopover(false)} />
-                <div className="rail-popover" role="menu" aria-label="연구실">
+                <div className="rail-pop-scrim" onClick={() => setLabPop(null)} />
+                <div
+                  className="rail-popover"
+                  role="menu"
+                  aria-label="연구실"
+                  style={{ left: labPop.x + 10, bottom: window.innerHeight - labPop.y }}
+                >
                   <div className="rail-pop-head">내 연구실</div>
                   <ul className="rail-pop-list">
                     {labList.map((lab) => (
@@ -274,7 +288,7 @@ export function SubjectLayout() {
                           className={`rail-pop-item${lab.id === activeId ? " active" : ""}`}
                           onClick={() => {
                             switchSubject(lab.id);
-                            setLabPopover(false);
+                            setLabPop(null);
                           }}
                         >
                           <Identicon seed={lab.id} size={18} />
@@ -291,7 +305,7 @@ export function SubjectLayout() {
                     type="button"
                     className="rail-pop-action"
                     onClick={() => {
-                      setLabPopover(false);
+                      setLabPop(null);
                       void onJoinByCode();
                     }}
                   >
@@ -302,7 +316,7 @@ export function SubjectLayout() {
                       type="button"
                       className="rail-pop-action"
                       onClick={() => {
-                        setLabPopover(false);
+                        setLabPop(null);
                         void onPromote(activeSubject);
                       }}
                     >

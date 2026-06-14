@@ -122,9 +122,9 @@
   z-index: 55;
 }
 .rail-popover {
-  position: absolute;
-  left: calc(100% + 10px);
-  bottom: 0;
+  /* fixed: .rail의 overflow-y:auto가 가로도 clip하므로 absolute면 레일 밖에서 잘린다(rail-tip 선례).
+     위치(left·bottom)는 연구실 버튼 rect 기준 인라인 style로 주입. */
+  position: fixed;
   z-index: 60;
   width: 210px;
   background: #161210;

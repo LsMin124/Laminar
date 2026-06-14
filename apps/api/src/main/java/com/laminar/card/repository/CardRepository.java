@@ -5,6 +5,7 @@ import com.laminar.common.repository.PersonalOwnedRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -39,6 +40,20 @@ public interface CardRepository extends PersonalOwnedRepository<CardEntity> {
             """)
   List<CardEntity> findOverlappingByTabId(
       @Param("tabId") UUID tabId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  /**
+   * 현행 과제 — 현재 컨텍스트(연구실·주제)의 미완료·미보관 카드. personalFirstFilter가 subject_id+user_id로 자동 격리하므로 작성자 본인
+   * 것만(LAB이어도 카드는 Personal-First). 시작일 가까운 순(미지정은 뒤로), Pageable로 상한. 대시보드 '현행 과제' 섹션용.
+   */
+  @Query(
+      """
+            SELECT c FROM CardEntity c
+            WHERE c.deletedAt IS NULL
+              AND c.archivedAt IS NULL
+              AND c.completed = false
+            ORDER BY c.startDate ASC NULLS LAST, c.priority ASC
+            """)
+  List<CardEntity> findPending(Pageable pageable);
 
   /**
    * RRULE 마스터 카드 — origin=MANUAL이면서 rrule 있는 활성 카드. SYSTEM scope에서 호출 시 모든 user의 마스터 조회 (cron

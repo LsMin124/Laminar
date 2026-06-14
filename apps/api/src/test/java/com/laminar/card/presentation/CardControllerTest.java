@@ -116,6 +116,28 @@ class CardControllerTest {
   }
 
   @Test
+  void 현행_과제는_미완료_카드를_발췌로_반환한다() throws Exception {
+    // excerptOf라 bodyMd는 제외(발췌만) — 대시보드 페이로드 경감.
+    given(cardService.listPending()).willReturn(List.of(card("실험 준비"), card("시료 측정")));
+
+    mvc.perform(get("/api/cards/pending"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].title").value("실험 준비"))
+        .andExpect(jsonPath("$[0].bodyMd").value((String) null))
+        .andExpect(jsonPath("$[1].title").value("시료 측정"));
+  }
+
+  @Test
+  void 현행_과제_빈_목록은_200_빈_배열() throws Exception {
+    given(cardService.listPending()).willReturn(List.of());
+
+    mvc.perform(get("/api/cards/pending"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
   void 카드_삭제는_204_위임() throws Exception {
     UUID cardId = UUID.randomUUID();
 

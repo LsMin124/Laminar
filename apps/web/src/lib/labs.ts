@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 import { useMe } from "./auth";
 import { dagKeys } from "./dagKeys";
+import type { Card } from "./graphTypes";
 
 export type LabRole = "OWNER" | "ADMIN" | "MEMBER";
 
@@ -44,12 +45,25 @@ const labKeys = {
   members: (subjectId: string) => ["lab", subjectId, "members"] as const,
   inviteCode: (subjectId: string) => ["lab", subjectId, "inviteCode"] as const,
   joinRequests: (subjectId: string) => ["lab", subjectId, "joinRequests"] as const,
+  pending: (subjectId: string) => ["lab", subjectId, "pending"] as const,
 };
 
 export function useLabMembers(subjectId: string, enabled: boolean) {
   return useQuery({
     queryKey: labKeys.members(subjectId),
     queryFn: () => api.get<LabMember[]>("/api/subjects/current/members"),
+    enabled,
+  });
+}
+
+/**
+ * 현행 과제 — 현재 주제(연구실)의 내 미완료 카드(서버 `/api/cards/pending`, 시작일순·발췌만). 대시보드 '현행 과제'
+ * 섹션용. 카드는 Personal-First 격리라 LAB이어도 작성자 본인 것만 반환된다(서버 필터).
+ */
+export function useLabPendingCards(subjectId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: labKeys.pending(subjectId),
+    queryFn: () => api.get<Card[]>("/api/cards/pending"),
     enabled,
   });
 }

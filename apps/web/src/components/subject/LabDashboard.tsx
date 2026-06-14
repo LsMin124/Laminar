@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useLabMembers, useMyLabRole } from "../../lib/labs";
+import type { Card } from "../../lib/graphTypes";
+import { useLabMembers, useLabPendingCards, useMyLabRole } from "../../lib/labs";
 import { EQUIPMENT_DOC_ID } from "../../lib/route";
 import { useAnnouncements, useSharedCalendars } from "../../lib/sharedCalendars";
 import { useSubjects } from "../../lib/subjects";
@@ -31,6 +32,7 @@ export function LabDashboard({
   const subject = subjects.data?.find((s) => s.id === subjectId) ?? null;
   const { role, isAdmin } = useMyLabRole(subjectId);
   const members = useLabMembers(subjectId, true);
+  const pending = useLabPendingCards(subjectId, true);
   const calendars = useSharedCalendars();
   const firstCalendarId = calendars.data?.[0]?.id ?? null;
 
@@ -63,6 +65,10 @@ export function LabDashboard({
       view: route.view,
       doc: { kind: "equipment", id: EQUIPMENT_DOC_ID },
     });
+  }
+  function openCard(c: Card) {
+    if (!c.tabId) return; // 탭 미배치 카드는 이동 대상 없음
+    pushRoute({ subjectId, tabId: c.tabId, view: "canvas", doc: { kind: "card", id: c.id } });
   }
 
   return (
@@ -127,9 +133,24 @@ export function LabDashboard({
 
         <section className="lab-dash-card">
           <h2 className="lab-dash-card-h">현행 과제</h2>
-          <p className="lab-dash-empty soon">
-            준비 중 — 연구실의 진행 중 과제를 한눈에 모아 보여줄 예정입니다.
-          </p>
+          {pending.isLoading ? (
+            <p className="lab-dash-empty">불러오는 중...</p>
+          ) : (pending.data ?? []).length === 0 ? (
+            <p className="lab-dash-empty">진행 중인 과제가 없습니다.</p>
+          ) : (
+            <ul className="lab-dash-tasks">
+              {(pending.data ?? []).map((c) => (
+                <li key={c.id} className="lab-dash-task-row">
+                  <button type="button" className="lab-dash-task" onClick={() => openCard(c)}>
+                    <span className="lab-dash-task-when">
+                      {c.startDate ? fmtCardDate(c.startDate) : "—"}
+                    </span>
+                    <span className="lab-dash-task-title">{c.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 
@@ -138,8 +159,14 @@ export function LabDashboard({
   );
 }
 
-/** ISO → "M/D" 짧은 날짜(대시보드 공지 요약용). */
+/** ISO datetime → "M/D" 짧은 날짜(대시보드 공지 요약용). */
 function fmtShortDate(iso: string): string {
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/** 카드 startDate("YYYY-MM-DD" date)는 split 파싱 — new Date는 UTC 자정으로 해석돼 로컬에서 하루 어긋날 수 있다. */
+function fmtCardDate(isoDate: string): string {
+  const [, m, d] = isoDate.split("-");
+  return `${Number(m)}/${Number(d)}`;
 }

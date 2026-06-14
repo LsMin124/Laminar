@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class CardService {
 
   private static final int PRIORITY_STEP = 100;
   private static final int MAX_SPAN_DAYS = 30;
+  private static final int PENDING_LIMIT = 20; // 대시보드 현행 과제 섹션 상한
 
   private final CardRepository cardRepo;
   private final CardDagService dagService;
@@ -82,6 +84,16 @@ public class CardService {
   public List<CardEntity> listByTab(UUID tabId) {
     SubjectContextHolder.requirePersonal();
     return cardRepo.findByTabIdAndDeletedAtIsNullOrderByPriorityAsc(tabId);
+  }
+
+  /**
+   * 현행 과제 — 현재 주제(연구실)의 내 미완료·미보관 카드를 시작일 가까운 순으로(상한 {@link #PENDING_LIMIT}). 격리 필터가
+   * subject_id+user_id로 본인 것만 추린다(LAB이어도 카드는 Personal-First). 대시보드 '현행 과제' 섹션용.
+   */
+  @Transactional(readOnly = true)
+  public List<CardEntity> listPending() {
+    SubjectContextHolder.requirePersonal();
+    return cardRepo.findPending(PageRequest.of(0, PENDING_LIMIT));
   }
 
   @Transactional(readOnly = true)

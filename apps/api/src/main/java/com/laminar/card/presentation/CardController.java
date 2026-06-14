@@ -74,6 +74,13 @@ public class CardController {
     return ResponseEntity.ok(cards.stream().map(this::toResponse).toList());
   }
 
+  /** 현행 과제 — 현재 주제(연구실)의 내 미완료 카드(발췌만, 본문 제외). 대시보드 '현행 과제' 섹션. */
+  @GetMapping("/cards/pending")
+  public ResponseEntity<List<CardDtos.CardResponse>> listPending() {
+    return ResponseEntity.ok(
+        cardService.listPending().stream().map(CardDtos.CardResponse::excerptOf).toList());
+  }
+
   @GetMapping("/cards/{cardId}")
   public ResponseEntity<CardDtos.CardResponse> get(@PathVariable UUID cardId) {
     return cardService

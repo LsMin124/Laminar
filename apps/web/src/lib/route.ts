@@ -5,15 +5,21 @@
  * - 활성 주제·탭·활성 문서(doctab)의 정본은 URL — 새로고침·딥링크·뒤로가기 복원.
  * - view는 부가 상태라 쿼리(기본 canvas는 생략). 열린 문서 "목록"은 세션 상태로 남고
  *   활성 문서만 URL에 싣는다(딥링크 진입 시 그 문서 하나를 연다).
- * - 장비 doc은 단일(싱글톤)이라 id 세그먼트 생략(/d/equipment).
+ * - 장비·연구실 홈 doc은 단일(싱글톤)이라 id 세그먼트 생략(/d/equipment, /d/lab-home).
  * - /reset 등 비-/s 경로는 전부 "주제 미지정"으로 파싱된다(인증 화면 분기는 App이 담당).
  */
 
-/** 열린 문서 종류 — 카드·그룹·탭·주제(UUID 키) + 장비(싱글톤 doc). */
-export type DocKind = "card" | "group" | "tab" | "subject" | "equipment";
+/** 열린 문서 종류 — 카드·그룹·탭·주제(UUID 키) + 장비·연구실 홈(싱글톤 doc). */
+export type DocKind = "card" | "group" | "tab" | "subject" | "equipment" | "lab-home";
 
 /** 장비 doc의 고정 sentinel id(UUID와 충돌 없음) — doctab 키·URL 복원 공용. */
 export const EQUIPMENT_DOC_ID = "equipment";
+
+/** 연구실 홈(대시보드) doc의 고정 sentinel id — lab당 단일, 진입 시 기본 화면. */
+export const LAB_HOME_DOC_ID = "lab-home";
+
+/** id 세그먼트 없는 싱글톤 doc(kind 문자열 자체가 sentinel id) — parse/format 공용 판정. */
+const SINGLETON_DOC_KINDS: ReadonlySet<DocKind> = new Set(["equipment", "lab-home"]);
 
 interface RouteDoc {
   kind: DocKind;
@@ -33,6 +39,7 @@ const DOC_KINDS: ReadonlySet<string> = new Set([
   "tab",
   "subject",
   "equipment",
+  "lab-home",
 ]);
 
 export function parseRoute(pathname: string, search = ""): Route {
@@ -50,7 +57,8 @@ export function parseRoute(pathname: string, search = ""): Route {
   }
   if (seg[i] === "d" && seg[i + 1] && DOC_KINDS.has(seg[i + 1])) {
     const kind = seg[i + 1] as DocKind;
-    const id = kind === "equipment" ? EQUIPMENT_DOC_ID : (seg[i + 2] ?? null);
+    // 싱글톤 doc은 sentinel id가 곧 kind 문자열(EQUIPMENT_DOC_ID·LAB_HOME_DOC_ID와 동일).
+    const id = SINGLETON_DOC_KINDS.has(kind) ? kind : (seg[i + 2] ?? null);
     if (id) route.doc = { kind, id };
   }
   return route;
@@ -61,7 +69,9 @@ export function formatRoute(route: Route): string {
   let path = `/s/${route.subjectId}`;
   if (route.tabId) path += `/t/${route.tabId}`;
   if (route.doc) {
-    path += route.doc.kind === "equipment" ? "/d/equipment" : `/d/${route.doc.kind}/${route.doc.id}`;
+    path += SINGLETON_DOC_KINDS.has(route.doc.kind)
+      ? `/d/${route.doc.kind}`
+      : `/d/${route.doc.kind}/${route.doc.id}`;
   }
   if (route.view === "calendar") path += "?view=calendar";
   return path;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { EQUIPMENT_DOC_ID, formatRoute, parseRoute, type Route } from "./route";
+import { EQUIPMENT_DOC_ID, formatRoute, LAB_HOME_DOC_ID, parseRoute, type Route } from "./route";
 
 const S = "11111111-1111-1111-1111-111111111111";
 const T = "22222222-2222-2222-2222-222222222222";
@@ -17,12 +17,16 @@ describe("parseRoute", () => {
     expect(parseRoute(`/s/${S}/t/${T}`)).toMatchObject({ subjectId: S, tabId: T });
   });
 
-  test("문서: 카드·그룹·탭·주제는 id 필수, 장비는 sentinel id 부여", () => {
+  test("문서: 카드·그룹·탭·주제는 id 필수, 장비·연구실 홈은 sentinel id 부여", () => {
     expect(parseRoute(`/s/${S}/t/${T}/d/card/${C}`).doc).toEqual({ kind: "card", id: C });
     expect(parseRoute(`/s/${S}/d/subject/${S}`).doc).toEqual({ kind: "subject", id: S });
     expect(parseRoute(`/s/${S}/t/${T}/d/equipment`).doc).toEqual({
       kind: "equipment",
       id: EQUIPMENT_DOC_ID,
+    });
+    expect(parseRoute(`/s/${S}/d/lab-home`).doc).toEqual({
+      kind: "lab-home",
+      id: LAB_HOME_DOC_ID,
     });
     // id 없는 카드 doc은 무시
     expect(parseRoute(`/s/${S}/t/${T}/d/card`).doc).toBeNull();
@@ -54,7 +58,7 @@ describe("formatRoute", () => {
     ).toBe(`/s/${S}/t/${T}?view=calendar`);
   });
 
-  test("장비 doc은 id 생략 형태로", () => {
+  test("싱글톤 doc(장비·연구실 홈)은 id 생략 형태로", () => {
     expect(
       formatRoute({
         subjectId: S,
@@ -63,6 +67,14 @@ describe("formatRoute", () => {
         doc: { kind: "equipment", id: EQUIPMENT_DOC_ID },
       }),
     ).toBe(`/s/${S}/t/${T}/d/equipment`);
+    expect(
+      formatRoute({
+        subjectId: S,
+        tabId: null,
+        view: "canvas",
+        doc: { kind: "lab-home", id: LAB_HOME_DOC_ID },
+      }),
+    ).toBe(`/s/${S}/d/lab-home`);
   });
 
   test("parse ↔ format 왕복 보존", () => {
@@ -71,6 +83,7 @@ describe("formatRoute", () => {
       { subjectId: S, tabId: T, view: "calendar", doc: null },
       { subjectId: S, tabId: null, view: "canvas", doc: { kind: "subject", id: S } },
       { subjectId: S, tabId: T, view: "canvas", doc: { kind: "equipment", id: EQUIPMENT_DOC_ID } },
+      { subjectId: S, tabId: null, view: "canvas", doc: { kind: "lab-home", id: LAB_HOME_DOC_ID } },
     ];
     for (const r of cases) {
       const url = formatRoute(r);

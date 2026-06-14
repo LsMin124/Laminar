@@ -17,6 +17,9 @@ const SubjectBody = lazy(() => import("../doc/SubjectBody").then((m) => ({ defau
 const EquipmentView = lazy(() =>
   import("../equipment/EquipmentView").then((m) => ({ default: m.EquipmentView })),
 );
+const LabDashboard = lazy(() =>
+  import("./LabDashboard").then((m) => ({ default: m.LabDashboard })),
+);
 
 // 열린 문서 — 종류(DocKind)·sentinel은 lib/route와 공유(URL 복원이 같은 어휘를 쓴다).
 interface OpenDoc {
@@ -33,6 +36,7 @@ const DOC_PREFIX: Record<DocKind, string> = {
   tab: "▭ ",
   subject: "◈ ",
   equipment: "⚗ ",
+  "lab-home": "⌂ ",
 };
 
 /**
@@ -168,8 +172,8 @@ export function SubjectWorkspace({
       if (route.subjectId !== subjectId) return; // 주제 전환 과도 구간 — 남의 URL 문서를 열지 않음
       const doc = route.doc;
       if (!doc) return;
-      if (doc.kind === "equipment" && subjectKind !== "LAB") {
-        // 장비 표면은 lab 전용(L3) — personal 주제로의 딥링크는 열지 않고 URL만 보드로 보정.
+      if ((doc.kind === "equipment" || doc.kind === "lab-home") && subjectKind !== "LAB") {
+        // 장비·연구실 홈은 lab 전용(L3) — personal 주제로의 딥링크는 열지 않고 URL만 보드로 보정.
         replaceRoute({ subjectId, tabId: route.tabId, view, doc: null });
         return;
       }
@@ -177,11 +181,13 @@ export function SubjectWorkspace({
       const title =
         doc.kind === "equipment"
           ? "장비 관리"
-          : doc.kind === "subject"
-            ? subjectName
-            : doc.kind === "tab"
-              ? (list.find((t) => t.id === doc.id)?.name ?? "")
-              : "";
+          : doc.kind === "lab-home"
+            ? "연구실 홈"
+            : doc.kind === "subject"
+              ? subjectName
+              : doc.kind === "tab"
+                ? (list.find((t) => t.id === doc.id)?.name ?? "")
+                : "";
       setOpenDocs((prev) =>
         prev.some((d) => d.id === doc.id)
           ? prev
@@ -228,6 +234,8 @@ export function SubjectWorkspace({
 
   function renderDoc(d: OpenDoc) {
     switch (d.kind) {
+      case "lab-home":
+        return <LabDashboard key={d.id} subjectId={subjectId} subjectName={subjectName} />;
       case "equipment":
         return (
           <EquipmentView

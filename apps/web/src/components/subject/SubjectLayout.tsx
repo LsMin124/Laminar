@@ -5,22 +5,29 @@ import { useMe } from "../../lib/auth";
 import { dagKeys } from "../../lib/dagKeys";
 import type { Subject } from "../../lib/graphTypes";
 import { useJoinLab, usePromoteToLab } from "../../lib/labs";
-import { useCreateSubject, useDeleteSubject, useSubjects, useUpdateSubject } from "../../lib/subjects";
+import { LAB_HOME_DOC_ID } from "../../lib/route";
+import {
+  useCreateSubject,
+  useDeleteSubject,
+  useSubjects,
+  useUpdateSubject,
+} from "../../lib/subjects";
 import { pushRoute, replaceRoute, useRoute } from "../../lib/useRoute";
 import { useDialogs } from "../ui/DialogProvider";
-import { LabPanel } from "./LabPanel";
-import { SubjectWorkspace } from "./SubjectWorkspace";
 import { Identicon } from "./Identicon";
+import { SubjectWorkspace } from "./SubjectWorkspace";
 import "./SubjectLayout.css";
 
 /**
- * 좌측 얇은 아이콘 레일(주제 전환) + 활성 주제의 SubjectWorkspace + 주제 관리 모달.
- * 레일=빠른 전환만, 세부사항(목록·이름변경·생성·삭제)은 별도 모달 창에서.
- * 주제 전환 시 X-Laminar-Subject-Id 헤더 변경 + tabs/graph 캐시 제거 + key 리마운트.
- * 레일 하단(rail-future)=전역 도구: 장비 관리(플라스크, doctab 오픈) + 학습 정리(준비 중 ghost).
+ * 좌측 얇은 아이콘 레일 + 활성 주제의 SubjectWorkspace + 주제 관리 모달.
  *
+ * 레일 상단 rail-subjects = **개인 주제(personal)만** 빠른 전환. 연구실(LAB)은 주제 레일에서 분리 —
+ * 하단 rail-future의 **연구실 버튼 팝오버**에서 목록 진입·코드 가입·주제 승격을 한다. 연구실을 고르면
+ * 연구실 홈(lab-home 대시보드)이 메인에 뜬다(switchSubject가 kind를 보고 doc 분기). rail-future의 나머지
+ * 전역 도구: 장비(활성 LAB일 때), 학습 정리(준비 중). 주제 관리 모달(⋯)은 전체 백오피스(이름변경·삭제).
+ *
+ * 주제 전환 시 X-Laminar-Subject-Id 헤더 변경 + tabs/graph 캐시 제거 + key 리마운트.
  * DX-3: 활성 주제의 정본은 URL(/s/{subjectId}) — localStorage는 API 헤더용 follower.
- * URL이 없거나(루트 진입) 무효(남의/삭제된 주제)면 저장값→첫 주제 순으로 보정(replace).
  */
 export function SubjectLayout() {
   const subjects = useSubjects();
@@ -35,7 +42,7 @@ export function SubjectLayout() {
   const route = useRoute();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
-  const [labPanelFor, setLabPanelFor] = useState<Subject | null>(null);
+  const [labPopover, setLabPopover] = useState(false);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 SubjectWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
   // '장비 관리' 신호 — 증가시키면 SubjectWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
@@ -43,6 +50,8 @@ export function SubjectLayout() {
   const [hoverTip, setHoverTip] = useState<{ name: string; y: number } | null>(null);
 
   const list = subjects.data ?? [];
+  const personalList = list.filter((s) => s.kind === "PERSONAL");
+  const labList = list.filter((s) => s.kind === "LAB");
 
   function purgeSubjectCaches() {
     // tabs/tabGraph는 주제-무관 키(헤더 기반 API)라 주제가 바뀌면 비워야 한다.
@@ -50,9 +59,13 @@ export function SubjectLayout() {
     qc.removeQueries({ queryKey: dagKeys.tabGraphs });
   }
 
+  // LAB이면 홈(대시보드)을 진입 기본 doc으로, 개인이면 보드 직행(doc=null).
+  function entryDocFor(kind: Subject["kind"] | undefined) {
+    return kind === "LAB" ? { kind: "lab-home" as const, id: LAB_HOME_DOC_ID } : null;
+  }
+
   // URL(정본) → 활성 주제 보정·동기화. 헤더(setCurrentSubjectId)를 마운트 트리거(setActiveId)보다
   // 먼저 동기 호출해야 자식(useTabs)의 첫 fetch가 새 주제 헤더로 나간다(자식 effect가 부모보다 선행).
-  // 뒤로가기/딥링크로 주제가 바뀌는 경로에도 캐시 purge가 동작하도록 직전 값을 추적한다.
   const prevActiveRef = useRef<string | null>(null);
   useEffect(() => {
     if (!subjects.data) return;
@@ -69,19 +82,26 @@ export function SubjectLayout() {
     prevActiveRef.current = next;
     setActiveId(next);
     if (next && !urlValid) {
-      replaceRoute({ subjectId: next, tabId: null, view: "canvas", doc: null });
+      const nextKind = subjects.data.find((s) => s.id === next)?.kind;
+      replaceRoute({ subjectId: next, tabId: null, view: "canvas", doc: entryDocFor(nextKind) });
     } else if (!next && route.subjectId) {
       replaceRoute({ subjectId: null, tabId: null, view: "canvas", doc: null });
     }
   }, [subjects.data, route.subjectId]);
 
   function switchSubject(id: string) {
-    if (id === activeId) return;
+    const target = list.find((s) => s.id === id);
+    const doc = entryDocFor(target?.kind);
+    if (id === activeId) {
+      // 이미 활성: 연구실이면 홈으로 되돌림(작업공간·장비에서 홈 복귀), 개인이면 무시.
+      if (doc) pushRoute({ subjectId: id, tabId: route.tabId, view: route.view, doc });
+      return;
+    }
     setCurrentSubjectId(id); // 헤더 먼저(아래 마운트 트리거보다 선행)
     prevActiveRef.current = id;
     purgeSubjectCaches();
     setActiveId(id);
-    pushRoute({ subjectId: id, tabId: null, view: "canvas", doc: null });
+    pushRoute({ subjectId: id, tabId: null, view: "canvas", doc });
   }
 
   async function onCreateSubject() {
@@ -118,14 +138,13 @@ export function SubjectLayout() {
       });
       return;
     }
-    // 활성 주제가 사라졌으니 헤더/활성 초기화 → 목록 재조회 시 보정 effect가 첫 주제를 재선정(replace).
     setCurrentSubjectId(null);
     setActiveId(null);
     purgeSubjectCaches();
     await qc.invalidateQueries({ queryKey: dagKeys.subjects });
   }
 
-  /** LAB 승격 — OWNER 전용·비가역. /current 대상이라 비활성이면 먼저 전환(onRename 선례). */
+  /** LAB 승격 — OWNER 전용·비가역. 활성 개인 주제를 대상으로 팝오버에서 호출(/current 기반). */
   async function onPromote(s: Subject) {
     const ok = await dialogs.confirm({
       title: "LAB으로 승격",
@@ -137,13 +156,7 @@ export function SubjectLayout() {
     await promoteToLab.mutateAsync();
   }
 
-  /** LAB 관리 패널 — /current 기반 API라 해당 lab으로 먼저 전환. */
-  function onOpenLabPanel(s: Subject) {
-    if (s.id !== activeId) switchSubject(s.id);
-    setLabPanelFor(s);
-  }
-
-  /** 초대코드로 LAB 가입 신청 — 승인 후 멤버가 되면 주제 목록에 나타난다. */
+  /** 초대코드로 LAB 가입 신청 — 승인 후 멤버가 되면 연구실 목록에 나타난다. */
   async function onJoinByCode() {
     const code = await dialogs.prompt({ title: "LAB 가입", placeholder: "초대코드 입력 (예: ABCD2345)" });
     if (!code || !code.trim()) return;
@@ -151,7 +164,7 @@ export function SubjectLayout() {
       const outcome = await joinLab.mutateAsync(code.trim());
       await dialogs.alert({
         title: "가입 신청 완료",
-        message: `"${outcome.labName}"에 가입을 신청했습니다. 관리자 승인 후 주제 목록에 나타납니다.`,
+        message: `"${outcome.labName}"에 가입을 신청했습니다. 관리자 승인 후 연구실 목록에 나타납니다.`,
       });
     } catch (e) {
       // lab 가입 오류는 서버가 한국어 사용자 문구를 envelope.message로 보낸다(코드 매핑 대상 아님).
@@ -165,14 +178,18 @@ export function SubjectLayout() {
 
   const activeValid = !!activeId && list.some((s) => s.id === activeId);
   const activeSubject = list.find((s) => s.id === activeId) ?? null;
+  const canPromoteActive =
+    activeSubject?.kind === "PERSONAL" && activeSubject.ownerUserId === me.data?.userId;
 
   return (
     <div className="lay">
       <aside className="rail">
-        <div className="rail-brand" title="LAMINAR">L</div>
+        <div className="rail-brand" title="LAMINAR">
+          L
+        </div>
 
         <div className="rail-subjects">
-          {list.map((s) => (
+          {personalList.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -202,12 +219,101 @@ export function SubjectLayout() {
           <button type="button" className="rail-btn" onClick={onCreateSubject} title="새 주제">
             ＋
           </button>
-          <button type="button" className="rail-btn" onClick={() => setManageOpen(true)} title="주제 관리">
+          <button
+            type="button"
+            className="rail-btn"
+            onClick={() => setManageOpen(true)}
+            title="주제 관리"
+          >
             ⋯
           </button>
         </div>
 
         <div className="rail-future">
+          {/* 연구실 — 주제 레일과 분리된 별도 진입(팝오버: 목록·코드 가입·주제 승격). */}
+          <div className="rail-lab">
+            <button
+              type="button"
+              className={`rail-tile tool${labPopover ? " active" : ""}`}
+              onClick={() => setLabPopover((v) => !v)}
+              onMouseEnter={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setHoverTip({ name: "연구실", y: r.top + r.height / 2 });
+              }}
+              onMouseLeave={() => setHoverTip(null)}
+              aria-label="연구실"
+              aria-haspopup="menu"
+              aria-expanded={labPopover}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="miter"
+                strokeLinecap="square"
+                aria-hidden="true"
+              >
+                <path d="M4 21 V10 L12 4 L20 10 V21" />
+                <path d="M3 21 H21" />
+                <path d="M10 21 V15 H14 V21" />
+              </svg>
+            </button>
+            {labPopover && (
+              <>
+                <div className="rail-pop-scrim" onClick={() => setLabPopover(false)} />
+                <div className="rail-popover" role="menu" aria-label="연구실">
+                  <div className="rail-pop-head">내 연구실</div>
+                  <ul className="rail-pop-list">
+                    {labList.map((lab) => (
+                      <li key={lab.id}>
+                        <button
+                          type="button"
+                          className={`rail-pop-item${lab.id === activeId ? " active" : ""}`}
+                          onClick={() => {
+                            switchSubject(lab.id);
+                            setLabPopover(false);
+                          }}
+                        >
+                          <Identicon seed={lab.id} size={18} />
+                          <span className="rail-pop-item-name">{lab.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                    {labList.length === 0 && (
+                      <li className="rail-pop-empty">소속된 연구실이 없습니다</li>
+                    )}
+                  </ul>
+                  <div className="rail-pop-sep" />
+                  <button
+                    type="button"
+                    className="rail-pop-action"
+                    onClick={() => {
+                      setLabPopover(false);
+                      void onJoinByCode();
+                    }}
+                  >
+                    ⌗ 코드로 가입
+                  </button>
+                  {canPromoteActive && activeSubject && (
+                    <button
+                      type="button"
+                      className="rail-pop-action"
+                      onClick={() => {
+                        setLabPopover(false);
+                        void onPromote(activeSubject);
+                      }}
+                    >
+                      {`↑ '${activeSubject.name}' 승격`}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* 장비 관리(공용 자원) — LAB 전용 표면(L3 재스코프): 활성 주제가 lab일 때만 노출. */}
           {activeValid && activeSubject?.kind === "LAB" && (
             <button
@@ -277,7 +383,12 @@ export function SubjectLayout() {
           >
             <header className="subj-head">
               <strong>주제 관리</strong>
-              <button type="button" className="subj-x" onClick={() => setManageOpen(false)} aria-label="닫기">
+              <button
+                type="button"
+                className="subj-x"
+                onClick={() => setManageOpen(false)}
+                aria-label="닫기"
+              >
                 ✕
               </button>
             </header>
@@ -295,17 +406,6 @@ export function SubjectLayout() {
                     {s.name}
                     {s.kind === "LAB" && <span className="lab-badge">LAB</span>}
                   </button>
-                  {s.kind === "LAB" ? (
-                    <button type="button" className="subj-act" onClick={() => onOpenLabPanel(s)}>
-                      LAB 관리
-                    </button>
-                  ) : (
-                    s.ownerUserId === me.data?.userId && (
-                      <button type="button" className="subj-act" onClick={() => void onPromote(s)}>
-                        LAB 승격
-                      </button>
-                    )
-                  )}
                   <button type="button" className="subj-act" onClick={() => onRename(s)}>
                     이름변경
                   </button>
@@ -321,16 +421,9 @@ export function SubjectLayout() {
               <button type="button" className="subj-create" onClick={onCreateSubject}>
                 ＋ 새 주제
               </button>
-              <button type="button" className="subj-create" onClick={() => void onJoinByCode()}>
-                ⌗ 코드로 LAB 가입
-              </button>
             </footer>
           </div>
         </div>
-      )}
-
-      {labPanelFor && (
-        <LabPanel subject={labPanelFor} onClose={() => setLabPanelFor(null)} />
       )}
     </div>
   );

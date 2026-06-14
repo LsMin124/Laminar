@@ -112,6 +112,100 @@
   background: var(--accent-bg);
 }
 
+/* ── 연구실 팝오버 — 주제 레일과 분리된 별도 진입(목록·코드 가입·승격) ── */
+.rail-lab {
+  position: relative;
+}
+.rail-pop-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+}
+.rail-popover {
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 0;
+  z-index: 60;
+  width: 210px;
+  background: #161210;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+  padding: 6px;
+}
+.rail-pop-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a7d73;
+  padding: 4px 8px 6px;
+}
+.rail-pop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.rail-pop-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #ccc;
+  cursor: pointer;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.rail-pop-item:hover {
+  color: #fff;
+  background: #221c18;
+}
+.rail-pop-item.active {
+  border-color: var(--accent-border);
+  color: #fff;
+}
+.rail-pop-item svg {
+  flex: none;
+}
+.rail-pop-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-pop-empty {
+  color: #6a6a6a;
+  font-size: 12px;
+  padding: 8px;
+}
+.rail-pop-sep {
+  height: 1px;
+  background: #2a2018;
+  margin: 6px 4px;
+}
+.rail-pop-action {
+  width: 100%;
+  display: block;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #b8a99e;
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 7px 8px;
+  border-radius: 3px;
+}
+.rail-pop-action:hover {
+  color: var(--accent-bright);
+  background: #221c18;
+}
+
 /* 레일 아이콘 즉시 툴팁 — fixed로 레일 overflow 클리핑 회피 */
 .rail-tip {
   position: fixed;

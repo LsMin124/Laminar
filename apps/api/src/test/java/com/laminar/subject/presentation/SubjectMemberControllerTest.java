@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -86,7 +85,7 @@ class SubjectMemberControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"role\":\"MEMBER\"}"))
         .andExpect(status().isForbidden())
-        .andExpect(content().string(""));
+        .andExpect(jsonPath("$.message").value("역할 변경은 OWNER만 가능합니다"));
 
     verifyNoInteractions(service);
   }

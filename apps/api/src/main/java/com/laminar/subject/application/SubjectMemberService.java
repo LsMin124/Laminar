@@ -71,6 +71,10 @@ public class SubjectMemberService {
   @Transactional
   public SubjectMemberEntity updateRole(UUID userId, SubjectRole newRole, UUID actorId) {
     SubjectContext ctx = SubjectContextHolder.require();
+    // Q3: 인가 정본은 서비스 계층 — 컨트롤러 게이트를 우회하는 경로에서도 OWNER 전용을 강제(§1.3).
+    if (!ctx.isOwner()) {
+      throw new ForbiddenException("역할 변경은 OWNER만 가능합니다");
+    }
     SubjectMemberId id = new SubjectMemberId(ctx.subjectId(), userId);
     SubjectMemberEntity member =
         memberRepo.findById(id).orElseThrow(() -> new NotFoundException("member not found"));

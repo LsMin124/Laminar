@@ -3,6 +3,7 @@ package com.laminar.subject.presentation;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.context.SubjectRole;
+import com.laminar.error.ForbiddenException;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.subject.application.InvitationService;
 import jakarta.validation.Valid;
@@ -44,12 +45,12 @@ public class InvitationController {
       throw new IllegalStateException("subject context required");
     }
     if (!ctx.isAdmin()) {
-      return ResponseEntity.status(403).build();
+      throw new ForbiddenException("초대는 관리자만 가능합니다");
     }
     // 부여 역할 차등(§1.3): OWNER 초대 금지, ADMIN 역할 부여는 OWNER만.
     if (request.role() == SubjectRole.OWNER
         || (request.role() == SubjectRole.ADMIN && !ctx.isOwner())) {
-      return ResponseEntity.status(403).build();
+      throw new ForbiddenException("해당 역할을 부여할 권한이 없습니다");
     }
     InvitationService.InvitationIssue issue =
         invitationService.invite(subjectId, request.email(), request.role(), principal.userId());
@@ -60,6 +61,10 @@ public class InvitationController {
 
   @GetMapping("/api/subjects/current/invitations")
   public ResponseEntity<List<PendingInvitationResponse>> listPending() {
+    // Q3: 대기 초대 목록은 초대 대상 이메일·역할을 노출 — invite/revoke와 동일하게 ADMIN+ 전용.
+    if (!SubjectContextHolder.require().isAdmin()) {
+      throw new ForbiddenException("초대 목록은 관리자만 조회할 수 있습니다");
+    }
     return ResponseEntity.ok(
         invitationService.listPendingForCurrentSubject().stream()
             .map(
@@ -77,7 +82,7 @@ public class InvitationController {
   @DeleteMapping("/api/subjects/current/invitations/{invitationId}")
   public ResponseEntity<Void> revoke(@PathVariable UUID invitationId) {
     if (!SubjectContextHolder.require().isAdmin()) {
-      return ResponseEntity.status(403).build();
+      throw new ForbiddenException("초대 회수는 관리자만 가능합니다");
     }
     invitationService.revoke(invitationId);
     return ResponseEntity.noContent().build();

@@ -2,6 +2,7 @@ package com.laminar.subject.presentation;
 
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.context.SubjectRole;
+import com.laminar.error.ForbiddenException;
 import com.laminar.security.LaminarPrincipal;
 import com.laminar.subject.application.SubjectMemberService;
 import com.laminar.subject.domain.SubjectMemberEntity;
@@ -49,9 +50,9 @@ public class SubjectMemberController {
       Authentication authentication,
       @PathVariable UUID userId,
       @Valid @RequestBody UpdateRoleRequest request) {
-    // 역할 변경(ADMIN 임명/해임 포함)은 OWNER 전용 — §1.3
+    // 역할 변경(ADMIN 임명/해임 포함)은 OWNER 전용 — §1.3 (서비스에도 정본 가드, 여기는 빠른 차단)
     if (!SubjectContextHolder.require().isOwner()) {
-      return ResponseEntity.status(403).build();
+      throw new ForbiddenException("역할 변경은 OWNER만 가능합니다");
     }
     LaminarPrincipal principal = requirePrincipal(authentication);
     SubjectMemberEntity updated =
@@ -63,7 +64,7 @@ public class SubjectMemberController {
   public ResponseEntity<Void> remove(Authentication authentication, @PathVariable UUID userId) {
     // 제거는 ADMIN+ — ADMIN의 대상 제한(MEMBER만)은 서비스가 가드 (§1.3)
     if (!SubjectContextHolder.require().isAdmin()) {
-      return ResponseEntity.status(403).build();
+      throw new ForbiddenException("멤버 제거는 관리자만 가능합니다");
     }
     LaminarPrincipal principal = requirePrincipal(authentication);
     memberService.removeMember(userId, principal.userId());

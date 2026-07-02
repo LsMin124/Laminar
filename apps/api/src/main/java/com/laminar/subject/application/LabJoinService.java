@@ -80,7 +80,10 @@ public class LabJoinService {
         .ifPresent(
             existing -> {
               existing.setRevokedAt(OffsetDateTime.now());
-              codeRepo.save(existing);
+              // Q2 보강: 새 코드 INSERT 전에 revoke를 flush한다. Hibernate는 INSERT를 UPDATE보다 먼저
+              // 실행하므로, 그냥 save하면 순간적으로 활성 코드가 2개가 되어 부분 유니크(uq_lab_invite_codes_active)를
+              // 위반한다(V32). saveAndFlush로 UPDATE를 먼저 DB에 반영해 충돌을 없앤다.
+              codeRepo.saveAndFlush(existing);
             });
     LabInviteCodeEntity fresh = new LabInviteCodeEntity();
     fresh.setSubjectId(ctx.subjectId());

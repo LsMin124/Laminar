@@ -44,7 +44,8 @@ export function SubjectLayout() {
   const [manageOpen, setManageOpen] = useState(false);
   // 연구실 팝오버 — 위치(버튼 우하단 rect)를 담아 fixed로 띄운다. null=닫힘.
   // .rail이 overflow-y:auto라 가로도 clip → absolute 팝오버는 레일 밖에서 잘린다(툴팁처럼 fixed로 회피).
-  const [labPop, setLabPop] = useState<{ x: number; y: number } | null>(null);
+  // vh는 클릭 시점의 뷰포트 높이 — 렌더 시점 window.innerHeight를 읽으면 모바일 키보드 등으로 위치가 어긋난다(Q9).
+  const [labPop, setLabPop] = useState<{ x: number; y: number; vh: number } | null>(null);
   // '주제 본문' 신호 — 증가시키면 활성 주제의 SubjectWorkspace가 본문 문서를 연다(레일 ▤ 버튼).
   const [bodyNonce, setBodyNonce] = useState(0);
   // '장비 관리' 신호 — 증가시키면 SubjectWorkspace가 장비 doctab 창을 연다(레일 플라스크 버튼).
@@ -54,6 +55,19 @@ export function SubjectLayout() {
   const list = subjects.data ?? [];
   const personalList = list.filter((s) => s.kind === "PERSONAL");
   const labList = list.filter((s) => s.kind === "LAB");
+
+  // 팝오버·관리 모달 열림 중 ESC로 닫기(키보드 접근성, Q9).
+  useEffect(() => {
+    if (!labPop && !manageOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLabPop(null);
+        setManageOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [labPop, manageOpen]);
 
   function purgeSubjectCaches() {
     // tabs는 이제 subjectId 스코프라 교차오염은 원천 차단되지만(Q6), 구 주제 캐시 메모리 정리를
@@ -115,16 +129,14 @@ export function SubjectLayout() {
   }
 
   async function onRename(s: Subject) {
-    // PATCH /current는 활성 주제를 대상으로 하므로, 비활성이면 먼저 전환한다.
-    if (s.id !== activeId) switchSubject(s.id);
     const name = await dialogs.prompt({ title: "주제 이름 변경", defaultValue: s.name });
     if (!name || !name.trim() || name.trim() === s.name) return;
+    // PATCH /current는 활성 주제 대상 — 취소 시 엉뚱한 전환을 막으려 승인 후 전환한다(Q9).
+    if (s.id !== activeId) switchSubject(s.id);
     await updateSubject.mutateAsync({ id: s.id, name: name.trim() });
   }
 
   async function onDelete(s: Subject) {
-    // DELETE /current는 활성 주제를 대상으로 하므로, 비활성이면 먼저 전환한다.
-    if (s.id !== activeId) switchSubject(s.id);
     const ok = await dialogs.confirm({
       title: "주제 삭제",
       message: `"${s.name}"와(과) 그 안의 모든 탭·카드·관계가 영구 삭제됩니다. 되돌릴 수 없습니다. 계속할까요?`,
@@ -132,6 +144,8 @@ export function SubjectLayout() {
       danger: true,
     });
     if (!ok) return;
+    // DELETE /current는 활성 주제 대상 — 취소 시 엉뚱한 전환을 막으려 승인 후 전환한다(Q9).
+    if (s.id !== activeId) switchSubject(s.id);
     try {
       await deleteSubject.mutateAsync();
     } catch {
@@ -156,7 +170,14 @@ export function SubjectLayout() {
     });
     if (!ok) return;
     if (s.id !== activeId) switchSubject(s.id);
-    await promoteToLab.mutateAsync();
+    try {
+      await promoteToLab.mutateAsync();
+    } catch {
+      await dialogs.alert({
+        title: "승격 실패",
+        message: "LAB으로 승격하지 못했습니다. 소유자만 승격할 수 있습니다.",
+      });
+    }
   }
 
   /** 초대코드로 LAB 가입 신청 — 승인 후 멤버가 되면 연구실 목록에 나타난다. */
@@ -244,7 +265,7 @@ export function SubjectLayout() {
                   return;
                 }
                 const r = e.currentTarget.getBoundingClientRect();
-                setLabPop({ x: r.right, y: r.bottom });
+                setLabPop({ x: r.right, y: r.bottom, vh: window.innerHeight });
               }}
               onMouseEnter={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
@@ -278,7 +299,7 @@ export function SubjectLayout() {
                   className="rail-popover"
                   role="menu"
                   aria-label="연구실"
-                  style={{ left: labPop.x + 10, bottom: window.innerHeight - labPop.y }}
+                  style={{ left: labPop.x + 10, bottom: labPop.vh - labPop.y }}
                 >
                   <div className="rail-pop-head">내 연구실</div>
                   <ul className="rail-pop-list">
@@ -286,6 +307,7 @@ export function SubjectLayout() {
                       <li key={lab.id}>
                         <button
                           type="button"
+                          role="menuitem"
                           className={`rail-pop-item${lab.id === activeId ? " active" : ""}`}
                           onClick={() => {
                             switchSubject(lab.id);
@@ -304,6 +326,7 @@ export function SubjectLayout() {
                   <div className="rail-pop-sep" />
                   <button
                     type="button"
+                    role="menuitem"
                     className="rail-pop-action"
                     onClick={() => {
                       setLabPop(null);
@@ -315,6 +338,7 @@ export function SubjectLayout() {
                   {canPromoteActive && activeSubject && (
                     <button
                       type="button"
+                      role="menuitem"
                       className="rail-pop-action"
                       onClick={() => {
                         setLabPop(null);
@@ -393,6 +417,7 @@ export function SubjectLayout() {
           <div
             className="subj-modal"
             role="dialog"
+            aria-modal="true"
             aria-label="주제 관리"
             onClick={(e) => e.stopPropagation()}
           >

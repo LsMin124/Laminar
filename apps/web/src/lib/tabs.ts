@@ -1,14 +1,19 @@
 /** 탭(보드) 데이터 훅 — lib/dag.ts 리소스별 분리 (DX-2). */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "./api";
+import { api, getCurrentSubjectId } from "./api";
 import { dagKeys } from "./dagKeys";
 import type { Tab } from "./graphTypes";
 import { optimisticUpdate, rollbackTo } from "./optimistic";
 import { slugify } from "./slug";
 
+// tabs 키는 subjectId 스코프(Q6) — 헤더와 동일 소스로 읽어 키와 응답 주제를 일치시킨다.
+function tabsKey() {
+  return dagKeys.tabs(getCurrentSubjectId() ?? "");
+}
+
 export function useTabs() {
   return useQuery({
-    queryKey: dagKeys.tabs,
+    queryKey: tabsKey(),
     queryFn: () => api.get<Tab[]>("/api/tabs"),
   });
 }
@@ -18,7 +23,7 @@ export function useCreateTab() {
   return useMutation({
     mutationFn: (name: string) =>
       api.post<Tab>("/api/tabs", { name, slug: slugify(name) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: dagKeys.tabs }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tabsKey() }),
   });
 }
 
@@ -29,7 +34,7 @@ export function useUpdateTab() {
     mutationFn: ({ tabId, name, bodyMd }: { tabId: string; name?: string; bodyMd?: string | null }) =>
       api.patch<Tab>(`/api/tabs/${tabId}`, { name, bodyMd }),
     onMutate: ({ tabId, name, bodyMd }) =>
-      optimisticUpdate<Tab[]>(qc, dagKeys.tabs, (list) =>
+      optimisticUpdate<Tab[]>(qc, tabsKey(), (list) =>
         list.map((t) =>
           t.id === tabId
             ? {
@@ -40,7 +45,7 @@ export function useUpdateTab() {
             : t,
         ),
       ),
-    onError: rollbackTo<Tab[]>(qc, dagKeys.tabs),
-    onSettled: () => qc.invalidateQueries({ queryKey: dagKeys.tabs }),
+    onError: rollbackTo<Tab[]>(qc, tabsKey()),
+    onSettled: () => qc.invalidateQueries({ queryKey: tabsKey() }),
   });
 }

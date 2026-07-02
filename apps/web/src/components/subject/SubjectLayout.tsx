@@ -56,8 +56,9 @@ export function SubjectLayout() {
   const labList = list.filter((s) => s.kind === "LAB");
 
   function purgeSubjectCaches() {
-    // tabs/tabGraph는 주제-무관 키(헤더 기반 API)라 주제가 바뀌면 비워야 한다.
-    qc.removeQueries({ queryKey: dagKeys.tabs });
+    // tabs는 이제 subjectId 스코프라 교차오염은 원천 차단되지만(Q6), 구 주제 캐시 메모리 정리를
+    // 위해 prefix ["tabs"]로 전 주제 슬롯을 제거한다. tabGraph는 tabId(전역 유일)라 그대로 prefix 제거.
+    qc.removeQueries({ queryKey: ["tabs"] });
     qc.removeQueries({ queryKey: dagKeys.tabGraphs });
   }
 

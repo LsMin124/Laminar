@@ -245,7 +245,18 @@ export function EquipmentView({ subjectId, onClose }: { subjectId: string; onClo
                       <button
                         type="button"
                         className="eq-act"
-                        onClick={() => toggleActive.mutate({ id: e.id, active: !e.active })}
+                        onClick={() =>
+                          toggleActive.mutate(
+                            { id: e.id, active: !e.active },
+                            {
+                              onError: () =>
+                                void dialogs.alert({
+                                  title: "상태 변경 실패",
+                                  message: "장비 활성 상태를 변경하지 못했습니다.",
+                                }),
+                            },
+                          )
+                        }
                       >
                         {e.active ? "비활성화" : "활성화"}
                       </button>

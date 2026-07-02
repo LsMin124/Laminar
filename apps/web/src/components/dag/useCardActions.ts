@@ -137,14 +137,24 @@ export function useCardActions({
     startDate: string | null;
     categoryId: string | null;
   }) {
-    const card = await createCard.mutateAsync({
-      title: input.title,
-      startDate: input.startDate,
-    });
-    if (input.categoryId) {
-      setCardCategory.mutate({ cardId: card.id, categoryId: input.categoryId });
+    try {
+      const card = await createCard.mutateAsync({
+        title: input.title,
+        startDate: input.startDate,
+      });
+      if (input.categoryId) {
+        try {
+          await setCardCategory.mutateAsync({ cardId: card.id, categoryId: input.categoryId });
+        } catch (err) {
+          // 카드는 생성됐으나 분류 지정만 실패 — 알리되 다이얼로그는 닫는다.
+          await reportError(err);
+        }
+      }
+      closeNewCard();
+    } catch (err) {
+      // 생성 실패 — 다이얼로그는 열린 채로 두고 사유를 알린다(재시도 가능).
+      await reportError(err);
     }
-    closeNewCard();
   }
 
   return {

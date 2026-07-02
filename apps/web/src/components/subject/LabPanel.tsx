@@ -99,7 +99,16 @@ export function LabPanel({ subject, onClose }: { subject: Subject; onClose: () =
                     className="lab-role-select"
                     value={m.role}
                     onChange={(e) =>
-                      updateRole.mutate({ userId: m.userId, role: e.target.value as LabRole })
+                      updateRole.mutate(
+                        { userId: m.userId, role: e.target.value as LabRole },
+                        {
+                          onError: () =>
+                            void dialogs.alert({
+                              title: "역할 변경 실패",
+                              message: "역할을 변경하지 못했습니다. 잠시 후 다시 시도하세요.",
+                            }),
+                        },
+                      )
                     }
                     aria-label="역할 변경"
                   >

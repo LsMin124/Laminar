@@ -32,6 +32,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
       List.of(
           new Rule("POST", "/api/auth/login", 10),
           new Rule("POST", "/api/auth/signup", 5),
+          // 비밀번호 재설정 요청 — 이메일 폭탄·다중 유효 토큰 남용 억제(전체리뷰 5차 Q1)
+          new Rule("POST", "/api/auth/password-reset/request", 5),
           new Rule("POST", "/api/attachments/upload-url", 30),
           new Rule("POST", "/api/subjects/current/invitations", 20),
           // LAB 초대코드는 사람이 입력하는 8자리 — 무차별 대입 억제(LAB재설계 §2)

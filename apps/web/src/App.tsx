@@ -30,6 +30,19 @@ function Shell() {
 
   if (me.isLoading) return <p className="loading">불러오는 중...</p>;
 
+  // Q5: 401만 비로그인(me.data === null)으로 확정 — 일시 500·네트워크 오류는 isError로 떠
+  // 강제 로그아웃 대신 재시도를 안내한다(retry:false라 자동 재시도는 없음).
+  if (me.isError) {
+    return (
+      <div className="loading" role="alert">
+        <p>일시적인 오류로 로그인 상태를 확인하지 못했습니다.</p>
+        <button type="button" onClick={() => void me.refetch()}>
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
   if (!me.data) {
     if (authMode === "signup") {
       return <SignupPage onSwitchToLogin={() => setAuthMode("login")} />;

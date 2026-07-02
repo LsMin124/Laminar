@@ -3,7 +3,7 @@
  * /api/auth/me·login·signup만 다룬다. 워크스페이스/카드 등 데이터는 리소스별 lib 모듈(subjects·tabs·graph·cards·groups·categories).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import { markAuthenticated } from "./silentRefresh";
 
 export interface AuthResponse {
@@ -37,8 +37,12 @@ export function useMe() {
         // me는 토큰 발급 시점이 아니라 TTL 전체 재무장이 과대평가일 수 있음 — 빗나가면 반응적 401 경로가 보정.
         markAuthenticated(me.accessTtlSeconds);
         return me;
-      } catch {
-        return null;
+      } catch (err) {
+        // 401(미인증)만 "비로그인"으로 확정 — 일시 500·네트워크 오류는 전파해 강제 로그아웃을 막는다(Q5).
+        if (err instanceof ApiError && err.status === 401) {
+          return null;
+        }
+        throw err;
       }
     },
     staleTime: 60_000,

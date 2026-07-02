@@ -99,6 +99,8 @@ export function LabDashboard({
           <h2 className="lab-dash-card-h">공지</h2>
           {!firstCalendarId ? (
             <p className="lab-dash-empty">공지 캘린더가 없습니다. 장비 → 공지에서 만들 수 있습니다.</p>
+          ) : announcements.isError ? (
+            <p className="lab-dash-empty">공지를 불러오지 못했습니다.</p>
           ) : recent.length === 0 ? (
             <p className="lab-dash-empty">최근 공지가 없습니다.</p>
           ) : (
@@ -125,7 +127,8 @@ export function LabDashboard({
               </li>
             ))}
             {members.isLoading && <li className="lab-dash-empty">불러오는 중...</li>}
-            {!members.isLoading && (members.data ?? []).length === 0 && (
+            {members.isError && <li className="lab-dash-empty">멤버 정보를 불러오지 못했습니다.</li>}
+            {!members.isLoading && !members.isError && (members.data ?? []).length === 0 && (
               <li className="lab-dash-empty">멤버 없음</li>
             )}
           </ul>
@@ -135,6 +138,8 @@ export function LabDashboard({
           <h2 className="lab-dash-card-h">현행 과제</h2>
           {pending.isLoading ? (
             <p className="lab-dash-empty">불러오는 중...</p>
+          ) : pending.isError ? (
+            <p className="lab-dash-empty">과제를 불러오지 못했습니다.</p>
           ) : (pending.data ?? []).length === 0 ? (
             <p className="lab-dash-empty">진행 중인 과제가 없습니다.</p>
           ) : (
@@ -159,10 +164,9 @@ export function LabDashboard({
   );
 }
 
-/** ISO datetime → "M/D" 짧은 날짜(대시보드 공지 요약용). */
+/** 공지 startAt(ISO datetime) → "M/D" — 날짜 부분만 split(로컬 시간 메서드는 UTC 자정 근처 하루 어긋남, fmtCardDate와 일관). */
 function fmtShortDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  return fmtCardDate(iso.slice(0, 10));
 }
 
 /** 카드 startDate("YYYY-MM-DD" date)는 split 파싱 — new Date는 UTC 자정으로 해석돼 로컬에서 하루 어긋날 수 있다. */

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -173,19 +174,23 @@ public class CardService {
     if (orderedCardIds == null || orderedCardIds.isEmpty()) {
       return List.of();
     }
+    // Q10(리뷰 5차): 카드당 findOwnedActive+save = 2N 쿼리이던 것을 1 SELECT + 배치 UPDATE로.
+    // findAllById에도 personalFirstFilter가 걸리지만(SubjectFilterAspect), PK 우회 방어로 ownsPersonal 재검증.
+    Map<UUID, CardEntity> byId =
+        cardRepo.findAllById(orderedCardIds).stream()
+            .filter(c -> c.getDeletedAt() == null)
+            .filter(c -> ctx.ownsPersonal(c.getSubjectId(), c.getUserId()))
+            .filter(c -> tabId == null || tabId.equals(c.getTabId()))
+            .collect(Collectors.toMap(CardEntity::getId, c -> c));
     List<CardEntity> result = new java.util.ArrayList<>(orderedCardIds.size());
     for (int i = 0; i < orderedCardIds.size(); i++) {
-      UUID cardId = orderedCardIds.get(i);
-      int newPriority = (i + 1) * PRIORITY_STEP;
-      cardRepo
-          .findOwnedActive(cardId, ctx)
-          .filter(c -> tabId == null || tabId.equals(c.getTabId()))
-          .ifPresent(
-              c -> {
-                c.setPriority(newPriority);
-                result.add(cardRepo.save(c));
-              });
+      CardEntity c = byId.get(orderedCardIds.get(i));
+      if (c != null) {
+        c.setPriority((i + 1) * PRIORITY_STEP);
+        result.add(c);
+      }
     }
+    cardRepo.saveAll(result);
     return result;
   }
 

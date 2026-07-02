@@ -1,6 +1,7 @@
 package com.laminar.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.laminar.audit.application.AuditLogService;
 import com.laminar.audit.domain.AuditLogEntity;
@@ -8,6 +9,7 @@ import com.laminar.context.HibernateFilterActivator;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.context.SubjectRole;
+import com.laminar.error.ForbiddenException;
 import com.laminar.subject.domain.SubjectEntity;
 import com.laminar.subject.domain.SubjectMemberEntity;
 import com.laminar.subject.domain.SubjectMemberId;
@@ -90,5 +92,13 @@ class AuditLogServiceIT extends IsolationIntegrationBase {
     auditService.append(null, "a.3", null, null, "third", null);
 
     assertThat(auditService.listRecent(10)).extracting(AuditLogEntity::getAction).startsWith("a.3");
+  }
+
+  @Test
+  @Transactional
+  void list_recent_denied_for_member() {
+    // Q4: 감사 로그 payload는 관리 행위 사유를 담아 ADMIN+ 전용 — 컨텍스트 역할이 MEMBER면 차단.
+    SubjectContextHolder.set(SubjectContext.personal(subjectId, userA, SubjectRole.MEMBER));
+    assertThatThrownBy(() -> auditService.listRecent(10)).isInstanceOf(ForbiddenException.class);
   }
 }

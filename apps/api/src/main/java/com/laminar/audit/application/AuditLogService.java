@@ -4,6 +4,8 @@ import com.laminar.audit.domain.AuditLogEntity;
 import com.laminar.audit.repository.AuditLogRepository;
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.ForbiddenException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -64,22 +66,35 @@ public class AuditLogService {
 
   @Transactional(readOnly = true)
   public List<AuditLogEntity> listRecent(int limit) {
-    SubjectContext ctx = SubjectContextHolder.require();
-    if (ctx.subjectId() == null) {
-      throw new IllegalStateException("subject scope required for audit list");
-    }
+    SubjectContext ctx = requireAuditReader();
     return auditRepo.findBySubjectIdOrderByOccurredAtDesc(
         ctx.subjectId(), PageRequest.of(0, Math.min(limit, 500)));
   }
 
   @Transactional(readOnly = true)
   public List<AuditLogEntity> listInRange(OffsetDateTime from, OffsetDateTime to) {
+    SubjectContext ctx = requireAuditReader();
+    // Q4: 무한정 범위로 전 기간을 훑는 것을 차단 — 보존기간(90일)과 동일 상한.
+    if (Duration.between(from, to).toDays() > RETENTION_DAYS) {
+      throw new IllegalArgumentException("감사 로그 조회 기간은 최대 " + RETENTION_DAYS + "일입니다");
+    }
+    return auditRepo.findBySubjectIdAndOccurredAtBetweenOrderByOccurredAtDesc(
+        ctx.subjectId(), from, to);
+  }
+
+  /**
+   * 감사 로그 조회 가드 (Q4) — subject scope + ADMIN+ 강제. 감사 로그 payload는 관리 행위 사유(예:
+   * admin.card.reveal_body의 reason)를 담아 LAB MEMBER에게 노출되면 안 된다. personal 주제는 소유자(OWNER)만 자기 로그를 본다.
+   */
+  private SubjectContext requireAuditReader() {
     SubjectContext ctx = SubjectContextHolder.require();
     if (ctx.subjectId() == null) {
       throw new IllegalStateException("subject scope required for audit list");
     }
-    return auditRepo.findBySubjectIdAndOccurredAtBetweenOrderByOccurredAtDesc(
-        ctx.subjectId(), from, to);
+    if (!ctx.isAdmin()) {
+      throw new ForbiddenException("감사 로그는 관리자만 조회할 수 있습니다");
+    }
+    return ctx;
   }
 
   /** Cleanup cron — 90일 이전 hard delete (Spec §11.9.1). */

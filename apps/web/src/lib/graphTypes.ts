@@ -22,6 +22,8 @@ export interface Tab {
   id: Uuid;
   name: string;
   slug: string;
+  /** 탭 종류 — DAG 캔버스(카드=시간축) vs 화이트보드(자유 배치 노드). 서버 TabKind 거울. */
+  kind: "DAG" | "WHITEBOARD";
   priority: number;
   /** 탭(보드)별 메모/개요 — 독립 마크다운 문서. */
   bodyMd: string | null;

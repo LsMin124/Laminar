@@ -21,8 +21,8 @@ export function useTabs() {
 export function useCreateTab() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) =>
-      api.post<Tab>("/api/tabs", { name, slug: slugify(name) }),
+    mutationFn: ({ name, kind }: { name: string; kind?: "DAG" | "WHITEBOARD" }) =>
+      api.post<Tab>("/api/tabs", { name, slug: slugify(name), kind }),
     onSuccess: () => qc.invalidateQueries({ queryKey: tabsKey() }),
   });
 }

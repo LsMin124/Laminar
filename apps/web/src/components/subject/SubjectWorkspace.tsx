@@ -20,6 +20,9 @@ const EquipmentView = lazy(() =>
 const LabDashboard = lazy(() =>
   import("./LabDashboard").then((m) => ({ default: m.LabDashboard })),
 );
+const WhiteboardCanvas = lazy(() =>
+  import("../whiteboard/WhiteboardCanvas").then((m) => ({ default: m.WhiteboardCanvas })),
+);
 
 // 열린 문서 — 종류(DocKind)·sentinel은 lib/route와 공유(URL 복원이 같은 어휘를 쓴다).
 interface OpenDoc {
@@ -74,6 +77,7 @@ export function SubjectWorkspace({
   const active = routeTabValid ? route.tabId : (list[0]?.id ?? null);
   const view = route.view;
   const activeDoc = route.doc?.id ?? null;
+  const activeTab = list.find((t) => t.id === active) ?? null;
 
   // URL의 탭이 목록에 없으면(삭제·타 주제 딥링크) 첫 탭으로 보정 — replace(히스토리 오염 방지).
   // 주제 전환 과도 구간(뒤로가기로 URL은 새 주제, 본 컴포넌트는 아직 구 주제) 동안
@@ -94,7 +98,16 @@ export function SubjectWorkspace({
   async function onCreateTab() {
     const name = await dialogs.prompt({ title: "새 탭", placeholder: "탭 이름" });
     if (!name || !name.trim()) return;
-    const tab = await createTab.mutateAsync(name.trim());
+    // 탭 종류 선택 — 확인=화이트보드(자유 배치), 취소=일반 DAG 탭.
+    const whiteboard = await dialogs.confirm({
+      title: "탭 종류",
+      message: `"${name.trim()}" 탭을 화이트보드로 만들까요? (취소 시 일반 DAG 탭)`,
+      confirmLabel: "화이트보드",
+    });
+    const tab = await createTab.mutateAsync({
+      name: name.trim(),
+      kind: whiteboard ? "WHITEBOARD" : "DAG",
+    });
     pushRoute({ subjectId, tabId: tab.id, view, doc: null });
   }
 
@@ -292,22 +305,24 @@ export function SubjectWorkspace({
             + 탭
           </button>
         </nav>
-        <div className="dw-views">
-          <button
-            type="button"
-            className={`dw-view${activeDoc === null && view === "canvas" ? " active" : ""}`}
-            onClick={() => showBoard("canvas")}
-          >
-            캔버스
-          </button>
-          <button
-            type="button"
-            className={`dw-view${activeDoc === null && view === "calendar" ? " active" : ""}`}
-            onClick={() => showBoard("calendar")}
-          >
-            캘린더
-          </button>
-        </div>
+        {activeTab?.kind !== "WHITEBOARD" && (
+          <div className="dw-views">
+            <button
+              type="button"
+              className={`dw-view${activeDoc === null && view === "canvas" ? " active" : ""}`}
+              onClick={() => showBoard("canvas")}
+            >
+              캔버스
+            </button>
+            <button
+              type="button"
+              className={`dw-view${activeDoc === null && view === "calendar" ? " active" : ""}`}
+              onClick={() => showBoard("calendar")}
+            >
+              캘린더
+            </button>
+          </div>
+        )}
         <button type="button" className="dw-logout" onClick={onLogout}>
           로그아웃
         </button>
@@ -353,7 +368,11 @@ export function SubjectWorkspace({
             {renderDoc(activeDocEntry)}
           </Suspense>
         ) : active ? (
-          view === "canvas" ? (
+          activeTab?.kind === "WHITEBOARD" ? (
+            <Suspense fallback={<div className="dw-empty">불러오는 중...</div>}>
+              <WhiteboardCanvas key={active} tabId={active} />
+            </Suspense>
+          ) : view === "canvas" ? (
             <DagCanvas key={active} tabId={active} onOpenCard={openCard} onOpenGroup={openGroup} />
           ) : (
             <CalendarView key={active} tabId={active} />

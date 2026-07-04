@@ -1,0 +1,284 @@
+/* 화이트보드 캔버스 — 각진·건조·기술적 다크 + 웜 오렌지 액센트(laminar 디자인 방향). */
+
+.wb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.wb:active {
+  cursor: grabbing;
+}
+
+.wb-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* 엣지 SVG — 월드 좌표, overflow 넘겨 그림. svg는 비간섭, 선·라벨만 클릭 가능. */
+.wb-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.wb-edge {
+  stroke: var(--accent-soft);
+  stroke-width: 2;
+  fill: none;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.wb-edge:hover {
+  stroke: var(--accent);
+}
+.wb-link-temp {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  fill: none;
+}
+.wb-edge-label {
+  fill: var(--text-dim);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: auto;
+  cursor: pointer;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+}
+.wb-edge-label.empty {
+  fill: var(--muted);
+}
+.wb-edge-label:hover {
+  fill: var(--accent);
+}
+
+/* 노드 */
+.wb-node {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  overflow: hidden;
+  cursor: grab;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.wb-node:active {
+  cursor: grabbing;
+}
+.wb-node.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.wb-node-title {
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-node-body {
+  flex: 1;
+  padding: 8px 10px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.wb-node-body > :first-child {
+  margin-top: 0;
+}
+.wb-node-empty,
+.wb-node-image-ph {
+  color: var(--muted);
+  font-size: 12px;
+}
+.wb-node-image-ph {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+}
+
+/* 인라인 편집 */
+.wb-node.editing {
+  cursor: default;
+}
+.wb-node-edit {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+  padding: 8px;
+}
+.wb-node-title-input,
+.wb-node-body-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text);
+  font: inherit;
+  padding: 5px 7px;
+}
+.wb-node-title-input {
+  font-weight: 600;
+}
+.wb-node-body-input {
+  flex: 1;
+  resize: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.wb-node-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.wb-node-edit-actions button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.wb-node-edit-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent-border);
+  color: var(--accent-foreground);
+}
+
+/* 삭제 · 연결 nub · 리사이즈 핸들 */
+.wb-node-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.wb-node-del:hover {
+  color: var(--accent);
+  background: var(--surface-2);
+}
+.wb-node-nub {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  cursor: crosshair;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.wb-node:hover .wb-node-nub,
+.wb-node.selected .wb-node-nub {
+  opacity: 1;
+}
+.wb-node-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--accent) 50%);
+}
+
+/* 툴바 · 힌트 · 상태 */
+.wb-toolbar {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.wb-toolbar button {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.wb-toolbar button:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+.wb-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+}
+.wb-zoom {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-dim);
+}
+.wb-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--muted);
+  font-size: 13px;
+  pointer-events: none;
+  text-align: center;
+}
+.wb-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}

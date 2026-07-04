@@ -33,6 +33,7 @@ public class TabController {
         tabService.create(
             request.name(),
             request.slug(),
+            request.kind(),
             request.defaultView(),
             request.iconName(),
             request.iconColor(),
@@ -91,6 +92,7 @@ public class TabController {
         tab.getUserId(),
         tab.getName(),
         tab.getSlug(),
+        tab.getKind(),
         tab.getDefaultView(),
         tab.getIconName(),
         tab.getIconColor(),

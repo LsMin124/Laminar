@@ -1,6 +1,7 @@
 package com.laminar.tab.presentation;
 
 import com.laminar.tab.domain.TabDefaultView;
+import com.laminar.tab.domain.TabKind;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -16,6 +17,7 @@ public final class TabDtos {
   public record CreateRequest(
       @NotBlank @Size(max = 200) String name,
       @NotBlank @Size(max = 100) String slug,
+      TabKind kind,
       TabDefaultView defaultView,
       @Size(max = 100) String iconName,
       @Size(max = 30) String iconColor,
@@ -37,6 +39,7 @@ public final class TabDtos {
       UUID userId,
       String name,
       String slug,
+      TabKind kind,
       TabDefaultView defaultView,
       String iconName,
       String iconColor,

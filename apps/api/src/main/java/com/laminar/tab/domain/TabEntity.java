@@ -43,6 +43,10 @@ public class TabEntity extends PersonalBaseEntity implements SoftDeletable {
   @Column(name = "default_view", nullable = false)
   private TabDefaultView defaultView = TabDefaultView.CALENDAR;
 
+  /** 탭 종류 — DAG 캔버스 vs 화이트보드(자유 배치 노드). 기존 탭은 전부 DAG(V33 default 'dag'). */
+  @Column(name = "kind", nullable = false)
+  private TabKind kind = TabKind.DAG;
+
   @Column(name = "icon_name")
   private String iconName;
 

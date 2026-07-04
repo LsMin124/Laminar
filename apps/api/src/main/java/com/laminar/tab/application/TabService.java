@@ -4,6 +4,7 @@ import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
 import com.laminar.tab.domain.TabDefaultView;
 import com.laminar.tab.domain.TabEntity;
+import com.laminar.tab.domain.TabKind;
 import com.laminar.tab.repository.TabRepository;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -36,10 +37,23 @@ public class TabService {
     this.tabRepo = tabRepo;
   }
 
+  /** 종류 미지정 오버로드 — 기존 호출부(테스트 포함)용. kind는 DAG 기본. */
   @Transactional
   public TabEntity create(
       String name,
       String slug,
+      TabDefaultView defaultView,
+      String iconName,
+      String iconColor,
+      Map<String, Object> settings) {
+    return create(name, slug, null, defaultView, iconName, iconColor, settings);
+  }
+
+  @Transactional
+  public TabEntity create(
+      String name,
+      String slug,
+      TabKind kind,
       TabDefaultView defaultView,
       String iconName,
       String iconColor,
@@ -58,6 +72,7 @@ public class TabService {
     tab.setCreatedBy(ctx.userId());
     tab.setName(name);
     tab.setSlug(slug);
+    tab.setKind(kind == null ? TabKind.DAG : kind);
     tab.setDefaultView(defaultView == null ? TabDefaultView.CALENDAR : defaultView);
     tab.setIconName(iconName);
     tab.setIconColor(iconColor);

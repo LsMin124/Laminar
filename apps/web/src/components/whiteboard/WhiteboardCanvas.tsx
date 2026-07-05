@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useDialogs } from "../ui/DialogProvider";
+import { isSupportedImage, uploadImageAttachment } from "../../lib/attachments";
 import {
   useCreateEdge,
   useCreateNode,
@@ -49,7 +50,7 @@ function clamp(v: number, lo: number, hi: number) {
 /**
  * 화이트보드 캔버스 — 자유 배치 노드 + 관계 화살표 + 줌/무한 팬(transform 월드 레이어).
  * DAG 캔버스(x=시간축·네이티브 스크롤)와 달리 world↔screen 변환을 직접 관리한다.
- * 배경 더블클릭=노드 생성, 노드 nub 드래그=연결, 휠=커서 기준 줌, 배경 드래그=팬.
+ * 배경 더블클릭=md 노드 생성, 이미지=드롭·붙여넣기·"+ 이미지", nub 드래그=연결, 휠=커서 기준 줌, 배경 드래그=팬.
  */
 export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const graph = useWhiteboardGraph(tabId);
@@ -62,6 +63,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const dialogs = useDialogs();
 
   const outerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState({ scale: 1, panX: 80, panY: 80 });
   const dragRef = useRef<DragRef | null>(null);
   const [active, setActive] = useState<{ id: string; x: number; y: number; w: number; h: number } | null>(
@@ -92,6 +94,12 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       y: (clientY - r.top - view.panY) / view.scale,
     };
   }
+  function viewportCenterWorld() {
+    const r = outerRef.current?.getBoundingClientRect();
+    const cx = (r?.left ?? 0) + (r ? r.width / 2 : 200);
+    const cy = (r?.top ?? 0) + (r ? r.height / 2 : 200);
+    return toWorld(cx, cy);
+  }
 
   // 줌 — 커서 아래 월드 점이 고정되도록 pan 보정. React onWheel은 passive라 네이티브 리스너로 preventDefault.
   useEffect(() => {
@@ -112,6 +120,26 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     }
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // 붙여넣기(이미지) — 화면 어디서든. input/textarea 안에서는 무시(노드 편집 방해 방지). 최신 상태를 latest-ref로.
+  const pasteRef = useRef<(e: ClipboardEvent) => void>(() => {});
+  useEffect(() => {
+    pasteRef.current = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith("image/"));
+      const file = item?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      const w = viewportCenterWorld();
+      void createImageNode(file, w.x, w.y);
+    };
+  });
+  useEffect(() => {
+    const h = (e: ClipboardEvent) => pasteRef.current(e);
+    window.addEventListener("paste", h);
+    return () => window.removeEventListener("paste", h);
   }, []);
 
   function beginMove(e: React.PointerEvent<HTMLDivElement>, n: WbNode) {
@@ -232,6 +260,25 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     });
   }
 
+  /** 이미지 노드 생성 → R2 업로드 → attrs.attachmentId patch. 업로드 실패 시 방금 만든 노드를 제거(고아 방지). */
+  async function createImageNode(file: File, wx: number, wy: number) {
+    if (!isSupportedImage(file)) return;
+    const node = await createNode.mutateAsync({
+      kind: "IMAGE",
+      x: Math.round(wx - NEW_NODE_W / 2),
+      y: Math.round(wy - NEW_NODE_H / 2),
+      width: NEW_NODE_W,
+      height: NEW_NODE_H,
+      text: file.name,
+    });
+    try {
+      const attachmentId = await uploadImageAttachment(file, "WHITEBOARD_NODE", node.id);
+      await updateNode.mutateAsync({ nodeId: node.id, attrs: { attachmentId } });
+    } catch {
+      deleteNode.mutate(node.id);
+    }
+  }
+
   function onBgDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
     const t = e.target as HTMLElement;
     if (t !== outerRef.current && !t.classList.contains("wb-world")) return;
@@ -239,11 +286,24 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     createAtWorld(w.x, w.y);
   }
 
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    const file = Array.from(e.dataTransfer.files).find((f) => isSupportedImage(f));
+    if (!file) return;
+    e.preventDefault();
+    const w = toWorld(e.clientX, e.clientY);
+    void createImageNode(file, w.x, w.y);
+  }
+
+  function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !isSupportedImage(file)) return;
+    const w = viewportCenterWorld();
+    void createImageNode(file, w.x, w.y);
+  }
+
   function addNodeAtCenter() {
-    const r = outerRef.current?.getBoundingClientRect();
-    const cx = (r?.left ?? 0) + (r ? r.width / 2 : 200);
-    const cy = (r?.top ?? 0) + (r ? r.height / 2 : 200);
-    const w = toWorld(cx, cy);
+    const w = viewportCenterWorld();
     createAtWorld(w.x, w.y);
   }
 
@@ -274,6 +334,8 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onDoubleClick={onBgDoubleClick}
+      onDrop={onDrop}
+      onDragOver={(e) => e.preventDefault()}
       style={{
         backgroundSize: `${24 * view.scale}px ${24 * view.scale}px`,
         backgroundPosition: `${view.panX}px ${view.panY}px`,
@@ -323,6 +385,9 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         <button type="button" onClick={addNodeAtCenter}>
           + 노드
         </button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}>
+          + 이미지
+        </button>
         <span className="wb-sep" />
         <button type="button" onClick={() => zoomBy(1 / ZOOM_STEP)} aria-label="축소">
           −
@@ -335,8 +400,17 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           리셋
         </button>
       </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp"
+        hidden
+        onChange={onPickImage}
+      />
       {nodes.length === 0 && (
-        <div className="wb-hint">빈 화이트보드 — 배경을 더블클릭하거나 “+ 노드”로 시작하세요.</div>
+        <div className="wb-hint">
+          빈 화이트보드 — 배경을 더블클릭하거나 “+ 노드”. 이미지는 드롭·붙여넣기·“+ 이미지”로 추가하세요.
+        </div>
       )}
     </div>
   );

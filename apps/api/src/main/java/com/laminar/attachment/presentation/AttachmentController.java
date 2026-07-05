@@ -99,6 +99,21 @@ public class AttachmentController {
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
+  /** 인라인 이미지 표시용 presigned URL — 화이트보드 이미지 노드가 {@code <img>}로 렌더(이미지 MIME만). */
+  @GetMapping("/{attachmentId}/inline-url")
+  public ResponseEntity<AttachmentDtos.PresignedUrlResponse> createInlineUrl(
+      @PathVariable UUID attachmentId) {
+    return service
+        .findById(attachmentId)
+        .map(a -> storage.createInlineImageUrl(a.getStorageKey(), a.getMime()))
+        .map(
+            url ->
+                new AttachmentDtos.PresignedUrlResponse(
+                    url, null, R2StorageService.PRESIGN_TTL_SECONDS))
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
   private AttachmentDtos.AttachmentResponse toResponse(AttachmentEntity a) {
     return new AttachmentDtos.AttachmentResponse(
         a.getId(),

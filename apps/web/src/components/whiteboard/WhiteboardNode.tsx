@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { MarkdownView } from "../doc/MarkdownDoc";
+import { useAttachmentInlineUrl } from "../../lib/attachments";
 import type { WhiteboardNode as WbNode } from "../../lib/whiteboard";
 import { NEW_NODE_H, NEW_NODE_W } from "./whiteboardGeometry";
+
+/** 이미지 노드의 첨부 id — attrs.attachmentId(문자열)만 채택, 없으면 null(업로드 중). */
+function imageAttachmentId(node: WbNode): string | null {
+  const id = node.attrs?.attachmentId;
+  return typeof id === "string" ? id : null;
+}
 
 /**
  * 화이트보드 노드 — 자유 배치 md·이미지 카드. 좌표·상태·드래그/연결/리사이즈 핸들러는
@@ -34,6 +41,7 @@ export function WhiteboardNode({
 }) {
   const w = node.width ?? NEW_NODE_W;
   const h = node.height ?? NEW_NODE_H;
+  const isImage = node.kind === "IMAGE";
 
   return (
     <div
@@ -50,17 +58,18 @@ export function WhiteboardNode({
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        onStartEdit(node.id);
+        // 이미지 노드는 본문 편집이 없으므로 더블클릭 편집 진입 안 함.
+        if (!isImage) onStartEdit(node.id);
       }}
     >
-      {editing ? (
+      {editing && !isImage ? (
         <NodeEditor node={node} onSave={onSaveEdit} onCancel={onCancelEdit} />
       ) : (
         <>
           {node.text && <div className="wb-node-title">{node.text}</div>}
           <div className="wb-node-body">
-            {node.kind === "IMAGE" ? (
-              <div className="wb-node-image-ph">이미지 노드 (Phase 3)</div>
+            {isImage ? (
+              <ImageNodeBody attachmentId={imageAttachmentId(node)} />
             ) : node.bodyMd ? (
               <MarkdownView source={node.bodyMd} />
             ) : (
@@ -93,6 +102,15 @@ export function WhiteboardNode({
       )}
     </div>
   );
+}
+
+/** 이미지 노드 본문 — 인라인 presigned URL(5분 TTL, 자동 갱신)로 {@code <img>} 렌더. */
+function ImageNodeBody({ attachmentId }: { attachmentId: string | null }) {
+  const { data: url, isLoading, isError } = useAttachmentInlineUrl(attachmentId);
+  if (!attachmentId) return <div className="wb-node-image-ph">이미지 업로드 중…</div>;
+  if (isError) return <div className="wb-node-image-ph">이미지를 불러오지 못함</div>;
+  if (isLoading || !url) return <div className="wb-node-image-ph">이미지 로딩…</div>;
+  return <img className="wb-node-img" src={url} alt="" draggable={false} />;
 }
 
 /**

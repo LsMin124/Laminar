@@ -105,7 +105,7 @@ public class SecurityConfig {
                                     + "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                                     + "img-src 'self' data: https:; "
                                     + "font-src 'self' https://fonts.gstatic.com; "
-                                    + "connect-src 'self' https://accounts.google.com https://www.googleapis.com; "
+                                    + "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.r2.cloudflarestorage.com; "
                                     + "frame-src 'none'; "
                                     + "object-src 'none'; "
                                     + "base-uri 'self'")));

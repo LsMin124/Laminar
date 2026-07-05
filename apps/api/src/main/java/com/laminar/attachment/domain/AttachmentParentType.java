@@ -5,7 +5,8 @@ import jakarta.persistence.Converter;
 import java.util.Arrays;
 
 public enum AttachmentParentType {
-  CARD("card");
+  CARD("card"),
+  WHITEBOARD_NODE("whiteboard_node");
 
   private final String dbValue;
 

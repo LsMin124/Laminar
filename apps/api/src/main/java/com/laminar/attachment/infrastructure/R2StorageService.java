@@ -55,6 +55,10 @@ public class R2StorageService {
           "application/vnd.openxmlformats-officedocument.presentationml.presentation",
           "application/octet-stream");
 
+  /** 인라인 렌더 허용 이미지 MIME — 스크립트 실행형(svg 포함)은 제외해 저장형 XSS 차단. */
+  private static final Set<String> INLINE_IMAGE_MIME =
+      Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
+
   private final S3Presigner presigner;
   private final S3Client s3Client;
   private final String bucket;
@@ -108,6 +112,41 @@ public class R2StorageService {
             .key(storageKey)
             // M-4: 인라인 렌더 대신 강제 다운로드 — 저장형 콘텐츠(html/svg) 실행 방지
             .responseContentDisposition("attachment")
+            .build();
+    GetObjectPresignRequest presignRequest =
+        GetObjectPresignRequest.builder()
+            .signatureDuration(Duration.ofSeconds(PRESIGN_TTL_SECONDS))
+            .getObjectRequest(getRequest)
+            .build();
+    PresignedGetObjectRequest presigned = presigner.presignGetObject(presignRequest);
+    return presigned.url().toString();
+  }
+
+  /**
+   * 인라인 이미지 표시용 presigned GET (화이트보드 이미지 노드). {@code createDownloadUrl}은 저장형 콘텐츠 실행 방지로
+   * Content-Disposition: attachment를 강제하지만, 이미지 노드는 {@code <img>}로 렌더해야 하므로 이미지 MIME allowlist에 한해
+   * inline disposition + 명시 content-type을 실어 발급한다(svg·html 등 실행형 제외 = 저장형 XSS 차단). 소유 prefix도
+   * fail-closed 검증(M-5 동일).
+   */
+  public String createInlineImageUrl(String storageKey, String mime) {
+    SubjectContext ctx = SubjectContextHolder.require();
+    if (ctx.scope() != SubjectContext.Scope.PERSONAL) {
+      throw new IllegalStateException("PERSONAL scope required");
+    }
+    String requiredPrefix = String.format("workspaces/%s/users/%s/", ctx.subjectId(), ctx.userId());
+    if (storageKey == null || !storageKey.startsWith(requiredPrefix)) {
+      throw new IllegalStateException("storage key not owned by current user");
+    }
+    String contentType = mime == null ? "" : mime.trim().toLowerCase();
+    if (!INLINE_IMAGE_MIME.contains(contentType)) {
+      throw new IllegalArgumentException("inline display allowed for images only: " + contentType);
+    }
+    GetObjectRequest getRequest =
+        GetObjectRequest.builder()
+            .bucket(bucket)
+            .key(storageKey)
+            .responseContentDisposition("inline")
+            .responseContentType(contentType)
             .build();
     GetObjectPresignRequest presignRequest =
         GetObjectPresignRequest.builder()

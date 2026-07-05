@@ -19,6 +19,8 @@ export interface WhiteboardNode {
   /** 노드 제목/라벨. */
   text: string | null;
   bodyMd: string | null;
+  /** 자유 속성(jsonb) — 이미지 노드는 attrs.attachmentId로 R2 첨부를 참조. */
+  attrs: Record<string, unknown>;
 }
 
 export interface WhiteboardEdge {
@@ -64,6 +66,7 @@ export function useCreateNode(tabId: string) {
       height?: number | null;
       text?: string | null;
       bodyMd?: string | null;
+      attrs?: Record<string, unknown>;
     }) => api.post<WhiteboardNode>("/api/whiteboard-nodes", { tabId, ...input }),
     onSettled: () => invalidate(qc, tabId),
   });
@@ -81,6 +84,7 @@ export function useUpdateNode(tabId: string) {
       height?: number | null;
       text?: string | null;
       bodyMd?: string | null;
+      attrs?: Record<string, unknown>;
     }) => {
       const { nodeId, ...patch } = input;
       return api.patch<WhiteboardNode>(`/api/whiteboard-nodes/${nodeId}`, patch);
@@ -98,6 +102,7 @@ export function useUpdateNode(tabId: string) {
                 ...(input.height !== undefined ? { height: input.height } : {}),
                 ...(input.text !== undefined ? { text: input.text } : {}),
                 ...(input.bodyMd !== undefined ? { bodyMd: input.bodyMd } : {}),
+                ...(input.attrs !== undefined ? { attrs: input.attrs } : {}),
               }
             : n,
         ),

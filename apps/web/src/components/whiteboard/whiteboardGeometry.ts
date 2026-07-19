@@ -32,3 +32,24 @@ export const MIN_NODE_H = 90;
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 3;
 export const ZOOM_STEP = 1.1;
+
+/** 두 사각형이 겹치는지(경계 접촉 포함) — 마퀴 선택 판정. */
+export function rectsIntersect(a: Rect, b: Rect): boolean {
+  return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
+}
+
+/** 여러 사각형의 합집합 경계. 빈 목록이면 null. */
+export function unionBounds(rects: Rect[]): Rect | null {
+  if (rects.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const r of rects) {
+    minX = Math.min(minX, r.x);
+    minY = Math.min(minY, r.y);
+    maxX = Math.max(maxX, r.x + r.w);
+    maxY = Math.max(maxY, r.y + r.h);
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}

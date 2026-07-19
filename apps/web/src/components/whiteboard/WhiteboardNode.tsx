@@ -21,7 +21,6 @@ export function WhiteboardNode({
   onBodyDown,
   onNubDown,
   onResizeDown,
-  onSelect,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
@@ -33,7 +32,6 @@ export function WhiteboardNode({
   onBodyDown: (e: React.PointerEvent<HTMLDivElement>, node: WbNode) => void;
   onNubDown: (e: React.PointerEvent<HTMLSpanElement>, node: WbNode) => void;
   onResizeDown: (e: React.PointerEvent<HTMLSpanElement>, node: WbNode) => void;
-  onSelect: (id: string) => void;
   onStartEdit: (id: string) => void;
   onSaveEdit: (id: string, patch: { text: string; bodyMd: string }) => void;
   onCancelEdit: () => void;
@@ -52,10 +50,7 @@ export function WhiteboardNode({
       onPointerDown={(e) => {
         if (!editing) onBodyDown(e, node);
       }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(node.id);
-      }}
+      onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => {
         e.stopPropagation();
         // 이미지 노드는 본문 편집이 없으므로 더블클릭 편집 진입 안 함.

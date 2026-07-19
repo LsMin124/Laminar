@@ -15,6 +15,15 @@ import {
 import { WhiteboardEdges } from "./WhiteboardEdges";
 import { WhiteboardNode } from "./WhiteboardNode";
 import {
+  getFallbackClipboard,
+  parseClipboardText,
+  serializeClipboard,
+  setFallbackClipboard,
+  snapshotSelection,
+  type WbClipboard,
+} from "./whiteboardClipboard";
+import { useWhiteboardShortcuts } from "./useWhiteboardShortcuts";
+import {
   MAX_SCALE,
   MIN_NODE_H,
   MIN_NODE_W,
@@ -22,35 +31,42 @@ import {
   NEW_NODE_H,
   NEW_NODE_W,
   ZOOM_STEP,
+  rectsIntersect,
+  unionBounds,
   type Rect,
 } from "./whiteboardGeometry";
 import "./WhiteboardCanvas.css";
 
-/** 진행 중 포인터 제스처 — 팬/이동/리사이즈/연결. dragRef(비렌더)로 추적, active/link state로 렌더. */
+/** 진행 중 포인터 제스처 — 팬/이동(다중)/리사이즈/연결/마퀴 선택. dragRef(비렌더)로 추적. */
 type DragRef =
   | { kind: "pan"; sx: number; sy: number; panX: number; panY: number }
   | {
       kind: "move";
-      id: string;
-      ox: number;
-      oy: number;
+      starts: Record<string, { x: number; y: number }>;
       swx: number;
       swy: number;
-      w: number;
-      h: number;
       moved: boolean;
     }
   | { kind: "resize"; id: string; ow: number; oh: number; swx: number; swy: number; x: number; y: number }
-  | { kind: "link"; fromId: string };
+  | { kind: "link"; fromId: string }
+  | { kind: "marquee"; swx: number; swy: number; base: ReadonlySet<string> };
+
+const FIT_PADDING = 64;
+const DUPLICATE_OFFSET = 24;
+const HOME_VIEW = { scale: 1, panX: 80, panY: 80 };
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function normRect(x1: number, y1: number, x2: number, y2: number): Rect {
+  return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+}
+
 /**
- * 화이트보드 캔버스 — 자유 배치 노드 + 관계 화살표 + 줌/무한 팬(transform 월드 레이어).
- * DAG 캔버스(x=시간축·네이티브 스크롤)와 달리 world↔screen 변환을 직접 관리한다.
- * 배경 더블클릭=md 노드 생성, 이미지=드롭·붙여넣기·"+ 이미지", nub 드래그=연결, 휠=커서 기준 줌, 배경 드래그=팬.
+ * 화이트보드 캔버스 — FigJam 준거 조작: 배경 드래그=마퀴 선택, Space·휠클릭 드래그=팬,
+ * 휠=스크롤·Ctrl(⌘)+휠/핀치=커서 기준 줌. 다중 선택 그룹 이동, Ctrl+C/V·Ctrl+D 복제(연결 포함),
+ * 배경 더블클릭=md 노드, 이미지=드롭·붙여넣기·"+ 이미지", nub 드래그=연결.
  */
 export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const graph = useWhiteboardGraph(tabId);
@@ -64,16 +80,24 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
 
   const outerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [view, setView] = useState({ scale: 1, panX: 80, panY: 80 });
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const [view, setView] = useState(HOME_VIEW);
   const dragRef = useRef<DragRef | null>(null);
-  const [active, setActive] = useState<{ id: string; x: number; y: number; w: number; h: number } | null>(
-    null,
-  );
+  const [moving, setMoving] = useState<Record<string, { x: number; y: number }> | null>(null);
+  const [resizing, setResizing] = useState<{
+    id: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
   const [link, setLink] = useState<{ fromId: string; sx: number; sy: number; x: number; y: number } | null>(
     null,
   );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [marquee, setMarquee] = useState<Rect | null>(null);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [spaceHeld, setSpaceHeld] = useState(false);
 
   const nodes = graph.data?.nodes ?? [];
   const edges = graph.data?.edges ?? [];
@@ -82,9 +106,12 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     return { w: n.width ?? NEW_NODE_W, h: n.height ?? NEW_NODE_H };
   }
   function rectOf(n: WbNode): Rect {
-    if (active && active.id === n.id) return { x: active.x, y: active.y, w: active.w, h: active.h };
+    if (resizing && resizing.id === n.id) {
+      return { x: resizing.x, y: resizing.y, w: resizing.w, h: resizing.h };
+    }
     const s = sizeOf(n);
-    return { x: n.x, y: n.y, w: s.w, h: s.h };
+    const m = moving?.[n.id];
+    return { x: m?.x ?? n.x, y: m?.y ?? n.y, w: s.w, h: s.h };
   }
   function toWorld(clientX: number, clientY: number) {
     const r = outerRef.current?.getBoundingClientRect();
@@ -100,40 +127,65 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     const cy = (r?.top ?? 0) + (r ? r.height / 2 : 200);
     return toWorld(cx, cy);
   }
+  function pasteWorldPos() {
+    const p = lastPointerRef.current;
+    return p ? toWorld(p.x, p.y) : viewportCenterWorld();
+  }
 
-  // 줌 — 커서 아래 월드 점이 고정되도록 pan 보정. React onWheel은 passive라 네이티브 리스너로 preventDefault.
+  // 휠 — FigJam 준거: 기본=스크롤(팬), Ctrl/⌘(트랙패드 핀치 포함)=커서 기준 줌. passive:false로 preventDefault.
   useEffect(() => {
     const el = outerRef.current;
     if (!el) return;
     function onWheel(e: WheelEvent) {
       e.preventDefault();
-      const r = el!.getBoundingClientRect();
-      const px = e.clientX - r.left;
-      const py = e.clientY - r.top;
-      const factor = e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
-      setView((v) => {
-        const ns = clamp(v.scale * factor, MIN_SCALE, MAX_SCALE);
-        const wx = (px - v.panX) / v.scale;
-        const wy = (py - v.panY) / v.scale;
-        return { scale: ns, panX: px - wx * ns, panY: py - wy * ns };
-      });
+      if (e.ctrlKey || e.metaKey) {
+        const r = el!.getBoundingClientRect();
+        const px = e.clientX - r.left;
+        const py = e.clientY - r.top;
+        const factor = Math.exp(-e.deltaY * 0.0022);
+        setView((v) => {
+          const ns = clamp(v.scale * factor, MIN_SCALE, MAX_SCALE);
+          const wx = (px - v.panX) / v.scale;
+          const wy = (py - v.panY) / v.scale;
+          return { scale: ns, panX: px - wx * ns, panY: py - wy * ns };
+        });
+        return;
+      }
+      const dx = e.shiftKey && e.deltaX === 0 ? e.deltaY : e.deltaX;
+      const dy = e.shiftKey && e.deltaX === 0 ? 0 : e.deltaY;
+      setView((v) => ({ ...v, panX: v.panX - dx, panY: v.panY - dy }));
     }
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  // 붙여넣기(이미지) — 화면 어디서든. input/textarea 안에서는 무시(노드 편집 방해 방지). 최신 상태를 latest-ref로.
+  // 붙여넣기 — 노드 스냅샷(내부 복사) 우선, 그다음 이미지. input/textarea·노드 편집 중엔 무시.
   const pasteRef = useRef<(e: ClipboardEvent) => void>(() => {});
   useEffect(() => {
     pasteRef.current = (e: ClipboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (editingId) return;
+      const at = pasteWorldPos();
+      const text = e.clipboardData?.getData("text/plain") ?? "";
+      const snap = parseClipboardText(text);
+      if (snap) {
+        e.preventDefault();
+        void pasteSnapshot(snap, at.x, at.y);
+        return;
+      }
       const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith("image/"));
       const file = item?.getAsFile();
-      if (!file) return;
-      e.preventDefault();
-      const w = viewportCenterWorld();
-      void createImageNode(file, w.x, w.y);
+      if (file) {
+        e.preventDefault();
+        void createImageNode(file, at.x, at.y);
+        return;
+      }
+      const fallback = getFallbackClipboard();
+      if (fallback && !text) {
+        e.preventDefault();
+        void pasteSnapshot(fallback, at.x, at.y);
+      }
     };
   });
   useEffect(() => {
@@ -142,36 +194,55 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     return () => window.removeEventListener("paste", h);
   }, []);
 
+  function beginPanGesture(e: React.PointerEvent<Element>) {
+    e.preventDefault();
+    outerRef.current?.setPointerCapture(e.pointerId);
+    dragRef.current = { kind: "pan", sx: e.clientX, sy: e.clientY, panX: view.panX, panY: view.panY };
+  }
+
+  /** 노드 pointerdown — Space/휠클릭이면 팬, Shift는 선택 토글, 그 외 (그룹) 이동 시작. */
   function beginMove(e: React.PointerEvent<HTMLDivElement>, n: WbNode) {
+    if (e.button === 1 || (e.button === 0 && spaceHeld)) {
+      e.stopPropagation();
+      beginPanGesture(e);
+      return;
+    }
+    if (e.button !== 0) return;
     e.stopPropagation();
+    if (e.shiftKey && selectedIds.has(n.id)) {
+      const next = new Set(selectedIds);
+      next.delete(n.id);
+      setSelectedIds(next);
+      return;
+    }
+    const ids: ReadonlySet<string> = e.shiftKey
+      ? new Set([...selectedIds, n.id])
+      : selectedIds.has(n.id)
+        ? selectedIds
+        : new Set([n.id]);
+    setSelectedIds(ids);
     outerRef.current?.setPointerCapture(e.pointerId);
     const w = toWorld(e.clientX, e.clientY);
-    const s = sizeOf(n);
-    dragRef.current = {
-      kind: "move",
-      id: n.id,
-      ox: n.x,
-      oy: n.y,
-      swx: w.x,
-      swy: w.y,
-      w: s.w,
-      h: s.h,
-      moved: false,
-    };
-    setActive({ id: n.id, x: n.x, y: n.y, w: s.w, h: s.h });
-    setSelectedId(n.id);
+    const starts: Record<string, { x: number; y: number }> = {};
+    for (const node of nodes) {
+      if (ids.has(node.id)) starts[node.id] = { x: node.x, y: node.y };
+    }
+    dragRef.current = { kind: "move", starts, swx: w.x, swy: w.y, moved: false };
+    setMoving(starts);
   }
 
   function beginResize(e: React.PointerEvent<HTMLSpanElement>, n: WbNode) {
+    if (e.button !== 0) return;
     e.stopPropagation();
     outerRef.current?.setPointerCapture(e.pointerId);
     const w = toWorld(e.clientX, e.clientY);
     const s = sizeOf(n);
     dragRef.current = { kind: "resize", id: n.id, ow: s.w, oh: s.h, swx: w.x, swy: w.y, x: n.x, y: n.y };
-    setActive({ id: n.id, x: n.x, y: n.y, w: s.w, h: s.h });
+    setResizing({ id: n.id, x: n.x, y: n.y, w: s.w, h: s.h });
   }
 
   function beginLink(e: React.PointerEvent<HTMLSpanElement>, n: WbNode) {
+    if (e.button !== 0) return;
     e.stopPropagation();
     outerRef.current?.setPointerCapture(e.pointerId);
     const s = sizeOf(n);
@@ -180,16 +251,25 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     setLink({ fromId: n.id, sx: n.x + s.w, sy: n.y + s.h / 2, x: w.x, y: w.y });
   }
 
-  function beginPan(e: React.PointerEvent<HTMLDivElement>) {
+  /** 배경 pointerdown — Space/휠클릭=팬, 좌클릭=마퀴 선택(Shift=기존 선택에 추가). */
+  function onBgPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     const t = e.target as HTMLElement;
-    // 진짜 배경(outer/world)에서만 — 엣지 선·라벨은 자체 클릭, 노드/nub는 stopPropagation.
     if (t !== outerRef.current && !t.classList.contains("wb-world")) return;
-    setSelectedId(null);
+    if (e.button === 1 || (e.button === 0 && spaceHeld)) {
+      beginPanGesture(e);
+      return;
+    }
+    if (e.button !== 0) return;
     outerRef.current?.setPointerCapture(e.pointerId);
-    dragRef.current = { kind: "pan", sx: e.clientX, sy: e.clientY, panX: view.panX, panY: view.panY };
+    const w = toWorld(e.clientX, e.clientY);
+    const base: ReadonlySet<string> = e.shiftKey ? new Set(selectedIds) : new Set<string>();
+    if (!e.shiftKey) setSelectedIds(new Set<string>());
+    dragRef.current = { kind: "marquee", swx: w.x, swy: w.y, base };
+    setMarquee({ x: w.x, y: w.y, w: 0, h: 0 });
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    lastPointerRef.current = { x: e.clientX, y: e.clientY };
     const d = dragRef.current;
     if (!d) return;
     if (d.kind === "pan") {
@@ -198,10 +278,14 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     }
     const w = toWorld(e.clientX, e.clientY);
     if (d.kind === "move") {
-      if (Math.abs(w.x - d.swx) > 1 || Math.abs(w.y - d.swy) > 1) d.moved = true;
-      setActive({ id: d.id, x: d.ox + (w.x - d.swx), y: d.oy + (w.y - d.swy), w: d.w, h: d.h });
+      const dx = w.x - d.swx;
+      const dy = w.y - d.swy;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) d.moved = true;
+      setMoving(
+        Object.fromEntries(Object.entries(d.starts).map(([id, p]) => [id, { x: p.x + dx, y: p.y + dy }])),
+      );
     } else if (d.kind === "resize") {
-      setActive({
+      setResizing({
         id: d.id,
         x: d.x,
         y: d.y,
@@ -210,6 +294,11 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       });
     } else if (d.kind === "link") {
       setLink((l) => (l ? { ...l, x: w.x, y: w.y } : l));
+    } else if (d.kind === "marquee") {
+      const rect = normRect(d.swx, d.swy, w.x, w.y);
+      setMarquee(rect);
+      const hit = nodes.filter((n) => rectsIntersect(rect, rectOf(n))).map((n) => n.id);
+      setSelectedIds(new Set([...d.base, ...hit]));
     }
   }
 
@@ -223,18 +312,28 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     }
     if (!d) return;
     if (d.kind === "move") {
-      if (active && d.moved) {
-        updateNode.mutate({ nodeId: d.id, x: Math.round(active.x), y: Math.round(active.y) });
+      if (moving && d.moved) {
+        for (const [id, p] of Object.entries(moving)) {
+          updateNode.mutate({ nodeId: id, x: Math.round(p.x), y: Math.round(p.y) });
+        }
       }
-      setActive(null);
+      setMoving(null);
     } else if (d.kind === "resize") {
-      if (active) updateNode.mutate({ nodeId: d.id, width: Math.round(active.w), height: Math.round(active.h) });
-      setActive(null);
+      if (resizing) {
+        updateNode.mutate({
+          nodeId: resizing.id,
+          width: Math.round(resizing.w),
+          height: Math.round(resizing.h),
+        });
+      }
+      setResizing(null);
     } else if (d.kind === "link") {
       const w = toWorld(e.clientX, e.clientY);
       const target = nodeAt(w.x, w.y, d.fromId);
       if (target) createEdge.mutate({ fromNodeId: d.fromId, toNodeId: target.id });
       setLink(null);
+    } else if (d.kind === "marquee") {
+      setMarquee(null);
     }
   }
 
@@ -313,24 +412,148 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     updateEdge.mutate({ edgeId: edge.id, label: value.trim() || null });
   }
 
-  function zoomBy(factor: number) {
+  function deleteSelection() {
+    if (selectedIds.size === 0) return;
+    for (const id of selectedIds) deleteNode.mutate(id);
+    setSelectedIds(new Set<string>());
+  }
+
+  /** 노드 ✕ — 그 노드가 다중 선택에 포함돼 있으면 선택 전체 삭제(FigJam 준거). */
+  function deleteNodeOrSelection(id: string) {
+    if (selectedIds.has(id) && selectedIds.size > 1) {
+      deleteSelection();
+      return;
+    }
+    deleteNode.mutate(id);
+    if (selectedIds.has(id)) {
+      const next = new Set(selectedIds);
+      next.delete(id);
+      setSelectedIds(next);
+    }
+  }
+
+  function copySelection() {
+    const snap = snapshotSelection(nodes, edges, selectedIds, rectOf);
+    if (!snap) return;
+    setFallbackClipboard(snap);
+    void navigator.clipboard?.writeText(serializeClipboard(snap)).catch(() => {
+      // 클립보드 권한 없음 — 모듈 폴백으로 계속 동작.
+    });
+  }
+
+  /** 스냅샷을 (wx,wy) 중심에 생성 — 노드 먼저, 양끝 포함 엣지까지 복원 후 새 노드들을 선택. */
+  async function pasteSnapshot(c: WbClipboard, wx: number, wy: number) {
+    const ox = wx - c.w / 2;
+    const oy = wy - c.h / 2;
+    try {
+      const created = await Promise.all(
+        c.nodes.map((s) =>
+          createNode.mutateAsync({
+            kind: s.kind,
+            x: Math.round(ox + s.dx),
+            y: Math.round(oy + s.dy),
+            width: s.width,
+            height: s.height,
+            text: s.text,
+            bodyMd: s.bodyMd,
+            attrs: Object.keys(s.attrs).length > 0 ? s.attrs : undefined,
+          }),
+        ),
+      );
+      await Promise.all(
+        c.edges.map((es) =>
+          createEdge.mutateAsync({
+            fromNodeId: created[es.from].id,
+            toNodeId: created[es.to].id,
+            label: es.label ?? undefined,
+          }),
+        ),
+      );
+      setSelectedIds(new Set(created.map((n) => n.id)));
+    } catch {
+      void dialogs.alert("일부 노드를 붙여넣지 못했습니다.");
+    }
+  }
+
+  function duplicateSelection() {
+    const snap = snapshotSelection(nodes, edges, selectedIds, rectOf);
+    const b = unionBounds(nodes.filter((n) => selectedIds.has(n.id)).map(rectOf));
+    if (!snap || !b) return;
+    void pasteSnapshot(snap, b.x + b.w / 2 + DUPLICATE_OFFSET, b.y + b.h / 2 + DUPLICATE_OFFSET);
+  }
+
+  function nudgeSelection(dx: number, dy: number) {
+    for (const n of nodes) {
+      if (!selectedIds.has(n.id)) continue;
+      updateNode.mutate({ nodeId: n.id, x: Math.round(n.x + dx), y: Math.round(n.y + dy) });
+    }
+  }
+
+  /** Escape — 진행 중 제스처·선택 모두 해제. */
+  function cancelGestures() {
+    dragRef.current = null;
+    setMoving(null);
+    setResizing(null);
+    setLink(null);
+    setMarquee(null);
+    setSelectedIds(new Set<string>());
+  }
+
+  function zoomAtCenter(nextScale: number) {
     const r = outerRef.current?.getBoundingClientRect();
     const px = r ? r.width / 2 : 0;
     const py = r ? r.height / 2 : 0;
     setView((v) => {
-      const ns = clamp(v.scale * factor, MIN_SCALE, MAX_SCALE);
-      return { scale: ns, panX: px - ((px - v.panX) / v.scale) * ns, panY: py - ((py - v.panY) / v.scale) * ns };
+      const ns = clamp(nextScale, MIN_SCALE, MAX_SCALE);
+      return {
+        scale: ns,
+        panX: px - ((px - v.panX) / v.scale) * ns,
+        panY: py - ((py - v.panY) / v.scale) * ns,
+      };
     });
   }
+
+  /** 노드 전체가 보이게 맞춤(최대 100%). 노드 없으면 초기 뷰. */
+  function zoomToFit() {
+    const b = unionBounds(nodes.map(rectOf));
+    const r = outerRef.current?.getBoundingClientRect();
+    if (!b || !r) {
+      setView(HOME_VIEW);
+      return;
+    }
+    const scale = clamp(
+      Math.min(r.width / (b.w + FIT_PADDING * 2), r.height / (b.h + FIT_PADDING * 2)),
+      MIN_SCALE,
+      1,
+    );
+    setView({
+      scale,
+      panX: (r.width - b.w * scale) / 2 - b.x * scale,
+      panY: (r.height - b.h * scale) / 2 - b.y * scale,
+    });
+  }
+
+  useWhiteboardShortcuts({
+    enabled: editingId === null,
+    onDeleteSelection: deleteSelection,
+    onSelectAll: () => setSelectedIds(new Set(nodes.map((n) => n.id))),
+    onEscape: cancelGestures,
+    onDuplicate: duplicateSelection,
+    onCopy: copySelection,
+    onNudge: nudgeSelection,
+    onZoomFit: zoomToFit,
+    onZoom100: () => zoomAtCenter(1),
+    onSpaceChange: setSpaceHeld,
+  });
 
   if (graph.isLoading) return <div className="wb-empty">불러오는 중…</div>;
   if (graph.isError) return <div className="wb-empty">화이트보드를 불러오지 못했습니다.</div>;
 
   return (
     <div
-      className="wb"
+      className={`wb${spaceHeld ? " hand" : ""}`}
       ref={outerRef}
-      onPointerDown={beginPan}
+      onPointerDown={onBgPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onDoubleClick={onBgDoubleClick}
@@ -355,32 +578,38 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         />
         {nodes.map((n) => {
           const r = rectOf(n);
-          const shown =
-            active && active.id === n.id ? { ...n, x: r.x, y: r.y, width: r.w, height: r.h } : n;
+          const shown = { ...n, x: r.x, y: r.y, width: r.w, height: r.h };
           return (
             <WhiteboardNode
               key={n.id}
               node={shown}
-              selected={selectedId === n.id}
+              selected={selectedIds.has(n.id)}
               editing={editingId === n.id}
               onBodyDown={beginMove}
               onNubDown={beginLink}
               onResizeDown={beginResize}
-              onSelect={setSelectedId}
               onStartEdit={setEditingId}
               onSaveEdit={(id, patch) => {
                 updateNode.mutate({ nodeId: id, text: patch.text, bodyMd: patch.bodyMd });
                 setEditingId(null);
               }}
               onCancelEdit={() => setEditingId(null)}
-              onDelete={(id) => {
-                deleteNode.mutate(id);
-                setSelectedId(null);
-              }}
+              onDelete={deleteNodeOrSelection}
             />
           );
         })}
       </div>
+      {marquee && (
+        <div
+          className="wb-marquee"
+          style={{
+            left: marquee.x * view.scale + view.panX,
+            top: marquee.y * view.scale + view.panY,
+            width: marquee.w * view.scale,
+            height: marquee.h * view.scale,
+          }}
+        />
+      )}
       <div className="wb-toolbar" onPointerDown={(e) => e.stopPropagation()}>
         <button type="button" onClick={addNodeAtCenter}>
           + 노드
@@ -389,15 +618,18 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           + 이미지
         </button>
         <span className="wb-sep" />
-        <button type="button" onClick={() => zoomBy(1 / ZOOM_STEP)} aria-label="축소">
+        <button type="button" onClick={() => zoomAtCenter(view.scale / ZOOM_STEP)} aria-label="축소">
           −
         </button>
         <span className="wb-zoom">{Math.round(view.scale * 100)}%</span>
-        <button type="button" onClick={() => zoomBy(ZOOM_STEP)} aria-label="확대">
+        <button type="button" onClick={() => zoomAtCenter(view.scale * ZOOM_STEP)} aria-label="확대">
           ＋
         </button>
-        <button type="button" onClick={() => setView({ scale: 1, panX: 80, panY: 80 })}>
-          리셋
+        <button type="button" onClick={zoomToFit} title="전체 맞춤 (Shift+1)">
+          맞춤
+        </button>
+        <button type="button" onClick={() => zoomAtCenter(1)} title="100% (Ctrl+0)">
+          100%
         </button>
       </div>
       <input
@@ -409,7 +641,9 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       />
       {nodes.length === 0 && (
         <div className="wb-hint">
-          빈 화이트보드 — 배경을 더블클릭하거나 “+ 노드”. 이미지는 드롭·붙여넣기·“+ 이미지”로 추가하세요.
+          빈 화이트보드 — 더블클릭으로 노드 생성, 드래그로 선택.
+          <br />
+          Space·휠클릭 드래그=이동 · 휠=스크롤 · Ctrl+휠=줌 · 이미지는 드롭/붙여넣기.
         </div>
       )}
     </div>

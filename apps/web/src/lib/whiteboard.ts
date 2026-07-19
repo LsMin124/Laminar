@@ -130,7 +130,7 @@ export function useDeleteNode(tabId: string) {
 export function useCreateEdge(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { fromNodeId: string; toNodeId: string }) =>
+    mutationFn: (input: { fromNodeId: string; toNodeId: string; label?: string }) =>
       api.post<WhiteboardEdge>("/api/whiteboard-edges", input),
     onSettled: () => invalidate(qc, tabId),
   });

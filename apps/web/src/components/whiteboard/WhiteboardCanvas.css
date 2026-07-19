@@ -8,10 +8,13 @@
   background-color: var(--bg);
   background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
   touch-action: none;
-  cursor: grab;
+  cursor: default;
   user-select: none;
 }
-.wb:active {
+.wb.hand {
+  cursor: grab;
+}
+.wb.hand:active {
   cursor: grabbing;
 }
 
@@ -21,6 +24,14 @@
   left: 0;
   transform-origin: 0 0;
   will-change: transform;
+}
+
+/* 마퀴(러버밴드) 선택 — 화면 좌표 오버레이. */
+.wb-marquee {
+  position: absolute;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  pointer-events: none;
 }
 
 /* 엣지 SVG — 월드 좌표, overflow 넘겨 그림. svg는 비간섭, 선·라벨만 클릭 가능. */

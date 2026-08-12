@@ -32,10 +32,11 @@ export function ResetPasswordPage() {
       await api.post("/api/auth/password-reset/confirm", { token, password });
       setDone(true);
     } catch (err) {
+      // 400 외(502·타임아웃 등)는 대개 머신 콜드스타트/재시작 중의 일시 오류 — 링크는 그대로 유효하다.
       setError(
         err instanceof ApiError && err.status === 400
           ? "링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요."
-          : "재설정 중 오류가 발생했습니다.",
+          : "일시적인 서버 오류입니다. 몇 초 후 같은 링크에서 다시 시도해 주세요.",
       );
     }
     setBusy(false);

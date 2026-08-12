@@ -33,3 +33,14 @@ export function apiErrorMessage(
   if (err.status === 409) return "충돌이 발생했습니다.";
   return fallback;
 }
+
+/**
+ * ApiError envelope의 message 필드(서버가 큐레이트한 안전 문구 — 409 "이미 가입된 이메일입니다." 등).
+ * JSON envelope가 아니거나 message가 없으면 null. 상태별 고정 문구가 우선인 표면(400 검증 등)에서는
+ * 호출부가 우선순위를 정한다.
+ */
+export function apiEnvelopeMessage(err: unknown): string | null {
+  if (!(err instanceof ApiError)) return null;
+  const body = err.body as { message?: string | null } | string | null;
+  return typeof body === "object" && body?.message ? body.message : null;
+}

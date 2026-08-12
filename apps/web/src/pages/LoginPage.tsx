@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLogin } from "../lib/auth";
 import { ApiError } from "../lib/api";
+import { apiEnvelopeMessage } from "../lib/apiErrors";
 import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
 
 /**
@@ -40,11 +41,14 @@ export function LoginPage({ onSwitchToSignup, onForgot }: Props) {
       await login.mutateAsync({ email, password });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(
-          err.status === 400 || err.status === 401
-            ? "이메일 또는 비밀번호가 올바르지 않습니다."
-            : err.message,
-        );
+        // err.message는 "POST /api/auth/login → 429" 같은 기술 문자열 — 노출하지 않는다.
+        if (err.status === 400 || err.status === 401) {
+          setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        } else if (err.status === 429) {
+          setError("로그인 시도가 너무 잦습니다. 잠시 후 다시 시도해 주세요.");
+        } else {
+          setError(apiEnvelopeMessage(err) ?? "로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+        }
       } else {
         setError("로그인 중 오류가 발생했습니다.");
       }

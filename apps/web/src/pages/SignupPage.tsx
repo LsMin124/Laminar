@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useSignup } from "../lib/auth";
 import { ApiError } from "../lib/api";
+import { apiEnvelopeMessage } from "../lib/apiErrors";
 import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
 
 interface Props {
@@ -29,7 +30,15 @@ export function SignupPage({ onSwitchToLogin }: Props) {
       await signup.mutateAsync({ email, password, displayName });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.status === 400 ? "입력값을 확인해주세요." : err.message);
+        // err.message는 "POST /api/auth/signup → 409" 같은 기술 문자열 — 사용자에겐 envelope의
+        // 큐레이트 문구(409 "이미 가입된 이메일입니다." 등)를 보여준다.
+        if (err.status === 400) {
+          setError("입력값을 확인해주세요.");
+        } else if (err.status === 429) {
+          setError("가입 시도가 너무 잦습니다. 잠시 후 다시 시도해 주세요.");
+        } else {
+          setError(apiEnvelopeMessage(err) ?? "가입에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+        }
       } else {
         setError("가입 중 오류가 발생했습니다.");
       }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ApiError } from "./api";
-import { apiErrorMessage } from "./apiErrors";
+import { apiEnvelopeMessage, apiErrorMessage } from "./apiErrors";
 import { MAX_SPAN_DAYS } from "./cardRules";
 
 const FALLBACK = "기본 안내";
@@ -41,5 +41,19 @@ describe("apiErrorMessage", () => {
   test("코드 없음 + 비409는 fallback (문자열 body 포함)", () => {
     expect(apiErrorMessage(apiErr(400, { message: "bad" }), FALLBACK)).toBe(FALLBACK);
     expect(apiErrorMessage(apiErr(500, "internal"), FALLBACK)).toBe(FALLBACK);
+  });
+});
+
+describe("apiEnvelopeMessage", () => {
+  test("envelope의 message 필드를 반환한다 (409 중복 가입 등)", () => {
+    expect(apiEnvelopeMessage(apiErr(409, { message: "이미 가입된 이메일입니다." }))).toBe(
+      "이미 가입된 이메일입니다.",
+    );
+  });
+
+  test("envelope가 아니면 null — 문자열 body·message 없음·ApiError 아님", () => {
+    expect(apiEnvelopeMessage(apiErr(502, "Bad Gateway"))).toBeNull();
+    expect(apiEnvelopeMessage(apiErr(409, { code: "X" }))).toBeNull();
+    expect(apiEnvelopeMessage(new Error("boom"))).toBeNull();
   });
 });

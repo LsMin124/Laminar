@@ -72,8 +72,8 @@ function useStableHandler<A extends unknown[]>(fn: (...args: A) => void): (...ar
   useEffect(() => {
     implRef.current = fn;
   });
-  const stableRef = useRef((...args: A) => implRef.current(...args));
-  return stableRef.current;
+  // 항등성은 useCallback([])이 보장하고, ref는 호출 시점에만 읽는다(렌더 중 ref 접근 금지 규칙).
+  return useCallback((...args: A) => implRef.current(...args), []);
 }
 
 /**

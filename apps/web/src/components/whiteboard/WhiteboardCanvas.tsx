@@ -375,6 +375,8 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       await updateNode.mutateAsync({ nodeId: node.id, attrs: { attachmentId } });
     } catch {
       deleteNode.mutate(node.id);
+      // 업로드 실패를 무음으로 흘리면 "노드가 사라졌다"로만 보인다(Q8) — 원인 힌트와 함께 알린다.
+      void dialogs.alert("이미지 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -546,8 +548,9 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     onSpaceChange: setSpaceHeld,
   });
 
-  if (graph.isLoading) return <div className="wb-empty">불러오는 중…</div>;
-  if (graph.isError) return <div className="wb-empty">화이트보드를 불러오지 못했습니다.</div>;
+  // 휠 리스너 effect는 mount 1회만 실행되므로 ref 컨테이너(.wb)는 로딩/오류 중에도 항상 렌더한다 —
+  // 조기 return하면 outerRef가 빈 채로 effect가 끝나 리스너가 영영 안 붙는다(스크롤·줌 무반응 회귀).
+  const status = graph.isLoading ? "불러오는 중…" : graph.isError ? "화이트보드를 불러오지 못했습니다." : null;
 
   return (
     <div
@@ -564,6 +567,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         backgroundPosition: `${view.panX}px ${view.panY}px`,
       }}
     >
+      {status !== null && <div className="wb-empty">{status}</div>}
       <div
         className="wb-world"
         style={{ transform: `translate(${view.panX}px, ${view.panY}px) scale(${view.scale})` }}
@@ -639,7 +643,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         hidden
         onChange={onPickImage}
       />
-      {nodes.length === 0 && (
+      {status === null && nodes.length === 0 && (
         <div className="wb-hint">
           빈 화이트보드 — 더블클릭으로 노드 생성, 드래그로 선택.
           <br />

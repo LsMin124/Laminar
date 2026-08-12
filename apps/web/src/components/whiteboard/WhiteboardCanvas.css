@@ -6,7 +6,12 @@
   height: 100%;
   overflow: hidden;
   background-color: var(--bg);
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  /* 점 그리드는 은은하게 — 원색 --border는 시각적으로 너무 강하다(사용자 피드백). */
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--border) 30%, transparent) 1px,
+    transparent 1px
+  );
   touch-action: none;
   cursor: default;
   user-select: none;

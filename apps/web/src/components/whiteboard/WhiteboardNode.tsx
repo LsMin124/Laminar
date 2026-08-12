@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { MarkdownView } from "../doc/MarkdownDoc";
 import { useAttachmentInlineUrl } from "../../lib/attachments";
 import type { WhiteboardNode as WbNode } from "../../lib/whiteboard";
@@ -13,8 +13,10 @@ function imageAttachmentId(node: WbNode): string | null {
 /**
  * 화이트보드 노드 — 자유 배치 md·이미지 카드. 좌표·상태·드래그/연결/리사이즈 핸들러는
  * 컨테이너(WhiteboardCanvas)가 주입한다. 더블클릭 시 인라인 편집(제목 + 마크다운 본문).
+ * memo — 팬/줌/마퀴/다른 노드 드래그 프레임에서 무변경 노드의 재렌더(마크다운 재파싱)를 건너뛴다.
+ * 컨테이너는 핸들러 항등성(useStableHandler)과 무변경 노드의 객체 항등성을 보장한다.
  */
-export function WhiteboardNode({
+export const WhiteboardNode = memo(function WhiteboardNode({
   node,
   selected,
   editing,
@@ -40,6 +42,11 @@ export function WhiteboardNode({
   const w = node.width ?? NEW_NODE_W;
   const h = node.height ?? NEW_NODE_H;
   const isImage = node.kind === "IMAGE";
+  // 마크다운 파싱은 본문이 바뀔 때만 — 이 노드 자신의 드래그 프레임에서도 캐시가 유지된다.
+  const mdBody = useMemo(
+    () => (node.bodyMd ? <MarkdownView source={node.bodyMd} /> : null),
+    [node.bodyMd],
+  );
 
   return (
     <div
@@ -65,10 +72,8 @@ export function WhiteboardNode({
           <div className="wb-node-body">
             {isImage ? (
               <ImageNodeBody attachmentId={imageAttachmentId(node)} />
-            ) : node.bodyMd ? (
-              <MarkdownView source={node.bodyMd} />
             ) : (
-              <span className="wb-node-empty">빈 노드 — 더블클릭해 편집</span>
+              (mdBody ?? <span className="wb-node-empty">빈 노드 — 더블클릭해 편집</span>)
             )}
           </div>
         </>
@@ -97,7 +102,7 @@ export function WhiteboardNode({
       )}
     </div>
   );
-}
+});
 
 /** 이미지 노드 본문 — 인라인 presigned URL(5분 TTL, 자동 갱신)로 {@code <img>} 렌더. */
 function ImageNodeBody({ attachmentId }: { attachmentId: string | null }) {

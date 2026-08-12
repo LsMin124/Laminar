@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDialogs } from "../ui/DialogProvider";
 import { isSupportedImage, uploadImageAttachment } from "../../lib/attachments";
 import {
@@ -61,6 +61,19 @@ function clamp(v: number, lo: number, hi: number) {
 
 function normRect(x1: number, y1: number, x2: number, y2: number): Rect {
   return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+}
+
+/**
+ * 매 렌더 재생성되는 핸들러의 항등성을 고정 — memo된 자식(WhiteboardNode)이 함수 prop 때문에
+ * 매번 재렌더되는 것을 막는다. 최신 구현은 ref로 참조하므로 stale closure 없음(pasteRef 관용구).
+ */
+function useStableHandler<A extends unknown[]>(fn: (...args: A) => void): (...args: A) => void {
+  const implRef = useRef(fn);
+  useEffect(() => {
+    implRef.current = fn;
+  });
+  const stableRef = useRef((...args: A) => implRef.current(...args));
+  return stableRef.current;
 }
 
 /**
@@ -548,6 +561,18 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     onSpaceChange: setSpaceHeld,
   });
 
+  // memo된 WhiteboardNode에 넘기는 핸들러 — 항등성 고정으로 팬/줌/마퀴 프레임마다의 전체 노드
+  // 재렌더(마크다운 재파싱 포함)를 차단한다.
+  const handleBodyDown = useStableHandler(beginMove);
+  const handleNubDown = useStableHandler(beginLink);
+  const handleResizeDown = useStableHandler(beginResize);
+  const handleDelete = useStableHandler(deleteNodeOrSelection);
+  const handleSaveEdit = useStableHandler((id: string, patch: { text: string; bodyMd: string }) => {
+    updateNode.mutate({ nodeId: id, text: patch.text, bodyMd: patch.bodyMd });
+    setEditingId(null);
+  });
+  const handleCancelEdit = useCallback(() => setEditingId(null), []);
+
   // 휠 리스너 effect는 mount 1회만 실행되므로 ref 컨테이너(.wb)는 로딩/오류 중에도 항상 렌더한다 —
   // 조기 return하면 outerRef가 빈 채로 effect가 끝나 리스너가 영영 안 붙는다(스크롤·줌 무반응 회귀).
   const status = graph.isLoading ? "불러오는 중…" : graph.isError ? "화이트보드를 불러오지 못했습니다." : null;
@@ -582,23 +607,27 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         />
         {nodes.map((n) => {
           const r = rectOf(n);
-          const shown = { ...n, x: r.x, y: r.y, width: r.w, height: r.h };
+          // 드래그/리사이즈 중이 아닌 노드는 원본 객체 그대로 넘겨 memo가 재렌더를 건너뛰게 한다.
+          const shown =
+            r.x === n.x &&
+            r.y === n.y &&
+            r.w === (n.width ?? NEW_NODE_W) &&
+            r.h === (n.height ?? NEW_NODE_H)
+              ? n
+              : { ...n, x: r.x, y: r.y, width: r.w, height: r.h };
           return (
             <WhiteboardNode
               key={n.id}
               node={shown}
               selected={selectedIds.has(n.id)}
               editing={editingId === n.id}
-              onBodyDown={beginMove}
-              onNubDown={beginLink}
-              onResizeDown={beginResize}
+              onBodyDown={handleBodyDown}
+              onNubDown={handleNubDown}
+              onResizeDown={handleResizeDown}
               onStartEdit={setEditingId}
-              onSaveEdit={(id, patch) => {
-                updateNode.mutate({ nodeId: id, text: patch.text, bodyMd: patch.bodyMd });
-                setEditingId(null);
-              }}
-              onCancelEdit={() => setEditingId(null)}
-              onDelete={deleteNodeOrSelection}
+              onSaveEdit={handleSaveEdit}
+              onCancelEdit={handleCancelEdit}
+              onDelete={handleDelete}
             />
           );
         })}

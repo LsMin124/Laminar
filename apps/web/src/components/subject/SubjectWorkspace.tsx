@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, setCurrentSubjectId } from "../../lib/api";
 import { EQUIPMENT_DOC_ID, type DocKind } from "../../lib/route";
-import { useCreateTab, useTabs } from "../../lib/tabs";
+import { useCreateTab, useDeleteTab, useTabs } from "../../lib/tabs";
 import { pushRoute, replaceRoute, useRoute } from "../../lib/useRoute";
 import { useDialogs } from "../ui/DialogProvider";
 import { CalendarView } from "../calendar/CalendarView";
@@ -67,6 +67,7 @@ export function SubjectWorkspace({
 }) {
   const tabs = useTabs();
   const createTab = useCreateTab();
+  const deleteTab = useDeleteTab();
   const dialogs = useDialogs();
   const route = useRoute();
   // 열린 문서 목록(세션 상태) — URL에는 활성 문서 하나만 실린다.
@@ -95,20 +96,28 @@ export function SubjectWorkspace({
     }
   }, [tabs.data, route.tabId, route.view, route.doc, route.subjectId, subjectId]);
 
-  async function onCreateTab() {
-    const name = await dialogs.prompt({ title: "새 탭", placeholder: "탭 이름" });
+  /** 탭·화이트보드는 별도 기능 — 생성 동선을 버튼부터 분리한다(종류 선택 confirm 제거, 사용자 피드백). */
+  async function onCreateTab(kind: "DAG" | "WHITEBOARD") {
+    const name = await dialogs.prompt({
+      title: kind === "WHITEBOARD" ? "새 화이트보드" : "새 탭",
+      placeholder: kind === "WHITEBOARD" ? "화이트보드 이름" : "탭 이름",
+    });
     if (!name || !name.trim()) return;
-    // 탭 종류 선택 — 확인=화이트보드(자유 배치), 취소=일반 DAG 탭.
-    const whiteboard = await dialogs.confirm({
-      title: "탭 종류",
-      message: `"${name.trim()}" 탭을 화이트보드로 만들까요? (취소 시 일반 DAG 탭)`,
-      confirmLabel: "화이트보드",
-    });
-    const tab = await createTab.mutateAsync({
-      name: name.trim(),
-      kind: whiteboard ? "WHITEBOARD" : "DAG",
-    });
+    const tab = await createTab.mutateAsync({ name: name.trim(), kind });
     pushRoute({ subjectId, tabId: tab.id, view, doc: null });
+  }
+
+  /** 탭 삭제 — 확인 후 soft delete. 활성 탭이 사라지면 URL 보정 effect가 첫 탭으로 이동시킨다. */
+  async function onDeleteTab(tabId: string, name: string, kind: string) {
+    const noun = kind === "WHITEBOARD" ? "화이트보드" : "탭";
+    const ok = await dialogs.confirm({
+      title: `${noun} 삭제`,
+      message: `"${name}" ${noun}을(를) 삭제할까요? 안의 내용도 함께 사라집니다.`,
+      confirmLabel: "삭제",
+    });
+    if (!ok) return;
+    deleteTab.mutate(tabId);
+    setOpenDocs((prev) => prev.filter((d) => !(d.kind === "tab" && d.id === tabId)));
   }
 
   async function onLogout() {
@@ -283,8 +292,10 @@ export function SubjectWorkspace({
                 <button
                   type="button"
                   className={`dw-tab${isActive ? " active" : ""}`}
+                  title={t.kind === "WHITEBOARD" ? "화이트보드" : undefined}
                   onClick={() => pushRoute({ subjectId, tabId: t.id, view, doc: route.doc })}
                 >
+                  {t.kind === "WHITEBOARD" && <span className="dw-tab-glyph">▦</span>}
                   {t.name}
                 </button>
                 {isActive && (
@@ -298,11 +309,29 @@ export function SubjectWorkspace({
                     ▤
                   </button>
                 )}
+                {isActive && (
+                  <button
+                    type="button"
+                    className="dw-tab-x"
+                    onClick={() => void onDeleteTab(t.id, t.name, t.kind ?? "DAG")}
+                    title="삭제"
+                    aria-label="탭 삭제"
+                  >
+                    ✕
+                  </button>
+                )}
               </span>
             );
           })}
-          <button type="button" className="dw-tab-add" onClick={onCreateTab}>
+          <button type="button" className="dw-tab-add" onClick={() => void onCreateTab("DAG")}>
             + 탭
+          </button>
+          <button
+            type="button"
+            className="dw-tab-add wb"
+            onClick={() => void onCreateTab("WHITEBOARD")}
+          >
+            ▦ + 화이트보드
           </button>
         </nav>
         {activeTab?.kind !== "WHITEBOARD" && (

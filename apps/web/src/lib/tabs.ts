@@ -49,3 +49,15 @@ export function useUpdateTab() {
     onSettled: () => qc.invalidateQueries({ queryKey: tabsKey() }),
   });
 }
+
+/** 탭 삭제(soft) — 목록에서 즉시 제거(낙관), 실패 시 복원. 활성 탭 보정은 URL 보정 effect가 담당. */
+export function useDeleteTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tabId: string) => api.delete<void>(`/api/tabs/${tabId}`),
+    onMutate: (tabId) =>
+      optimisticUpdate<Tab[]>(qc, tabsKey(), (list) => list.filter((t) => t.id !== tabId)),
+    onError: rollbackTo<Tab[]>(qc, tabsKey()),
+    onSettled: () => qc.invalidateQueries({ queryKey: tabsKey() }),
+  });
+}

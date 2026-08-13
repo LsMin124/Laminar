@@ -80,6 +80,35 @@
   cursor: pointer;
   font-size: 12px;
 }
+/* 화이트보드 식별 — 탭 글리프·전용 생성 버튼(탭과 별도 기능임을 동선부터 구분) */
+.dw-tab-glyph {
+  margin-right: 5px;
+  color: var(--accent-soft);
+}
+.dw-tab-add.wb {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-soft);
+}
+.dw-tab-add.wb:hover {
+  color: var(--accent-bright);
+  border-color: var(--accent);
+}
+/* 활성 탭 삭제 — 본문(▤) 버튼과 같은 부착형, 호버 시에만 경고색 */
+.dw-tab-x {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent);
+  border-left: none;
+  color: var(--muted);
+  padding: 4px 7px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+}
+.dw-tab-x:hover {
+  background: #7f1d1d;
+  border-color: #b91c1c;
+  color: #fecaca;
+}
 .dw-logout {
   background: none;
   border: 1px solid #333;

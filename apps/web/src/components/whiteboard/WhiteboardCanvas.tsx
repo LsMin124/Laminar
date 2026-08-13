@@ -417,6 +417,14 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     const t = e.target as HTMLElement;
     if (t !== outerRef.current && !t.classList.contains("wb-world")) return;
     const w = toWorld(e.clientX, e.clientY);
+    // 노드 pointerdown이 outer에 setPointerCapture를 걸면 브라우저가 click/dblclick target을
+    // 캡처 대상(.wb)으로 재지정한다 — target 검사만으론 노드 위 더블클릭을 배경으로 오인해
+    // 새 노드를 만들어버리므로, 좌표 히트테스트로 노드 위면 생성 대신 편집에 진입한다.
+    const hit = nodeAt(w.x, w.y, "");
+    if (hit) {
+      if (hit.kind !== "IMAGE") setEditingId(hit.id);
+      return;
+    }
     createAtWorld(w.x, w.y);
   }
 

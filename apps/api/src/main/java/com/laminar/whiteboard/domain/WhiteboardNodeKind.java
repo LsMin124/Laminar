@@ -5,12 +5,15 @@ import jakarta.persistence.Converter;
 import java.util.Arrays;
 
 /**
- * 화이트보드 노드 종류 — v1 범위(사용자 확정 결정): 마크다운 문서 · 이미지. PDF·영상은 v2(CSP media/frame-src·인라인 presign·뷰어가 더 큰
- * 작업이라 분리).
+ * 화이트보드 노드 종류 — v1: 마크다운 문서 · 이미지, WB-B: 스티키 · 도형 · 텍스트(색·도형은 attrs jsonb).
+ * PDF·영상은 v2(CSP media/frame-src·인라인 presign·뷰어가 더 큰 작업이라 분리).
  */
 public enum WhiteboardNodeKind {
   MD("md"),
-  IMAGE("image");
+  IMAGE("image"),
+  STICKY("sticky"),
+  SHAPE("shape"),
+  TEXT("text");
 
   private final String dbValue;
 

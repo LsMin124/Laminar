@@ -70,6 +70,17 @@ describe("clipboard 직렬화", () => {
     expect(parseClipboardText(serializeClipboard(snap))).toEqual(snap);
   });
 
+  test("스티키·도형·텍스트 노드도 왕복 보존된다 (WB-B)", () => {
+    const nodes = [
+      node({ id: "a", kind: "STICKY", bodyMd: "메모", attrs: { color: "amber" } }),
+      node({ id: "b", x: 300, kind: "SHAPE", text: "단계", attrs: { color: "blue", shape: "ellipse" } }),
+      node({ id: "c", x: 600, kind: "TEXT", bodyMd: "제목 텍스트", attrs: { color: "gray" } }),
+    ];
+    const snap = snapshotSelection(nodes, [], new Set(["a", "b", "c"]), rectOf);
+    if (!snap) throw new Error("snapshot 실패");
+    expect(parseClipboardText(serializeClipboard(snap))).toEqual(snap);
+  });
+
   test("접두사 없는 텍스트·깨진 JSON·모르는 kind는 null", () => {
     expect(parseClipboardText("hello")).toBeNull();
     expect(parseClipboardText("laminar-wb:1:{broken")).toBeNull();

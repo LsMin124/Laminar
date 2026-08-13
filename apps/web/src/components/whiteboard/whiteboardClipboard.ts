@@ -80,14 +80,17 @@ function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
 }
 
+const NODE_KINDS: ReadonlySet<string> = new Set(["MD", "IMAGE", "STICKY", "SHAPE", "TEXT"]);
+
 function parseNode(v: unknown): NodeSnapshot | null {
   if (typeof v !== "object" || v === null) return null;
   const o = v as Record<string, unknown>;
-  if (o.kind !== "MD" && o.kind !== "IMAGE") return null;
+  if (typeof o.kind !== "string" || !NODE_KINDS.has(o.kind)) return null;
   if (!isFiniteNumber(o.dx) || !isFiniteNumber(o.dy)) return null;
   const attrsOk = typeof o.attrs === "object" && o.attrs !== null && !Array.isArray(o.attrs);
   return {
-    kind: o.kind,
+    // NODE_KINDS 검증을 통과했으므로 union으로 안전 — Set.has는 타입을 좁혀주지 않는다.
+    kind: o.kind as WhiteboardNode["kind"],
     dx: o.dx,
     dy: o.dy,
     width: isFiniteNumber(o.width) ? o.width : null,

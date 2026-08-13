@@ -314,6 +314,110 @@
   gap: 6px;
 }
 
+/* WB-B — 스티키 · 도형 · 텍스트 노드 (색은 --wb-fill/--wb-ink CSS 변수로 주입) */
+.wb-node.sticky {
+  background: var(--wb-fill);
+  border-color: color-mix(in srgb, var(--wb-fill) 65%, #000);
+  color: var(--wb-ink);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.25),
+    0 8px 18px rgba(0, 0, 0, 0.3);
+}
+.wb-node.sticky .wb-node-body {
+  font-size: 14px;
+}
+.wb-node.sticky .wb-node-empty {
+  color: color-mix(in srgb, var(--wb-ink) 55%, transparent);
+}
+.wb-node.shape {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.wb-node.shape.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.wb-shape {
+  position: absolute;
+  inset: 0;
+  background: var(--wb-fill);
+}
+.wb-shape.rect {
+  border-radius: 3px;
+}
+.wb-shape.ellipse {
+  border-radius: 50%;
+}
+.wb-shape.diamond {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.wb-shape-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  color: var(--wb-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+}
+.wb-node.text {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--wb-fill);
+}
+.wb-node.text .wb-node-body {
+  font-size: 15px;
+  font-weight: 600;
+}
+.wb-node.text.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* 선택 팔레트 바 — 스티키·도형·텍스트 선택 시 툴바 위에 표시 */
+.wb-selbar {
+  position: absolute;
+  left: 12px;
+  bottom: 56px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.wb-selbar button {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.wb-selbar button:hover {
+  border-color: var(--accent);
+}
+.wb-swatch {
+  width: 20px;
+}
+.wb-selbar .wb-swatch {
+  border-color: rgba(0, 0, 0, 0.45);
+}
+.wb-selbar .wb-swatch:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 /* 온보딩 투어 — 스팟라이트(구멍 뚫린 딤) + 코치마크 팝업 */
 .wb-tour {
   position: absolute;

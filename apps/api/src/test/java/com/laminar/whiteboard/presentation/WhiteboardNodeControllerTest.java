@@ -70,4 +70,24 @@ class WhiteboardNodeControllerTest {
                 .content("{\"tabId\":\"" + UUID.randomUUID() + "\",\"kind\":\"MD\",\"y\":2.0}"))
         .andExpect(status().isBadRequest());
   }
+
+  @Test
+  void 스티키_노드_생성은_kind_STICKY를_반환한다() throws Exception {
+    WhiteboardNodeEntity node = new WhiteboardNodeEntity();
+    node.setId(UUID.randomUUID());
+    node.setKind(WhiteboardNodeKind.STICKY);
+    node.setX(0.0);
+    node.setY(0.0);
+    given(service.create(any())).willReturn(node);
+
+    mvc.perform(
+            post("/api/whiteboard-nodes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"tabId\":\""
+                        + UUID.randomUUID()
+                        + "\",\"kind\":\"STICKY\",\"x\":0.0,\"y\":0.0,\"attrs\":{\"color\":\"amber\"}}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.kind").value("STICKY"));
+  }
 }

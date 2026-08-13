@@ -15,6 +15,7 @@ import {
 import { WhiteboardEdges } from "./WhiteboardEdges";
 import { WhiteboardNode } from "./WhiteboardNode";
 import { WhiteboardTour } from "./WhiteboardTour";
+import { COLORABLE_KINDS, DEFAULT_COLOR, WB_PALETTE, type WbShape } from "./whiteboardPalette";
 import {
   getFallbackClipboard,
   parseClipboardText,
@@ -72,6 +73,13 @@ function markTourSeen() {
     // 기록 실패는 무해 — 다음 방문에 안내가 한 번 더 보일 뿐.
   }
 }
+
+/** WB-B 노드 kind별 생성 기본 크기. */
+const CREATE_SIZE: Record<"STICKY" | "SHAPE" | "TEXT", { w: number; h: number }> = {
+  STICKY: { w: 170, h: 170 },
+  SHAPE: { w: 160, h: 110 },
+  TEXT: { w: 220, h: 60 },
+};
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -449,6 +457,25 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     createAtWorld(w.x, w.y);
   }
 
+  /** WB-B 노드 생성 — kind별 기본 크기·색으로 화면 중앙에(도형은 rect로 시작). */
+  function createKindAtCenter(kind: "STICKY" | "SHAPE" | "TEXT") {
+    const w = viewportCenterWorld();
+    const size = CREATE_SIZE[kind];
+    createNode.mutate({
+      kind,
+      x: Math.round(w.x - size.w / 2),
+      y: Math.round(w.y - size.h / 2),
+      width: size.w,
+      height: size.h,
+      text: "",
+      bodyMd: "",
+      attrs:
+        kind === "SHAPE"
+          ? { color: DEFAULT_COLOR.SHAPE, shape: "rect" }
+          : { color: DEFAULT_COLOR[kind] },
+    });
+  }
+
   async function onEditLabel(edge: WhiteboardEdge) {
     const value = await dialogs.prompt({ title: "화살표 라벨", placeholder: edge.label ?? "관계 설명" });
     if (value === null) return;
@@ -605,6 +632,24 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     setTourOpen(false);
   }, []);
 
+  // 선택 팔레트 바 — 색을 입힐 수 있는 선택 노드(스티키·도형·텍스트)가 있을 때만 표시.
+  const colorableSelected = nodes.filter(
+    (n) => selectedIds.has(n.id) && COLORABLE_KINDS.has(n.kind),
+  );
+  const shapeSelected = colorableSelected.some((n) => n.kind === "SHAPE");
+
+  function applyColor(colorId: string) {
+    for (const n of colorableSelected) {
+      updateNode.mutate({ nodeId: n.id, attrs: { ...n.attrs, color: colorId } });
+    }
+  }
+  function applyShape(shape: WbShape) {
+    for (const n of colorableSelected) {
+      if (n.kind !== "SHAPE") continue;
+      updateNode.mutate({ nodeId: n.id, attrs: { ...n.attrs, shape } });
+    }
+  }
+
   // 휠 리스너 effect는 mount 1회만 실행되므로 ref 컨테이너(.wb)는 로딩/오류 중에도 항상 렌더한다 —
   // 조기 return하면 outerRef가 빈 채로 effect가 끝나 리스너가 영영 안 붙는다(스크롤·줌 무반응 회귀).
   const status = graph.isLoading ? "불러오는 중…" : graph.isError ? "화이트보드를 불러오지 못했습니다." : null;
@@ -682,6 +727,15 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         <button type="button" data-tour="add-image" onClick={() => fileInputRef.current?.click()}>
           + 이미지
         </button>
+        <button type="button" onClick={() => createKindAtCenter("STICKY")}>
+          + 스티키
+        </button>
+        <button type="button" onClick={() => createKindAtCenter("SHAPE")}>
+          + 도형
+        </button>
+        <button type="button" onClick={() => createKindAtCenter("TEXT")}>
+          + 텍스트
+        </button>
         <span className="wb-sep" />
         <span className="wb-tool-group" data-tour="zoom">
           <button type="button" onClick={() => zoomAtCenter(view.scale / ZOOM_STEP)} aria-label="축소">
@@ -703,6 +757,35 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           ?
         </button>
       </div>
+      {colorableSelected.length > 0 && (
+        <div className="wb-selbar" onPointerDown={(e) => e.stopPropagation()}>
+          {WB_PALETTE.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="wb-swatch"
+              style={{ background: p.fill }}
+              title={`색상 ${p.id}`}
+              aria-label={`색상 ${p.id}`}
+              onClick={() => applyColor(p.id)}
+            />
+          ))}
+          {shapeSelected && (
+            <>
+              <span className="wb-sep" />
+              <button type="button" onClick={() => applyShape("rect")} title="사각형">
+                ▭
+              </button>
+              <button type="button" onClick={() => applyShape("ellipse")} title="원">
+                ◯
+              </button>
+              <button type="button" onClick={() => applyShape("diamond")} title="마름모">
+                ◇
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <input
         ref={fileInputRef}
         type="file"

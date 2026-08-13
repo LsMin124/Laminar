@@ -87,8 +87,8 @@ public class WhiteboardEdgeService {
   }
 
   /**
-   * WB-D — 엣지 끝점 재연결(같은 id·라벨 유지). from/to 중 null은 무변경. 검증은 create와 동일:
-   * self-loop 금지 + 두 노드가 엣지의 탭과 일치. 동일 연결이 이미 있으면 활성 유니크 제약이 막는다.
+   * WB-D — 엣지 끝점 재연결(같은 id·라벨 유지). from/to 중 null은 무변경. 검증은 create와 동일: self-loop 금지 + 두 노드가 엣지의 탭과
+   * 일치. 동일 연결이 이미 있으면 활성 유니크 제약이 막는다.
    */
   @Transactional
   public WhiteboardEdgeEntity reconnect(UUID edgeId, UUID fromNodeId, UUID toNodeId) {
@@ -111,8 +111,8 @@ public class WhiteboardEdgeService {
   }
 
   /**
-   * WB-C undo — soft-delete 복구(같은 id 유지, 멱등). 삭제~복구 사이에 동일한 활성 엣지가 새로 생기면 활성 유니크 제약에 걸린다 — undo가
-   * 방금 지운 엣지를 되살리는 흐름에선 실질적으로 발생하지 않아 별도 처리 없이 제약 위반을 그대로 흘린다.
+   * WB-C undo — soft-delete 복구(같은 id 유지, 멱등). 삭제~복구 사이에 동일한 활성 엣지가 새로 생기면 활성 유니크 제약에 걸린다 — undo가 방금
+   * 지운 엣지를 되살리는 흐름에선 실질적으로 발생하지 않아 별도 처리 없이 제약 위반을 그대로 흘린다.
    */
   @Transactional
   public WhiteboardEdgeEntity restore(UUID edgeId) {

@@ -1,0 +1,206 @@
+/* IDE식 Explorer 트리 — 각진·건조·기술적 다크 + 웜 오렌지 액센트. */
+.exp {
+  display: flex;
+  flex-direction: column;
+  width: 236px;
+  flex-shrink: 0;
+  height: 100vh;
+  background: #121212;
+  border-right: 1px solid #2a2a2a;
+  font-size: 12.5px;
+  color: #cfcfcf;
+}
+.exp-brand {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--accent, #d97757);
+  border-bottom: 1px solid #2a2a2a;
+  user-select: none;
+}
+.exp-tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0 12px;
+}
+.exp-sec {
+  padding: 8px 12px 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: #7a7a7a;
+  user-select: none;
+}
+.exp-empty {
+  padding: 4px 12px;
+  color: #666;
+  font-size: 11.5px;
+}
+
+/* 트리 행 공통 */
+.exp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 8px 3px 10px;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.exp-row:hover {
+  background: #1c1c1c;
+}
+.exp-row.active {
+  background: #201a15;
+  border-left-color: var(--accent, #d97757);
+  color: #fff;
+}
+.exp-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.exp-caret {
+  width: 14px;
+  flex-shrink: 0;
+  color: #8a8a8a;
+  font-size: 10px;
+  text-align: center;
+}
+.exp-caret.btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #8a8a8a;
+  font: inherit;
+  font-size: 10px;
+}
+.exp-caret.btn:hover {
+  color: var(--accent-bright, #e8926f);
+}
+.exp-glyph {
+  flex-shrink: 0;
+  color: #9a9a9a;
+  font-size: 11px;
+}
+.exp-glyph.wb {
+  color: var(--accent-soft, #b3684d);
+}
+.exp-glyph.dot {
+  font-size: 8px;
+  color: #6f9fd8;
+}
+.exp-glyph.dot.done {
+  color: #4a4a4a;
+}
+
+/* 들여쓰기 층 */
+.exp-children {
+  margin-left: 14px;
+  border-left: 1px solid #242424;
+}
+.exp-children .exp-children {
+  margin-left: 12px;
+}
+
+/* 탭 행 — label과 hover 액션 분리 */
+.exp-row.tab {
+  padding-right: 4px;
+  cursor: default;
+}
+.exp-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.exp-acts {
+  display: none;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.exp-row.tab:hover .exp-acts {
+  display: flex;
+}
+.exp-acts button {
+  background: none;
+  border: none;
+  padding: 1px 4px;
+  color: #8a8a8a;
+  cursor: pointer;
+  font-size: 10.5px;
+}
+.exp-acts button:hover {
+  color: var(--accent-bright, #e8926f);
+}
+.exp-acts button.danger:hover {
+  color: #f87171;
+}
+
+/* 생성 행 */
+.exp-adds {
+  display: flex;
+  gap: 6px;
+  padding: 5px 10px 3px;
+}
+.exp-adds button {
+  background: none;
+  border: 1px dashed #3a3a3a;
+  border-radius: 2px;
+  color: #888;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.exp-adds button:hover {
+  color: #ccc;
+  border-color: #555;
+}
+.exp-adds button.wb {
+  border-color: color-mix(in srgb, var(--accent, #d97757) 40%, transparent);
+  color: var(--accent-soft, #b3684d);
+}
+.exp-adds button.wb:hover {
+  color: var(--accent-bright, #e8926f);
+  border-color: var(--accent, #d97757);
+}
+
+/* 하단 전역 액션 */
+.exp-foot {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid #2a2a2a;
+}
+.exp-foot button {
+  flex: 1;
+  background: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  border-radius: 2px;
+  color: #aaa;
+  padding: 5px 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+.exp-foot button:hover {
+  color: #fff;
+  border-color: var(--accent, #d97757);
+}

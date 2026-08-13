@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api, setCurrentSubjectId } from "../../lib/api";
 import { EQUIPMENT_DOC_ID, type DocKind } from "../../lib/route";
-import { useCreateTab, useDeleteTab, useTabs } from "../../lib/tabs";
+import { useTabs } from "../../lib/tabs";
 import { pushRoute, replaceRoute, useRoute } from "../../lib/useRoute";
-import { useDialogs } from "../ui/DialogProvider";
 import { CalendarView } from "../calendar/CalendarView";
 import { DagCanvas } from "../dag/DagCanvas";
 import { Identicon } from "./Identicon";
@@ -66,9 +65,6 @@ export function SubjectWorkspace({
   openEquipmentNonce?: number;
 }) {
   const tabs = useTabs();
-  const createTab = useCreateTab();
-  const deleteTab = useDeleteTab();
-  const dialogs = useDialogs();
   const route = useRoute();
   // 열린 문서 목록(세션 상태) — URL에는 활성 문서 하나만 실린다.
   const [openDocs, setOpenDocs] = useState<OpenDoc[]>([]);
@@ -96,30 +92,6 @@ export function SubjectWorkspace({
     }
   }, [tabs.data, route.tabId, route.view, route.doc, route.subjectId, subjectId]);
 
-  /** 탭·화이트보드는 별도 기능 — 생성 동선을 버튼부터 분리한다(종류 선택 confirm 제거, 사용자 피드백). */
-  async function onCreateTab(kind: "DAG" | "WHITEBOARD") {
-    const name = await dialogs.prompt({
-      title: kind === "WHITEBOARD" ? "새 화이트보드" : "새 탭",
-      placeholder: kind === "WHITEBOARD" ? "화이트보드 이름" : "탭 이름",
-    });
-    if (!name || !name.trim()) return;
-    const tab = await createTab.mutateAsync({ name: name.trim(), kind });
-    pushRoute({ subjectId, tabId: tab.id, view, doc: null });
-  }
-
-  /** 탭 삭제 — 확인 후 soft delete. 활성 탭이 사라지면 URL 보정 effect가 첫 탭으로 이동시킨다. */
-  async function onDeleteTab(tabId: string, name: string, kind: string) {
-    const noun = kind === "WHITEBOARD" ? "화이트보드" : "탭";
-    const ok = await dialogs.confirm({
-      title: `${noun} 삭제`,
-      message: `"${name}" ${noun}을(를) 삭제할까요? 안의 내용도 함께 사라집니다.`,
-      confirmLabel: "삭제",
-    });
-    if (!ok) return;
-    deleteTab.mutate(tabId);
-    setOpenDocs((prev) => prev.filter((d) => !(d.kind === "tab" && d.id === tabId)));
-  }
-
   async function onLogout() {
     try {
       await api.post("/api/auth/logout");
@@ -141,7 +113,6 @@ export function SubjectWorkspace({
   }
   const openCard = (cardId: string, title: string) => openDoc("card", cardId, title);
   const openGroup = (groupId: string, title: string) => openDoc("group", groupId, title);
-  const openTab = (tabId: string, title: string) => openDoc("tab", tabId, title);
   const openSubject = () => openDoc("subject", subjectId, subjectName);
   // 좌측 레일에서 주제 본문 열기 — nonce가 바뀔 때만(마운트·주제 전환 리마운트 시엔 열지 않음).
   // latest-ref는 커밋 후 대입(아래 nonce effect보다 선언이 앞이라 같은 커밋에서 먼저 갱신됨).
@@ -284,56 +255,13 @@ export function SubjectWorkspace({
           <Identicon seed={subjectId} size={18} />
           <span className="dw-subject-name">{subjectName}</span>
         </div>
-        <nav className="dw-tabs">
-          {list.map((t) => {
-            const isActive = t.id === active;
-            return (
-              <span key={t.id} className={`dw-tab-wrap${isActive ? " active" : ""}`}>
-                <button
-                  type="button"
-                  className={`dw-tab${isActive ? " active" : ""}`}
-                  title={t.kind === "WHITEBOARD" ? "화이트보드" : undefined}
-                  onClick={() => pushRoute({ subjectId, tabId: t.id, view, doc: route.doc })}
-                >
-                  {t.kind === "WHITEBOARD" && <span className="dw-tab-glyph">▦</span>}
-                  {t.name}
-                </button>
-                {isActive && (
-                  <button
-                    type="button"
-                    className="dw-tab-doc"
-                    onClick={() => openTab(t.id, t.name)}
-                    title="탭 본문 열기"
-                    aria-label="탭 본문"
-                  >
-                    ▤
-                  </button>
-                )}
-                {isActive && (
-                  <button
-                    type="button"
-                    className="dw-tab-x"
-                    onClick={() => void onDeleteTab(t.id, t.name, t.kind ?? "DAG")}
-                    title="삭제"
-                    aria-label="탭 삭제"
-                  >
-                    ✕
-                  </button>
-                )}
-              </span>
-            );
-          })}
-          <button type="button" className="dw-tab-add" onClick={() => void onCreateTab("DAG")}>
-            + 탭
-          </button>
-          <button
-            type="button"
-            className="dw-tab-add wb"
-            onClick={() => void onCreateTab("WHITEBOARD")}
-          >
-            ▦ + 화이트보드
-          </button>
-        </nav>
+        {/* 보드 전환·생성·삭제는 좌측 Explorer 트리로 일원화 — 헤더엔 현재 탭 이름만 표시. */}
+        {activeTab && (
+          <div className="dw-current" title={activeTab.name}>
+            {activeTab.kind === "WHITEBOARD" && <span className="dw-tab-glyph">▦</span>}
+            {activeTab.name}
+          </div>
+        )}
         {activeTab?.kind !== "WHITEBOARD" && (
           <div className="dw-views">
             <button
@@ -408,7 +336,9 @@ export function SubjectWorkspace({
           )
         ) : (
           <div className="dw-empty">
-            {tabs.isLoading ? "불러오는 중..." : '탭이 없습니다. "+ 탭"으로 만들어 보세요.'}
+            {tabs.isLoading
+              ? "불러오는 중..."
+              : "탭이 없습니다. 왼쪽 탐색기에서 ＋ 탭 또는 ＋ 화이트보드로 만들어 보세요."}
           </div>
         )}
       </main>

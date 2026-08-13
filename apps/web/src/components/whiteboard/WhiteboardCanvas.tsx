@@ -37,6 +37,7 @@ import {
   NEW_NODE_H,
   NEW_NODE_W,
   ZOOM_STEP,
+  rectContains,
   rectsIntersect,
   unionBounds,
   type Rect,
@@ -62,7 +63,8 @@ type DragRef =
       fixedNodeId: string;
       movingPrevNodeId: string;
     }
-  | { kind: "marquee"; swx: number; swy: number; base: ReadonlySet<string> };
+  | { kind: "marquee"; swx: number; swy: number; base: ReadonlySet<string> }
+  | { kind: "draw"; points: { x: number; y: number }[] };
 
 const FIT_PADDING = 64;
 const DUPLICATE_OFFSET = 24;
@@ -85,12 +87,16 @@ function markTourSeen() {
   }
 }
 
-/** WB-B 노드 kind별 생성 기본 크기. */
-const CREATE_SIZE: Record<"STICKY" | "SHAPE" | "TEXT", { w: number; h: number }> = {
+/** WB-B/E 노드 kind별 생성 기본 크기. */
+const CREATE_SIZE: Record<"STICKY" | "SHAPE" | "TEXT" | "SECTION", { w: number; h: number }> = {
   STICKY: { w: 170, h: 170 },
   SHAPE: { w: 160, h: 110 },
   TEXT: { w: 220, h: 60 },
+  SECTION: { w: 480, h: 320 },
 };
+/** 펜 스트로크 bbox 여백·점 수 상한(폭주 방지). */
+const PEN_PAD = 8;
+const PEN_MAX_POINTS = 2000;
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -154,11 +160,18 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [spaceHeld, setSpaceHeld] = useState(false);
+  // WB-E 펜 모드 — 켜져 있는 동안 배경 드래그가 마퀴 대신 스트로크가 된다(Esc·재클릭으로 종료).
+  const [penMode, setPenMode] = useState(false);
+  const [drawing, setDrawing] = useState<{ x: number; y: number }[] | null>(null);
   // 온보딩 투어 — 첫 방문에만 자동 시작, 이후엔 툴바 ? 버튼으로 재실행.
   const [tourOpen, setTourOpen] = useState(() => !tourAlreadySeen());
 
   const nodes = graph.data?.nodes ?? [];
   const edges = graph.data?.edges ?? [];
+  // 섹션은 항상 다른 노드 아래에 깔린다(WB-E) — 렌더 순서 = 페인트 순서(stable sort).
+  const orderedNodes = [...nodes].sort(
+    (a, b) => (a.kind === "SECTION" ? 0 : 1) - (b.kind === "SECTION" ? 0 : 1),
+  );
 
   function sizeOf(n: WbNode) {
     return { w: n.width ?? NEW_NODE_W, h: n.height ?? NEW_NODE_H };
@@ -332,6 +345,13 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       return;
     }
     if (e.button !== 0) return;
+    if (penMode) {
+      outerRef.current?.setPointerCapture(e.pointerId);
+      const w = toWorld(e.clientX, e.clientY);
+      dragRef.current = { kind: "draw", points: [w] };
+      setDrawing([w]);
+      return;
+    }
     outerRef.current?.setPointerCapture(e.pointerId);
     const w = toWorld(e.clientX, e.clientY);
     const base: ReadonlySet<string> = e.shiftKey ? new Set(selectedIds) : new Set<string>();
@@ -369,8 +389,19 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     } else if (d.kind === "marquee") {
       const rect = normRect(d.swx, d.swy, w.x, w.y);
       setMarquee(rect);
-      const hit = nodes.filter((n) => rectsIntersect(rect, rectOf(n))).map((n) => n.id);
+      // 섹션은 마퀴에 완전히 들어와야 선택 — 섹션 안에서의 부분 마퀴가 섹션까지 끌고 오지 않게.
+      const hit = nodes
+        .filter((n) =>
+          n.kind === "SECTION" ? rectContains(rect, rectOf(n)) : rectsIntersect(rect, rectOf(n)),
+        )
+        .map((n) => n.id);
       setSelectedIds(new Set([...d.base, ...hit]));
+    } else if (d.kind === "draw") {
+      const last = d.points[d.points.length - 1];
+      if (d.points.length < PEN_MAX_POINTS && Math.hypot(w.x - last.x, w.y - last.y) >= 2) {
+        d.points.push({ x: w.x, y: w.y });
+        setDrawing([...d.points]);
+      }
     }
   }
 
@@ -443,6 +474,9 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       setLink(null);
     } else if (d.kind === "marquee") {
       setMarquee(null);
+    } else if (d.kind === "draw") {
+      setDrawing(null);
+      if (d.points.length >= 2) void createPenNode(d.points);
     }
   }
 
@@ -450,6 +484,8 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     for (let i = nodes.length - 1; i >= 0; i--) {
       const n = nodes[i];
       if (n.id === excludeId) continue;
+      // 섹션은 배경 레이어 — 더블클릭 생성·연결 드롭 대상에서 제외(제목 바로만 조작).
+      if (n.kind === "SECTION") continue;
       const r = rectOf(n);
       if (wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h) return n;
     }
@@ -550,8 +586,46 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     void createAtWorld(w.x, w.y);
   }
 
-  /** WB-B 노드 생성 — kind별 기본 크기·색으로 화면 중앙에(도형은 rect로 시작). undo 기록 포함. */
-  async function createKindAtCenter(kind: "STICKY" | "SHAPE" | "TEXT") {
+  /** WB-E 펜 스트로크 → PEN 노드. 점은 노드 원점 기준 상대 좌표(attrs.points 평탄 배열)로 저장. */
+  async function createPenNode(points: { x: number; y: number }[]) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of points) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+    const x = minX - PEN_PAD;
+    const y = minY - PEN_PAD;
+    const w = Math.max(24, maxX - minX + PEN_PAD * 2);
+    const h = Math.max(24, maxY - minY + PEN_PAD * 2);
+    const rel = points.flatMap((p) => [
+      Math.round((p.x - x) * 10) / 10,
+      Math.round((p.y - y) * 10) / 10,
+    ]);
+    try {
+      const node = await createNode.mutateAsync({
+        kind: "PEN",
+        x: Math.round(x),
+        y: Math.round(y),
+        width: Math.round(w),
+        height: Math.round(h),
+        attrs: { color: DEFAULT_COLOR.PEN, points: rel, ow: Math.round(w), oh: Math.round(h) },
+      });
+      history.push({
+        undo: () => deleteNode.mutate(node.id),
+        redo: () => restoreNode.mutate(node.id),
+      });
+    } catch {
+      void dialogs.alert("펜 스트로크 저장에 실패했습니다.");
+    }
+  }
+
+  /** WB-B/E 노드 생성 — kind별 기본 크기·색으로 화면 중앙에(도형은 rect로 시작). undo 기록 포함. */
+  async function createKindAtCenter(kind: "STICKY" | "SHAPE" | "TEXT" | "SECTION") {
     const w = viewportCenterWorld();
     const size = CREATE_SIZE[kind];
     try {
@@ -704,13 +778,15 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     });
   }
 
-  /** Escape — 진행 중 제스처·선택 모두 해제. */
+  /** Escape — 진행 중 제스처·선택·펜 모드 모두 해제. */
   function cancelGestures() {
     dragRef.current = null;
     setMoving(null);
     setResizing(null);
     setLink(null);
     setMarquee(null);
+    setDrawing(null);
+    setPenMode(false);
     setSelectedIds(new Set<string>());
   }
 
@@ -831,7 +907,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
 
   return (
     <div
-      className={`wb${spaceHeld ? " hand" : ""}`}
+      className={`wb${spaceHeld ? " hand" : ""}${penMode ? " pen" : ""}`}
       ref={outerRef}
       onPointerDown={onBgPointerDown}
       onPointerMove={onPointerMove}
@@ -864,7 +940,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           onEditLabel={onEditLabel}
           onEndpointDown={beginReconnect}
         />
-        {nodes.map((n) => {
+        {orderedNodes.map((n) => {
           const r = rectOf(n);
           // 드래그/리사이즈 중이 아닌 노드는 원본 객체 그대로 넘겨 memo가 재렌더를 건너뛰게 한다.
           const shown =
@@ -890,6 +966,14 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
             />
           );
         })}
+        {drawing && drawing.length >= 2 && (
+          <svg className="wb-draw-temp" width={1} height={1} aria-hidden="true">
+            <polyline
+              points={drawing.map((p) => `${p.x},${p.y}`).join(" ")}
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        )}
       </div>
       {marquee && (
         <div
@@ -917,6 +1001,17 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         </button>
         <button type="button" onClick={() => void createKindAtCenter("TEXT")}>
           + 텍스트
+        </button>
+        <button type="button" onClick={() => void createKindAtCenter("SECTION")}>
+          + 섹션
+        </button>
+        <button
+          type="button"
+          className={penMode ? "active" : ""}
+          title="펜 드로잉 — 배경을 드래그해 그리기 (Esc·재클릭으로 종료)"
+          onClick={() => setPenMode((v) => !v)}
+        >
+          ✏ 펜
         </button>
         <span className="wb-sep" />
         <span className="wb-tool-group" data-tour="zoom">

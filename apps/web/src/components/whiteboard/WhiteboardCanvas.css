@@ -19,6 +19,9 @@
 .wb.hand {
   cursor: grab;
 }
+.wb.pen {
+  cursor: crosshair;
+}
 .wb.hand:active {
   cursor: grabbing;
 }
@@ -390,6 +393,83 @@
 .wb-node.text.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* WB-E — 펜 스트로크 노드 */
+.wb-node.pen {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.wb-node.pen.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.wb-pen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.wb-pen polyline {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wb-draw-temp {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.wb-draw-temp polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* WB-E — 섹션(배경 컨테이너): 본문은 이벤트 통과, 제목 바로만 이동·선택 */
+.wb-node.section {
+  background: color-mix(in srgb, var(--wb-fill) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wb-fill) 45%, transparent);
+  border-radius: 4px;
+  box-shadow: none;
+  overflow: visible;
+  pointer-events: none;
+}
+.wb-node.section.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.wb-section-title {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  max-width: 60%;
+  padding: 3px 10px;
+  background: color-mix(in srgb, var(--wb-fill) 30%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--wb-fill) 45%, transparent);
+  border-radius: 4px 0 4px 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
+  cursor: grab;
+}
+.wb-node.section .wb-node-del,
+.wb-node.section .wb-node-nub,
+.wb-node.section .wb-node-resize,
+.wb-node.section .wb-node-edit {
+  pointer-events: auto;
 }
 
 /* 선택 팔레트 바 — 스티키·도형·텍스트 선택 시 툴바 위에 표시 */

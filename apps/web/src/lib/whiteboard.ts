@@ -6,7 +6,7 @@ import { optimisticUpdate, rollbackTo } from "./optimistic";
 
 type Uuid = string;
 
-export type WhiteboardNodeKind = "MD" | "IMAGE" | "STICKY" | "SHAPE" | "TEXT";
+export type WhiteboardNodeKind = "MD" | "IMAGE" | "STICKY" | "SHAPE" | "TEXT" | "PEN" | "SECTION";
 
 export interface WhiteboardNode {
   id: Uuid;

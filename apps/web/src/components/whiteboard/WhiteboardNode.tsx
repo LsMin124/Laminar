@@ -3,7 +3,7 @@ import { MarkdownView } from "../doc/MarkdownDoc";
 import { useAttachmentInlineUrl } from "../../lib/attachments";
 import type { WhiteboardNode as WbNode } from "../../lib/whiteboard";
 import { NEW_NODE_H, NEW_NODE_W } from "./whiteboardGeometry";
-import { paletteEntry, shapeOf } from "./whiteboardPalette";
+import { COLORABLE_KINDS, paletteEntry, shapeOf } from "./whiteboardPalette";
 
 /** 이미지 노드의 첨부 id — attrs.attachmentId(문자열)만 채택, 없으면 null(업로드 중). */
 function imageAttachmentId(node: WbNode): string | null {
@@ -13,9 +13,9 @@ function imageAttachmentId(node: WbNode): string | null {
 
 type EditorMode = "md" | "body" | "label";
 
-/** kind별 인라인 편집 형태 — md=제목+본문, 스티키·텍스트=본문만, 도형=라벨만. */
+/** kind별 인라인 편집 형태 — md=제목+본문, 스티키·텍스트=본문만, 도형·섹션=라벨만. */
 function editorModeOf(kind: WbNode["kind"]): EditorMode {
-  if (kind === "SHAPE") return "label";
+  if (kind === "SHAPE" || kind === "SECTION") return "label";
   if (kind === "STICKY" || kind === "TEXT") return "body";
   return "md";
 }
@@ -60,8 +60,11 @@ export const WhiteboardNode = memo(function WhiteboardNode({
   const h = node.height ?? NEW_NODE_H;
   const isImage = node.kind === "IMAGE";
   const isShape = node.kind === "SHAPE";
-  const colored = node.kind === "STICKY" || node.kind === "SHAPE" || node.kind === "TEXT";
-  const pal = colored ? paletteEntry(node.attrs.color, node.kind) : null;
+  const isPen = node.kind === "PEN";
+  const isSection = node.kind === "SECTION";
+  // 이미지는 본문 편집이 없고 펜은 편집 대상 자체가 없다.
+  const editable = !isImage && !isPen;
+  const pal = COLORABLE_KINDS.has(node.kind) ? paletteEntry(node.attrs.color, node.kind) : null;
   // 마크다운 파싱은 본문이 바뀔 때만 — 이 노드 자신의 드래그 프레임에서도 캐시가 유지된다.
   const mdBody = useMemo(
     () => (node.bodyMd ? <MarkdownView source={node.bodyMd} /> : null),
@@ -88,17 +91,20 @@ export const WhiteboardNode = memo(function WhiteboardNode({
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        // 이미지 노드는 본문 편집이 없으므로 더블클릭 편집 진입 안 함.
-        if (!isImage) onStartEdit(node.id);
+        if (editable) onStartEdit(node.id);
       }}
     >
-      {editing && !isImage ? (
+      {editing && editable ? (
         <NodeEditor
           node={node}
           mode={editorModeOf(node.kind)}
           onSave={onSaveEdit}
           onCancel={onCancelEdit}
         />
+      ) : isPen ? (
+        <PenBody node={node} stroke={pal?.fill ?? "var(--accent)"} />
+      ) : isSection ? (
+        <div className="wb-section-title">{node.text || "섹션"}</div>
       ) : isShape ? (
         <>
           <div className={`wb-shape ${shapeOf(node.attrs)}`} />
@@ -143,6 +149,35 @@ export const WhiteboardNode = memo(function WhiteboardNode({
     </div>
   );
 });
+
+/** attrs.points(평탄 [x0,y0,...]) → SVG polyline points 문자열. 숫자 배열이 아니면 빈 문자열. */
+function penPointsOf(attrs: Record<string, unknown>): string {
+  const raw = attrs.points;
+  if (!Array.isArray(raw)) return "";
+  const parts: string[] = [];
+  for (let i = 0; i + 1 < raw.length; i += 2) {
+    const x = raw[i];
+    const y = raw[i + 1];
+    if (typeof x !== "number" || typeof y !== "number") return "";
+    parts.push(`${x},${y}`);
+  }
+  return parts.join(" ");
+}
+
+/** 펜 스트로크 — 저장 당시 bbox(attrs.ow/oh)를 viewBox로 그려 리사이즈 시 스트로크가 함께 스케일된다. */
+function PenBody({ node, stroke }: { node: WbNode; stroke: string }) {
+  const ow =
+    typeof node.attrs.ow === "number" && node.attrs.ow > 0 ? node.attrs.ow : (node.width ?? NEW_NODE_W);
+  const oh =
+    typeof node.attrs.oh === "number" && node.attrs.oh > 0
+      ? node.attrs.oh
+      : (node.height ?? NEW_NODE_H);
+  return (
+    <svg className="wb-pen" viewBox={`0 0 ${ow} ${oh}`} preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={penPointsOf(node.attrs)} style={{ stroke }} />
+    </svg>
+  );
+}
 
 /** 이미지 노드 본문 — 인라인 presigned URL(5분 TTL, 자동 갱신)로 {@code <img>} 렌더. */
 function ImageNodeBody({ attachmentId }: { attachmentId: string | null }) {

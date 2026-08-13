@@ -24,17 +24,22 @@ export const WB_PALETTE: readonly WbPaletteEntry[] = [
 ];
 
 /** kind별 기본 색 id — 생성 시 attrs.color에 기록된다. */
-export const DEFAULT_COLOR: Record<"STICKY" | "SHAPE" | "TEXT", string> = {
+export const DEFAULT_COLOR: Record<"STICKY" | "SHAPE" | "TEXT" | "PEN" | "SECTION", string> = {
   STICKY: "amber",
   SHAPE: "blue",
   TEXT: "gray",
+  PEN: "orange",
+  SECTION: "gray",
 };
+
+function isColorableKind(kind: WhiteboardNode["kind"]): kind is keyof typeof DEFAULT_COLOR {
+  return kind !== "MD" && kind !== "IMAGE";
+}
 
 /** attrs.color(id)를 팔레트 항목으로 — 모르는 id·비문자열은 kind 기본색, 그것도 없으면 gray. */
 export function paletteEntry(colorId: unknown, kind: WhiteboardNode["kind"]): WbPaletteEntry {
   const requested = typeof colorId === "string" ? colorId : null;
-  const fallback =
-    kind === "STICKY" || kind === "SHAPE" || kind === "TEXT" ? DEFAULT_COLOR[kind] : "gray";
+  const fallback = isColorableKind(kind) ? DEFAULT_COLOR[kind] : "gray";
   return (
     WB_PALETTE.find((p) => p.id === requested) ??
     WB_PALETTE.find((p) => p.id === fallback) ??
@@ -55,4 +60,6 @@ export const COLORABLE_KINDS: ReadonlySet<WhiteboardNode["kind"]> = new Set([
   "STICKY",
   "SHAPE",
   "TEXT",
+  "PEN",
+  "SECTION",
 ]);

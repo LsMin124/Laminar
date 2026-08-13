@@ -95,6 +95,11 @@ export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 3;
 export const ZOOM_STEP = 1.1;
 
+/** a가 b를 완전히 포함하는가 — 섹션은 마퀴에 완전히 들어와야 선택된다(WB-E). */
+export function rectContains(a: Rect, b: Rect): boolean {
+  return b.x >= a.x && b.y >= a.y && b.x + b.w <= a.x + a.w && b.y + b.h <= a.y + a.h;
+}
+
 /** 두 사각형이 겹치는지(경계 접촉 포함) — 마퀴 선택 판정. */
 export function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;

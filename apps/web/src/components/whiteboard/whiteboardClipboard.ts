@@ -80,7 +80,15 @@ function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
 }
 
-const NODE_KINDS: ReadonlySet<string> = new Set(["MD", "IMAGE", "STICKY", "SHAPE", "TEXT"]);
+const NODE_KINDS: ReadonlySet<string> = new Set([
+  "MD",
+  "IMAGE",
+  "STICKY",
+  "SHAPE",
+  "TEXT",
+  "PEN",
+  "SECTION",
+]);
 
 function parseNode(v: unknown): NodeSnapshot | null {
   if (typeof v !== "object" || v === null) return null;

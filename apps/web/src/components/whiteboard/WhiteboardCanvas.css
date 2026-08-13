@@ -308,3 +308,93 @@
   color: var(--muted);
   font-size: 13px;
 }
+.wb-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 온보딩 투어 — 스팟라이트(구멍 뚫린 딤) + 코치마크 팝업 */
+.wb-tour {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+.wb-tour.dim {
+  background: rgba(0, 0, 0, 0.55);
+}
+.wb-tour-hole {
+  position: absolute;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  /* 거대 box-shadow로 구멍 밖 전체를 딤 — .wb overflow:hidden이 밖으로 새는 것을 잘라준다. */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  transition:
+    left 200ms ease,
+    top 200ms ease,
+    width 200ms ease,
+    height 200ms ease;
+}
+.wb-tour-pop {
+  position: absolute;
+  width: 280px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  cursor: default;
+}
+.wb-tour-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.wb-tour-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.wb-tour-count {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+}
+.wb-tour-body {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+.wb-tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 10px;
+}
+.wb-tour-foot button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.wb-tour-foot button.primary {
+  background: var(--accent);
+  border-color: var(--accent-border);
+  color: var(--accent-foreground);
+}
+.wb-tour-foot button.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  margin-right: auto;
+}
+.wb-tour-foot button.ghost:hover {
+  color: var(--text);
+}

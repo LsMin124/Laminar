@@ -14,6 +14,7 @@ import {
 } from "../../lib/whiteboard";
 import { WhiteboardEdges } from "./WhiteboardEdges";
 import { WhiteboardNode } from "./WhiteboardNode";
+import { WhiteboardTour } from "./WhiteboardTour";
 import {
   getFallbackClipboard,
   parseClipboardText,
@@ -54,6 +55,23 @@ type DragRef =
 const FIT_PADDING = 64;
 const DUPLICATE_OFFSET = 24;
 const HOME_VIEW = { scale: 1, panX: 80, panY: 80 };
+const TOUR_DONE_KEY = "laminar.wbTourDone";
+
+function tourAlreadySeen(): boolean {
+  try {
+    return window.localStorage.getItem(TOUR_DONE_KEY) === "1";
+  } catch {
+    // 저장소 접근 불가 환경 — 매 방문 자동 표시로 방해하지 않는다(? 버튼으로 열 수 있음).
+    return true;
+  }
+}
+function markTourSeen() {
+  try {
+    window.localStorage.setItem(TOUR_DONE_KEY, "1");
+  } catch {
+    // 기록 실패는 무해 — 다음 방문에 안내가 한 번 더 보일 뿐.
+  }
+}
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -111,6 +129,8 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [spaceHeld, setSpaceHeld] = useState(false);
+  // 온보딩 투어 — 첫 방문에만 자동 시작, 이후엔 툴바 ? 버튼으로 재실행.
+  const [tourOpen, setTourOpen] = useState(() => !tourAlreadySeen());
 
   const nodes = graph.data?.nodes ?? [];
   const edges = graph.data?.edges ?? [];
@@ -549,7 +569,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   }
 
   useWhiteboardShortcuts({
-    enabled: editingId === null,
+    enabled: editingId === null && !tourOpen,
     onDeleteSelection: deleteSelection,
     onSelectAll: () => setSelectedIds(new Set(nodes.map((n) => n.id))),
     onEscape: cancelGestures,
@@ -572,6 +592,10 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     setEditingId(null);
   });
   const handleCancelEdit = useCallback(() => setEditingId(null), []);
+  const closeTour = useCallback(() => {
+    markTourSeen();
+    setTourOpen(false);
+  }, []);
 
   // 휠 리스너 effect는 mount 1회만 실행되므로 ref 컨테이너(.wb)는 로딩/오류 중에도 항상 렌더한다 —
   // 조기 return하면 outerRef가 빈 채로 effect가 끝나 리스너가 영영 안 붙는다(스크롤·줌 무반응 회귀).
@@ -644,25 +668,31 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         />
       )}
       <div className="wb-toolbar" onPointerDown={(e) => e.stopPropagation()}>
-        <button type="button" onClick={addNodeAtCenter}>
+        <button type="button" data-tour="add-node" onClick={addNodeAtCenter}>
           + 노드
         </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
+        <button type="button" data-tour="add-image" onClick={() => fileInputRef.current?.click()}>
           + 이미지
         </button>
         <span className="wb-sep" />
-        <button type="button" onClick={() => zoomAtCenter(view.scale / ZOOM_STEP)} aria-label="축소">
-          −
-        </button>
-        <span className="wb-zoom">{Math.round(view.scale * 100)}%</span>
-        <button type="button" onClick={() => zoomAtCenter(view.scale * ZOOM_STEP)} aria-label="확대">
-          ＋
-        </button>
-        <button type="button" onClick={zoomToFit} title="전체 맞춤 (Shift+1)">
-          맞춤
-        </button>
-        <button type="button" onClick={() => zoomAtCenter(1)} title="100% (Ctrl+0)">
-          100%
+        <span className="wb-tool-group" data-tour="zoom">
+          <button type="button" onClick={() => zoomAtCenter(view.scale / ZOOM_STEP)} aria-label="축소">
+            −
+          </button>
+          <span className="wb-zoom">{Math.round(view.scale * 100)}%</span>
+          <button type="button" onClick={() => zoomAtCenter(view.scale * ZOOM_STEP)} aria-label="확대">
+            ＋
+          </button>
+          <button type="button" onClick={zoomToFit} title="전체 맞춤 (Shift+1)">
+            맞춤
+          </button>
+          <button type="button" onClick={() => zoomAtCenter(1)} title="100% (Ctrl+0)">
+            100%
+          </button>
+        </span>
+        <span className="wb-sep" />
+        <button type="button" data-tour="help" title="사용 안내 다시 보기" onClick={() => setTourOpen(true)}>
+          ?
         </button>
       </div>
       <input
@@ -679,6 +709,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           Space·휠클릭 드래그=이동 · 휠=스크롤 · Ctrl+휠=줌 · 이미지는 드롭/붙여넣기.
         </div>
       )}
+      {tourOpen && <WhiteboardTour containerRef={outerRef} onClose={closeTour} />}
     </div>
   );
 }

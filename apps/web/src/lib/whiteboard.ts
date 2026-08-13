@@ -127,6 +127,16 @@ export function useDeleteNode(tabId: string) {
   });
 }
 
+/** WB-C undo — 노드 soft-delete 복구(같은 id 유지). 딸린 엣지는 삭제되지 않으므로 함께 재등장한다. */
+export function useRestoreNode(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (nodeId: string) =>
+      api.post<WhiteboardNode>(`/api/whiteboard-nodes/${nodeId}/restore`, {}),
+    onSettled: () => invalidate(qc, tabId),
+  });
+}
+
 export function useCreateEdge(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -140,6 +150,16 @@ export function useDeleteEdge(tabId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (edgeId: string) => api.delete<void>(`/api/whiteboard-edges/${edgeId}`),
+    onSettled: () => invalidate(qc, tabId),
+  });
+}
+
+/** WB-C undo — 엣지 soft-delete 복구(같은 id 유지). */
+export function useRestoreEdge(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (edgeId: string) =>
+      api.post<WhiteboardEdge>(`/api/whiteboard-edges/${edgeId}/restore`, {}),
     onSettled: () => invalidate(qc, tabId),
   });
 }

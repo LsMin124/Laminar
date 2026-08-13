@@ -90,4 +90,19 @@ class WhiteboardNodeControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.kind").value("STICKY"));
   }
+
+  @Test
+  void 노드_restore는_200과_노드를_반환한다() throws Exception {
+    UUID nodeId = UUID.randomUUID();
+    WhiteboardNodeEntity node = new WhiteboardNodeEntity();
+    node.setId(nodeId);
+    node.setKind(WhiteboardNodeKind.MD);
+    node.setX(1.0);
+    node.setY(2.0);
+    given(service.restore(nodeId)).willReturn(node);
+
+    mvc.perform(post("/api/whiteboard-nodes/{id}/restore", nodeId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(nodeId.toString()));
+  }
 }

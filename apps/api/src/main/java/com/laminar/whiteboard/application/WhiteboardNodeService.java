@@ -2,6 +2,7 @@ package com.laminar.whiteboard.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.NotFoundException;
 import com.laminar.whiteboard.domain.WhiteboardNodeEntity;
 import com.laminar.whiteboard.domain.WhiteboardNodeKind;
 import com.laminar.whiteboard.repository.WhiteboardNodeRepository;
@@ -80,6 +81,22 @@ public class WhiteboardNodeService {
               node.setDeletedAt(OffsetDateTime.now());
               nodeRepo.save(node);
             });
+  }
+
+  /**
+   * WB-C undo — soft-delete 복구(같은 id 유지, 이미 활성이면 멱등). 노드 삭제는 엣지를 건드리지 않으므로 노드 복구만으로 딸린 엣지가 그래프에
+   * 재등장한다. 삭제 행 조회라 findOwnedActive 대신 findById + 소유 검증(없음/남의 것=404 동일 응답).
+   */
+  @Transactional
+  public WhiteboardNodeEntity restore(UUID nodeId) {
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("whiteboard nodes");
+    WhiteboardNodeEntity node =
+        nodeRepo
+            .findById(nodeId)
+            .filter(e -> ctx.ownsPersonal(e.getSubjectId(), e.getUserId()))
+            .orElseThrow(() -> new NotFoundException("whiteboard node not found"));
+    node.setDeletedAt(null);
+    return nodeRepo.save(node);
   }
 
   public record CreateInput(

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDialogs } from "../ui/DialogProvider";
 import { isSupportedImage, uploadImageAttachment } from "../../lib/attachments";
 import {
@@ -6,6 +6,8 @@ import {
   useCreateNode,
   useDeleteEdge,
   useDeleteNode,
+  useRestoreEdge,
+  useRestoreNode,
   useUpdateEdge,
   useUpdateNode,
   useWhiteboardGraph,
@@ -16,6 +18,7 @@ import { WhiteboardEdges } from "./WhiteboardEdges";
 import { WhiteboardNode } from "./WhiteboardNode";
 import { WhiteboardTour } from "./WhiteboardTour";
 import { COLORABLE_KINDS, DEFAULT_COLOR, WB_PALETTE, type WbShape } from "./whiteboardPalette";
+import { WbHistory } from "./whiteboardHistory";
 import {
   getFallbackClipboard,
   parseClipboardText,
@@ -115,7 +118,12 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const createEdge = useCreateEdge(tabId);
   const deleteEdge = useDeleteEdge(tabId);
   const updateEdge = useUpdateEdge(tabId);
+  const restoreNode = useRestoreNode(tabId);
+  const restoreEdge = useRestoreEdge(tabId);
   const dialogs = useDialogs();
+  // WB-C undo/redo 스택 — 탭이 바뀌면 새로 시작(다른 탭의 명령이 섞이지 않게).
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tabId 변경 시 새 스택 생성이 목적(값 참조 아님)
+  const history = useMemo(() => new WbHistory(), [tabId]);
 
   const outerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -354,24 +362,43 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     if (!d) return;
     if (d.kind === "move") {
       if (moving && d.moved) {
-        for (const [id, p] of Object.entries(moving)) {
-          updateNode.mutate({ nodeId: id, x: Math.round(p.x), y: Math.round(p.y) });
+        const before = d.starts;
+        const after = Object.fromEntries(
+          Object.entries(moving).map(([id, p]) => [id, { x: Math.round(p.x), y: Math.round(p.y) }]),
+        );
+        for (const [id, p] of Object.entries(after)) {
+          updateNode.mutate({ nodeId: id, x: p.x, y: p.y });
         }
+        history.push({
+          undo: () => {
+            for (const [id, p] of Object.entries(before)) {
+              updateNode.mutate({ nodeId: id, x: Math.round(p.x), y: Math.round(p.y) });
+            }
+          },
+          redo: () => {
+            for (const [id, p] of Object.entries(after)) {
+              updateNode.mutate({ nodeId: id, x: p.x, y: p.y });
+            }
+          },
+        });
       }
       setMoving(null);
     } else if (d.kind === "resize") {
       if (resizing) {
-        updateNode.mutate({
-          nodeId: resizing.id,
-          width: Math.round(resizing.w),
-          height: Math.round(resizing.h),
+        const nodeId = resizing.id;
+        const before = { width: Math.round(d.ow), height: Math.round(d.oh) };
+        const after = { width: Math.round(resizing.w), height: Math.round(resizing.h) };
+        updateNode.mutate({ nodeId, ...after });
+        history.push({
+          undo: () => updateNode.mutate({ nodeId, ...before }),
+          redo: () => updateNode.mutate({ nodeId, ...after }),
         });
       }
       setResizing(null);
     } else if (d.kind === "link") {
       const w = toWorld(e.clientX, e.clientY);
       const target = nodeAt(w.x, w.y, d.fromId);
-      if (target) createEdge.mutate({ fromNodeId: d.fromId, toNodeId: target.id });
+      if (target) void createEdgeWithHistory(d.fromId, target.id);
       setLink(null);
     } else if (d.kind === "marquee") {
       setMarquee(null);
@@ -388,16 +415,37 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     return null;
   }
 
-  function createAtWorld(wx: number, wy: number) {
-    createNode.mutate({
-      kind: "MD",
-      x: Math.round(wx - NEW_NODE_W / 2),
-      y: Math.round(wy - NEW_NODE_H / 2),
-      width: NEW_NODE_W,
-      height: NEW_NODE_H,
-      text: "",
-      bodyMd: "",
-    });
+  async function createAtWorld(wx: number, wy: number) {
+    try {
+      const node = await createNode.mutateAsync({
+        kind: "MD",
+        x: Math.round(wx - NEW_NODE_W / 2),
+        y: Math.round(wy - NEW_NODE_H / 2),
+        width: NEW_NODE_W,
+        height: NEW_NODE_H,
+        text: "",
+        bodyMd: "",
+      });
+      history.push({
+        undo: () => deleteNode.mutate(node.id),
+        redo: () => restoreNode.mutate(node.id),
+      });
+    } catch {
+      void dialogs.alert("노드 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
+  /** 엣지 생성 + undo 기록 — restore로 같은 id가 유지된다. */
+  async function createEdgeWithHistory(fromNodeId: string, toNodeId: string) {
+    try {
+      const edge = await createEdge.mutateAsync({ fromNodeId, toNodeId });
+      history.push({
+        undo: () => deleteEdge.mutate(edge.id),
+        redo: () => restoreEdge.mutate(edge.id),
+      });
+    } catch {
+      // 동일 연결이 이미 있는 경우(활성 유니크) — 새 정보가 없으니 조용히 무시한다.
+    }
   }
 
   /** 이미지 노드 생성 → R2 업로드 → attrs.attachmentId patch. 업로드 실패 시 방금 만든 노드를 제거(고아 방지). */
@@ -414,6 +462,10 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     try {
       const attachmentId = await uploadImageAttachment(file, "WHITEBOARD_NODE", node.id);
       await updateNode.mutateAsync({ nodeId: node.id, attrs: { attachmentId } });
+      history.push({
+        undo: () => deleteNode.mutate(node.id),
+        redo: () => restoreNode.mutate(node.id),
+      });
     } catch {
       deleteNode.mutate(node.id);
       // 업로드 실패를 무음으로 흘리면 "노드가 사라졌다"로만 보인다(Q8) — 원인 힌트와 함께 알린다.
@@ -433,7 +485,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       if (hit.kind !== "IMAGE") setEditingId(hit.id);
       return;
     }
-    createAtWorld(w.x, w.y);
+    void createAtWorld(w.x, w.y);
   }
 
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -454,37 +506,60 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
 
   function addNodeAtCenter() {
     const w = viewportCenterWorld();
-    createAtWorld(w.x, w.y);
+    void createAtWorld(w.x, w.y);
   }
 
-  /** WB-B 노드 생성 — kind별 기본 크기·색으로 화면 중앙에(도형은 rect로 시작). */
-  function createKindAtCenter(kind: "STICKY" | "SHAPE" | "TEXT") {
+  /** WB-B 노드 생성 — kind별 기본 크기·색으로 화면 중앙에(도형은 rect로 시작). undo 기록 포함. */
+  async function createKindAtCenter(kind: "STICKY" | "SHAPE" | "TEXT") {
     const w = viewportCenterWorld();
     const size = CREATE_SIZE[kind];
-    createNode.mutate({
-      kind,
-      x: Math.round(w.x - size.w / 2),
-      y: Math.round(w.y - size.h / 2),
-      width: size.w,
-      height: size.h,
-      text: "",
-      bodyMd: "",
-      attrs:
-        kind === "SHAPE"
-          ? { color: DEFAULT_COLOR.SHAPE, shape: "rect" }
-          : { color: DEFAULT_COLOR[kind] },
-    });
+    try {
+      const node = await createNode.mutateAsync({
+        kind,
+        x: Math.round(w.x - size.w / 2),
+        y: Math.round(w.y - size.h / 2),
+        width: size.w,
+        height: size.h,
+        text: "",
+        bodyMd: "",
+        attrs:
+          kind === "SHAPE"
+            ? { color: DEFAULT_COLOR.SHAPE, shape: "rect" }
+            : { color: DEFAULT_COLOR[kind] },
+      });
+      history.push({
+        undo: () => deleteNode.mutate(node.id),
+        redo: () => restoreNode.mutate(node.id),
+      });
+    } catch {
+      void dialogs.alert("노드 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    }
   }
 
   async function onEditLabel(edge: WhiteboardEdge) {
     const value = await dialogs.prompt({ title: "화살표 라벨", placeholder: edge.label ?? "관계 설명" });
     if (value === null) return;
-    updateEdge.mutate({ edgeId: edge.id, label: value.trim() || null });
+    const before = edge.label;
+    const after = value.trim() || null;
+    updateEdge.mutate({ edgeId: edge.id, label: after });
+    history.push({
+      undo: () => updateEdge.mutate({ edgeId: edge.id, label: before }),
+      redo: () => updateEdge.mutate({ edgeId: edge.id, label: after }),
+    });
   }
 
   function deleteSelection() {
     if (selectedIds.size === 0) return;
-    for (const id of selectedIds) deleteNode.mutate(id);
+    const ids = [...selectedIds];
+    for (const id of ids) deleteNode.mutate(id);
+    history.push({
+      undo: () => {
+        for (const id of ids) restoreNode.mutate(id);
+      },
+      redo: () => {
+        for (const id of ids) deleteNode.mutate(id);
+      },
+    });
     setSelectedIds(new Set<string>());
   }
 
@@ -495,6 +570,10 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       return;
     }
     deleteNode.mutate(id);
+    history.push({
+      undo: () => restoreNode.mutate(id),
+      redo: () => deleteNode.mutate(id),
+    });
     if (selectedIds.has(id)) {
       const next = new Set(selectedIds);
       next.delete(id);
@@ -530,7 +609,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           }),
         ),
       );
-      await Promise.all(
+      const createdEdges = await Promise.all(
         c.edges.map((es) =>
           createEdge.mutateAsync({
             fromNodeId: created[es.from].id,
@@ -540,6 +619,18 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         ),
       );
       setSelectedIds(new Set(created.map((n) => n.id)));
+      const nodeIds = created.map((n) => n.id);
+      const edgeIds = createdEdges.map((edge) => edge.id);
+      history.push({
+        undo: () => {
+          for (const id of edgeIds) deleteEdge.mutate(id);
+          for (const id of nodeIds) deleteNode.mutate(id);
+        },
+        redo: () => {
+          for (const id of nodeIds) restoreNode.mutate(id);
+          for (const id of edgeIds) restoreEdge.mutate(id);
+        },
+      });
     } catch {
       void dialogs.alert("일부 노드를 붙여넣지 못했습니다.");
     }
@@ -553,10 +644,23 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   }
 
   function nudgeSelection(dx: number, dy: number) {
-    for (const n of nodes) {
-      if (!selectedIds.has(n.id)) continue;
-      updateNode.mutate({ nodeId: n.id, x: Math.round(n.x + dx), y: Math.round(n.y + dy) });
-    }
+    const moved = nodes
+      .filter((n) => selectedIds.has(n.id))
+      .map((n) => ({
+        id: n.id,
+        before: { x: Math.round(n.x), y: Math.round(n.y) },
+        after: { x: Math.round(n.x + dx), y: Math.round(n.y + dy) },
+      }));
+    if (moved.length === 0) return;
+    for (const m of moved) updateNode.mutate({ nodeId: m.id, ...m.after });
+    history.push({
+      undo: () => {
+        for (const m of moved) updateNode.mutate({ nodeId: m.id, ...m.before });
+      },
+      redo: () => {
+        for (const m of moved) updateNode.mutate({ nodeId: m.id, ...m.after });
+      },
+    });
   }
 
   /** Escape — 진행 중 제스처·선택 모두 해제. */
@@ -614,6 +718,8 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     onZoomFit: zoomToFit,
     onZoom100: () => zoomAtCenter(1),
     onSpaceChange: setSpaceHeld,
+    onUndo: () => history.undo(),
+    onRedo: () => history.redo(),
   });
 
   // memo된 WhiteboardNode에 넘기는 핸들러 — 항등성 고정으로 팬/줌/마퀴 프레임마다의 전체 노드
@@ -623,7 +729,15 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const handleResizeDown = useStableHandler(beginResize);
   const handleDelete = useStableHandler(deleteNodeOrSelection);
   const handleSaveEdit = useStableHandler((id: string, patch: { text: string; bodyMd: string }) => {
+    const node = nodes.find((n) => n.id === id);
+    const before = node ? { text: node.text ?? "", bodyMd: node.bodyMd ?? "" } : null;
     updateNode.mutate({ nodeId: id, text: patch.text, bodyMd: patch.bodyMd });
+    if (before && (before.text !== patch.text || before.bodyMd !== patch.bodyMd)) {
+      history.push({
+        undo: () => updateNode.mutate({ nodeId: id, ...before }),
+        redo: () => updateNode.mutate({ nodeId: id, text: patch.text, bodyMd: patch.bodyMd }),
+      });
+    }
     setEditingId(null);
   });
   const handleCancelEdit = useCallback(() => setEditingId(null), []);
@@ -638,16 +752,36 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   );
   const shapeSelected = colorableSelected.some((n) => n.kind === "SHAPE");
 
+  /** attrs 일괄 변경 + undo 기록 — before/after 스냅샷 쌍. */
+  function applyAttrs(
+    changes: { id: string; before: Record<string, unknown>; after: Record<string, unknown> }[],
+  ) {
+    if (changes.length === 0) return;
+    for (const c of changes) updateNode.mutate({ nodeId: c.id, attrs: c.after });
+    history.push({
+      undo: () => {
+        for (const c of changes) updateNode.mutate({ nodeId: c.id, attrs: c.before });
+      },
+      redo: () => {
+        for (const c of changes) updateNode.mutate({ nodeId: c.id, attrs: c.after });
+      },
+    });
+  }
   function applyColor(colorId: string) {
-    for (const n of colorableSelected) {
-      updateNode.mutate({ nodeId: n.id, attrs: { ...n.attrs, color: colorId } });
-    }
+    applyAttrs(
+      colorableSelected.map((n) => ({
+        id: n.id,
+        before: n.attrs,
+        after: { ...n.attrs, color: colorId },
+      })),
+    );
   }
   function applyShape(shape: WbShape) {
-    for (const n of colorableSelected) {
-      if (n.kind !== "SHAPE") continue;
-      updateNode.mutate({ nodeId: n.id, attrs: { ...n.attrs, shape } });
-    }
+    applyAttrs(
+      colorableSelected
+        .filter((n) => n.kind === "SHAPE")
+        .map((n) => ({ id: n.id, before: n.attrs, after: { ...n.attrs, shape } })),
+    );
   }
 
   // 휠 리스너 effect는 mount 1회만 실행되므로 ref 컨테이너(.wb)는 로딩/오류 중에도 항상 렌더한다 —
@@ -679,7 +813,13 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
           edges={edges}
           rectOf={rectOf}
           linkLine={link}
-          onDeleteEdge={(id) => deleteEdge.mutate(id)}
+          onDeleteEdge={(id) => {
+            deleteEdge.mutate(id);
+            history.push({
+              undo: () => restoreEdge.mutate(id),
+              redo: () => deleteEdge.mutate(id),
+            });
+          }}
           onEditLabel={onEditLabel}
         />
         {nodes.map((n) => {
@@ -727,13 +867,13 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         <button type="button" data-tour="add-image" onClick={() => fileInputRef.current?.click()}>
           + 이미지
         </button>
-        <button type="button" onClick={() => createKindAtCenter("STICKY")}>
+        <button type="button" onClick={() => void createKindAtCenter("STICKY")}>
           + 스티키
         </button>
-        <button type="button" onClick={() => createKindAtCenter("SHAPE")}>
+        <button type="button" onClick={() => void createKindAtCenter("SHAPE")}>
           + 도형
         </button>
-        <button type="button" onClick={() => createKindAtCenter("TEXT")}>
+        <button type="button" onClick={() => void createKindAtCenter("TEXT")}>
           + 텍스트
         </button>
         <span className="wb-sep" />

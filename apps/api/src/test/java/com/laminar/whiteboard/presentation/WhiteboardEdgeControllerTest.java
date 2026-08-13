@@ -55,4 +55,16 @@ class WhiteboardEdgeControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.label").value("의존"));
   }
+
+  @Test
+  void 엣지_restore는_200과_엣지를_반환한다() throws Exception {
+    UUID edgeId = UUID.randomUUID();
+    WhiteboardEdgeEntity edge = new WhiteboardEdgeEntity();
+    edge.setId(edgeId);
+    given(service.restore(edgeId)).willReturn(edge);
+
+    mvc.perform(post("/api/whiteboard-edges/{id}/restore", edgeId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(edgeId.toString()));
+  }
 }

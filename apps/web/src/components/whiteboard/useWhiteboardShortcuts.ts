@@ -12,6 +12,8 @@ export interface WhiteboardShortcutActions {
   onZoomFit: () => void;
   onZoom100: () => void;
   onSpaceChange: (held: boolean) => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
 function isTypingTarget(t: EventTarget | null): boolean {
@@ -32,7 +34,7 @@ const NUDGE_STEP_LARGE = 16;
 
 /**
  * 화이트보드 전역 단축키(FigJam 준거) — Delete=삭제, Ctrl+A=전체 선택, Ctrl+D=복제, Ctrl+C=복사,
- * 화살표=이동(Shift=크게), Shift+1=전체 맞춤, Ctrl+0=100%, Space=손 도구(팬).
+ * Ctrl+Z=undo·Ctrl+Shift+Z/Ctrl+Y=redo, 화살표=이동(Shift=크게), Shift+1=전체 맞춤, Ctrl+0=100%, Space=손 도구(팬).
  * 붙여넣기는 window paste 이벤트에서 별도 처리(이미지/노드 스냅샷 공용). 레이아웃 무관하게 e.code 사용.
  */
 export function useWhiteboardShortcuts(actions: WhiteboardShortcutActions): void {
@@ -73,6 +75,17 @@ export function useWhiteboardShortcuts(actions: WhiteboardShortcutActions): void
       }
       if (mod && e.code === "KeyC") {
         a.onCopy();
+        return;
+      }
+      if (mod && e.code === "KeyZ") {
+        e.preventDefault();
+        if (e.shiftKey) a.onRedo();
+        else a.onUndo();
+        return;
+      }
+      if (mod && e.code === "KeyY") {
+        e.preventDefault();
+        a.onRedo();
         return;
       }
       if (mod && e.code === "Digit0") {

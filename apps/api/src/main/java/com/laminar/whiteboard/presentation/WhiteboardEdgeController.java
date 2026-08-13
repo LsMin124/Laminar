@@ -49,6 +49,12 @@ public class WhiteboardEdgeController {
     return ResponseEntity.noContent().build();
   }
 
+  /** WB-C undo — soft-delete 복구(같은 id 유지). */
+  @PostMapping("/whiteboard-edges/{edgeId}/restore")
+  public ResponseEntity<WhiteboardEdgeDtos.EdgeResponse> restore(@PathVariable UUID edgeId) {
+    return ResponseEntity.ok(toResponse(service.restore(edgeId)));
+  }
+
   /** 그래프 BFF도 재사용하는 매핑 정본(중복 방지). */
   static WhiteboardEdgeDtos.EdgeResponse toResponse(WhiteboardEdgeEntity e) {
     return new WhiteboardEdgeDtos.EdgeResponse(

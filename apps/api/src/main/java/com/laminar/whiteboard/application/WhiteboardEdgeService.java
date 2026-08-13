@@ -2,6 +2,7 @@ package com.laminar.whiteboard.application;
 
 import com.laminar.context.SubjectContext;
 import com.laminar.context.SubjectContextHolder;
+import com.laminar.error.NotFoundException;
 import com.laminar.whiteboard.domain.WhiteboardEdgeEntity;
 import com.laminar.whiteboard.domain.WhiteboardNodeEntity;
 import com.laminar.whiteboard.repository.WhiteboardEdgeRepository;
@@ -83,5 +84,21 @@ public class WhiteboardEdgeService {
               edge.setDeletedAt(OffsetDateTime.now());
               edgeRepo.save(edge);
             });
+  }
+
+  /**
+   * WB-C undo — soft-delete 복구(같은 id 유지, 멱등). 삭제~복구 사이에 동일한 활성 엣지가 새로 생기면 활성 유니크 제약에 걸린다 — undo가
+   * 방금 지운 엣지를 되살리는 흐름에선 실질적으로 발생하지 않아 별도 처리 없이 제약 위반을 그대로 흘린다.
+   */
+  @Transactional
+  public WhiteboardEdgeEntity restore(UUID edgeId) {
+    SubjectContext ctx = SubjectContextHolder.requirePersonalWritable("whiteboard edges");
+    WhiteboardEdgeEntity edge =
+        edgeRepo
+            .findById(edgeId)
+            .filter(e -> ctx.ownsPersonal(e.getSubjectId(), e.getUserId()))
+            .orElseThrow(() -> new NotFoundException("whiteboard edge not found"));
+    edge.setDeletedAt(null);
+    return edgeRepo.save(edge);
   }
 }

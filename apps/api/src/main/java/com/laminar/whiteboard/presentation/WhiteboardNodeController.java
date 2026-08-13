@@ -65,6 +65,12 @@ public class WhiteboardNodeController {
     return ResponseEntity.noContent().build();
   }
 
+  /** WB-C undo — soft-delete 복구(같은 id 유지). */
+  @PostMapping("/whiteboard-nodes/{nodeId}/restore")
+  public ResponseEntity<WhiteboardNodeDtos.NodeResponse> restore(@PathVariable UUID nodeId) {
+    return ResponseEntity.ok(toResponse(service.restore(nodeId)));
+  }
+
   /** 그래프 BFF도 재사용하는 매핑 정본(중복 방지). */
   static WhiteboardNodeDtos.NodeResponse toResponse(WhiteboardNodeEntity n) {
     return new WhiteboardNodeDtos.NodeResponse(

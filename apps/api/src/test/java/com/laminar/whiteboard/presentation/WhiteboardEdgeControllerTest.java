@@ -57,6 +57,23 @@ class WhiteboardEdgeControllerTest {
   }
 
   @Test
+  void 엣지_reconnect는_200과_바뀐_끝점을_반환한다() throws Exception {
+    UUID edgeId = UUID.randomUUID();
+    UUID newTo = UUID.randomUUID();
+    WhiteboardEdgeEntity edge = new WhiteboardEdgeEntity();
+    edge.setId(edgeId);
+    edge.setToNodeId(newTo);
+    given(service.reconnect(eq(edgeId), eq(null), eq(newTo))).willReturn(edge);
+
+    mvc.perform(
+            post("/api/whiteboard-edges/{id}/reconnect", edgeId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"toNodeId\":\"" + newTo + "\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.toNodeId").value(newTo.toString()));
+  }
+
+  @Test
   void 엣지_restore는_200과_엣지를_반환한다() throws Exception {
     UUID edgeId = UUID.randomUUID();
     WhiteboardEdgeEntity edge = new WhiteboardEdgeEntity();

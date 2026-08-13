@@ -49,6 +49,14 @@ public class WhiteboardEdgeController {
     return ResponseEntity.noContent().build();
   }
 
+  /** WB-D — 끝점 재연결(같은 id·라벨 유지). */
+  @PostMapping("/whiteboard-edges/{edgeId}/reconnect")
+  public ResponseEntity<WhiteboardEdgeDtos.EdgeResponse> reconnect(
+      @PathVariable UUID edgeId, @Valid @RequestBody WhiteboardEdgeDtos.ReconnectRequest request) {
+    return ResponseEntity.ok(
+        toResponse(service.reconnect(edgeId, request.fromNodeId(), request.toNodeId())));
+  }
+
   /** WB-C undo — soft-delete 복구(같은 id 유지). */
   @PostMapping("/whiteboard-edges/{edgeId}/restore")
   public ResponseEntity<WhiteboardEdgeDtos.EdgeResponse> restore(@PathVariable UUID edgeId) {

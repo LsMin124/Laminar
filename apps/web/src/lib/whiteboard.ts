@@ -154,6 +154,33 @@ export function useDeleteEdge(tabId: string) {
   });
 }
 
+/** WB-D — 엣지 끝점 재연결(from/to 중 지정한 쪽만 변경, 같은 id·라벨 유지). 낙관적 반영. */
+export function useReconnectEdge(tabId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { edgeId: string; fromNodeId?: string; toNodeId?: string }) =>
+      api.post<WhiteboardEdge>(`/api/whiteboard-edges/${input.edgeId}/reconnect`, {
+        fromNodeId: input.fromNodeId ?? null,
+        toNodeId: input.toNodeId ?? null,
+      }),
+    onMutate: (input) =>
+      optimisticUpdate<WhiteboardGraph>(qc, whiteboardKeys.graph(tabId), (g) => ({
+        ...g,
+        edges: g.edges.map((e) =>
+          e.id === input.edgeId
+            ? {
+                ...e,
+                ...(input.fromNodeId ? { fromNodeId: input.fromNodeId } : {}),
+                ...(input.toNodeId ? { toNodeId: input.toNodeId } : {}),
+              }
+            : e,
+        ),
+      })),
+    onError: rollbackTo<WhiteboardGraph>(qc, whiteboardKeys.graph(tabId)),
+    onSettled: () => invalidate(qc, tabId),
+  });
+}
+
 /** WB-C undo — 엣지 soft-delete 복구(같은 id 유지). */
 export function useRestoreEdge(tabId: string) {
   const qc = useQueryClient();

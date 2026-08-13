@@ -6,6 +6,7 @@ import {
   useCreateNode,
   useDeleteEdge,
   useDeleteNode,
+  useReconnectEdge,
   useRestoreEdge,
   useRestoreNode,
   useUpdateEdge,
@@ -54,6 +55,13 @@ type DragRef =
     }
   | { kind: "resize"; id: string; ow: number; oh: number; swx: number; swy: number; x: number; y: number }
   | { kind: "link"; fromId: string }
+  | {
+      kind: "reconnect";
+      edgeId: string;
+      end: "from" | "to";
+      fixedNodeId: string;
+      movingPrevNodeId: string;
+    }
   | { kind: "marquee"; swx: number; swy: number; base: ReadonlySet<string> };
 
 const FIT_PADDING = 64;
@@ -120,6 +128,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
   const updateEdge = useUpdateEdge(tabId);
   const restoreNode = useRestoreNode(tabId);
   const restoreEdge = useRestoreEdge(tabId);
+  const reconnectEdge = useReconnectEdge(tabId);
   const dialogs = useDialogs();
   // WB-C undo/redo 스택 — 탭이 바뀌면 새로 시작(다른 탭의 명령이 섞이지 않게).
   // eslint-disable-next-line react-hooks/exhaustive-deps -- tabId 변경 시 새 스택 생성이 목적(값 참조 아님)
@@ -300,6 +309,20 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
     setLink({ fromId: n.id, sx: n.x + s.w, sy: n.y + s.h / 2, x: w.x, y: w.y });
   }
 
+  /** WB-D — 엣지 끝점 재연결 드래그 시작. 반대쪽(고정) 노드 중심에서 커서로 임시 라인을 그린다. */
+  function beginReconnect(e: React.PointerEvent<Element>, edge: WhiteboardEdge, end: "from" | "to") {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    outerRef.current?.setPointerCapture(e.pointerId);
+    const fixedNodeId = end === "from" ? edge.toNodeId : edge.fromNodeId;
+    const movingPrevNodeId = end === "from" ? edge.fromNodeId : edge.toNodeId;
+    const fixed = nodes.find((n) => n.id === fixedNodeId);
+    const w = toWorld(e.clientX, e.clientY);
+    const r = fixed ? rectOf(fixed) : { x: w.x, y: w.y, w: 0, h: 0 };
+    dragRef.current = { kind: "reconnect", edgeId: edge.id, end, fixedNodeId, movingPrevNodeId };
+    setLink({ fromId: fixedNodeId, sx: r.x + r.w / 2, sy: r.y + r.h / 2, x: w.x, y: w.y });
+  }
+
   /** 배경 pointerdown — Space/휠클릭=팬, 좌클릭=마퀴 선택(Shift=기존 선택에 추가). */
   function onBgPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     const t = e.target as HTMLElement;
@@ -341,7 +364,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         w: Math.max(MIN_NODE_W, d.ow + (w.x - d.swx)),
         h: Math.max(MIN_NODE_H, d.oh + (w.y - d.swy)),
       });
-    } else if (d.kind === "link") {
+    } else if (d.kind === "link" || d.kind === "reconnect") {
       setLink((l) => (l ? { ...l, x: w.x, y: w.y } : l));
     } else if (d.kind === "marquee") {
       const rect = normRect(d.swx, d.swy, w.x, w.y);
@@ -399,6 +422,24 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
       const w = toWorld(e.clientX, e.clientY);
       const target = nodeAt(w.x, w.y, d.fromId);
       if (target) void createEdgeWithHistory(d.fromId, target.id);
+      setLink(null);
+    } else if (d.kind === "reconnect") {
+      const w = toWorld(e.clientX, e.clientY);
+      const target = nodeAt(w.x, w.y, d.fixedNodeId);
+      if (target && target.id !== d.movingPrevNodeId) {
+        const after =
+          d.end === "from" ? { fromNodeId: target.id } : { toNodeId: target.id };
+        const before =
+          d.end === "from"
+            ? { fromNodeId: d.movingPrevNodeId }
+            : { toNodeId: d.movingPrevNodeId };
+        const edgeId = d.edgeId;
+        reconnectEdge.mutate({ edgeId, ...after });
+        history.push({
+          undo: () => reconnectEdge.mutate({ edgeId, ...before }),
+          redo: () => reconnectEdge.mutate({ edgeId, ...after }),
+        });
+      }
       setLink(null);
     } else if (d.kind === "marquee") {
       setMarquee(null);
@@ -821,6 +862,7 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
             });
           }}
           onEditLabel={onEditLabel}
+          onEndpointDown={beginReconnect}
         />
         {nodes.map((n) => {
           const r = rectOf(n);

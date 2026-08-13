@@ -20,6 +20,9 @@ public final class WhiteboardEdgeDtos {
   /** 엣지 라벨 수정 — label이 곧 화살표의 관계. null/빈 값은 라벨 제거. */
   public record UpdateRequest(@Size(max = 500) String label) {}
 
+  /** WB-D 끝점 재연결 — from/to 중 null은 무변경(한쪽만 끌어 옮기는 경우). */
+  public record ReconnectRequest(UUID fromNodeId, UUID toNodeId) {}
+
   public record EdgeResponse(
       UUID id,
       UUID subjectId,

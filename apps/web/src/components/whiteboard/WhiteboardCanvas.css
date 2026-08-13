@@ -63,6 +63,19 @@
   stroke-dasharray: 4 4;
   fill: none;
 }
+/* WB-D 엔드포인트 핸들 — 엣지 호버 시 양 끝에 표시, 드래그로 재연결 */
+.wb-edge-endpoint {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+  opacity: 0;
+  pointer-events: auto;
+  cursor: crosshair;
+  transition: opacity 120ms ease;
+}
+.wb-edge-g:hover .wb-edge-endpoint {
+  opacity: 1;
+}
 .wb-edge-label {
   fill: var(--text-dim);
   font-size: 11px;

@@ -1,41 +1,116 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { placeTourPopup, type TourRect } from "./whiteboardTourPlacement";
 
-type TourStep = { target?: string; title: string; body: string };
+type TourStep = { target?: string; title: string; body: ReactNode };
+
+/** 키·마우스 제스처 칩 — 안내 본문에서 단축키를 본문 텍스트와 시각적으로 구분한다. */
+function K({ children }: { children: ReactNode }) {
+  return <kbd className="wb-kbd">{children}</kbd>;
+}
 
 /** 코치마크 단계 — target은 캔버스 내부의 data-tour 셀렉터, 없으면 중앙 안내 팝업. */
 const STEPS: readonly TourStep[] = [
   {
     title: "화이트보드 둘러보기",
-    body: "자유 배치 캔버스입니다. 노드를 만들고 화살표로 관계를 표현합니다. 다음을 눌러 30초 안내를 진행하세요.",
+    body: (
+      <>
+        <p>자유 배치 캔버스입니다. 노드를 만들고 화살표로 관계를 표현합니다.</p>
+        <ul className="wb-tour-list">
+          <li>
+            <K>→</K> 다음 · <K>←</K> 이전 · <K>Esc</K> 닫기
+          </li>
+        </ul>
+      </>
+    ),
   },
   {
     target: '[data-tour="add-node"]',
     title: "노드 만들기",
-    body: "+ 노드 버튼 또는 빈 캔버스를 더블클릭하면 그 자리에 노드가 생깁니다. 노드를 더블클릭하면 제목과 마크다운 본문을 편집합니다.",
+    body: (
+      <ul className="wb-tour-list">
+        <li>
+          빈 캔버스 <K>더블클릭</K> — 그 자리에 새 노드
+        </li>
+        <li>
+          노드 <K>더블클릭</K> — 제목·마크다운 본문 편집
+        </li>
+        <li>스티키 · 도형 · 텍스트 · 섹션은 옆 버튼으로</li>
+      </ul>
+    ),
   },
   {
     target: '[data-tour="add-image"]',
     title: "이미지 넣기",
-    body: "+ 이미지로 파일을 선택하거나, 이미지를 캔버스에 드래그&드롭 또는 Ctrl+V로 붙여넣으면 됩니다.",
+    body: (
+      <ul className="wb-tour-list">
+        <li>버튼을 눌러 파일 선택</li>
+        <li>
+          캔버스에 <K>드래그&드롭</K>
+        </li>
+        <li>
+          <K>Ctrl</K>+<K>V</K> — 클립보드 이미지 붙여넣기
+        </li>
+      </ul>
+    ),
   },
   {
     title: "이동과 선택",
-    body: "노드는 드래그로 옮깁니다. 빈 배경을 드래그하면 여러 노드를 한 번에 선택하고(Shift+클릭=추가/제외), Delete=삭제 · Ctrl+C/V=복사 · Ctrl+D=복제입니다.",
+    body: (
+      <ul className="wb-tour-list">
+        <li>
+          노드 <K>드래그</K> — 이동
+        </li>
+        <li>
+          빈 배경 <K>드래그</K> — 여러 개 선택 (<K>Shift</K>+클릭 = 추가/제외)
+        </li>
+        <li>
+          <K>Delete</K> 삭제 · <K>Ctrl</K>+<K>C</K>/<K>V</K> 복사 · <K>Ctrl</K>+<K>D</K> 복제
+        </li>
+        <li>
+          <K>Ctrl</K>+<K>Z</K> 실행 취소 · <K>Ctrl</K>+<K>Shift</K>+<K>Z</K> 다시 실행
+        </li>
+      </ul>
+    ),
   },
   {
     title: "연결하기",
-    body: "노드에 마우스를 올리면 오른쪽에 주황 점이 나타납니다. 이 점을 드래그해 다른 노드 위에 놓으면 화살표로 연결되고, 화살표 가운데 라벨을 클릭해 관계 이름을 붙입니다.",
+    body: (
+      <ul className="wb-tour-list">
+        <li>노드에 마우스를 올리면 오른쪽에 주황 점</li>
+        <li>
+          그 점을 다른 노드로 <K>드래그</K> — 화살표 연결
+        </li>
+        <li>화살표 가운데 라벨 클릭 — 관계 이름 붙이기</li>
+        <li>화살표 끝점을 끌면 다른 노드로 재연결</li>
+      </ul>
+    ),
   },
   {
     target: '[data-tour="zoom"]',
     title: "화면 이동·줌",
-    body: "휠=스크롤, Ctrl+휠=커서 기준 줌, Space나 휠클릭 드래그=화면 끌기입니다. 이 버튼들로 줌 · 전체 맞춤(Shift+1) · 100%(Ctrl+0)도 됩니다.",
+    body: (
+      <ul className="wb-tour-list">
+        <li>
+          <K>휠</K> 스크롤 · <K>Ctrl</K>+<K>휠</K> 커서 기준 줌
+        </li>
+        <li>
+          <K>Space</K> 또는 <K>휠클릭</K> 드래그 — 화면 끌기
+        </li>
+        <li>
+          <K>Shift</K>+<K>1</K> 전체 맞춤 · <K>Ctrl</K>+<K>0</K> 100%
+        </li>
+      </ul>
+    ),
   },
   {
     target: '[data-tour="help"]',
     title: "언제든 다시 보기",
-    body: "이 안내는 ? 버튼으로 다시 열 수 있습니다. 이제 자유롭게 써보세요!",
+    body: (
+      <p>
+        이 안내는 <K>?</K> 버튼으로 다시 열 수 있습니다. 이제 자유롭게 써보세요!
+      </p>
+    ),
   },
 ];
 

@@ -562,8 +562,43 @@
 }
 .wb-tour-body {
   font-size: 12.5px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--text-dim);
+}
+.wb-tour-body p {
+  margin: 0 0 8px;
+}
+.wb-tour-body p:last-child {
+  margin-bottom: 0;
+}
+.wb-tour-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wb-tour-list li::before {
+  content: "▸";
+  margin-right: 7px;
+  color: var(--accent-soft);
+}
+/* 단축키·제스처 키캡 칩 — 본문과 글꼴(모노)·배경·테두리로 구분 */
+.wb-kbd {
+  display: inline-block;
+  padding: 0 5px;
+  margin: 0 1px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+  color: var(--text);
+  white-space: nowrap;
 }
 .wb-tour-foot {
   display: flex;

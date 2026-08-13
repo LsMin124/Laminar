@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useStableHandler } from "../../lib/useStableHandler";
 import { useDialogs } from "../ui/DialogProvider";
 import { isSupportedImage, uploadImageAttachment } from "../../lib/attachments";
 import {
@@ -104,19 +105,6 @@ function clamp(v: number, lo: number, hi: number) {
 
 function normRect(x1: number, y1: number, x2: number, y2: number): Rect {
   return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
-}
-
-/**
- * 매 렌더 재생성되는 핸들러의 항등성을 고정 — memo된 자식(WhiteboardNode)이 함수 prop 때문에
- * 매번 재렌더되는 것을 막는다. 최신 구현은 ref로 참조하므로 stale closure 없음(pasteRef 관용구).
- */
-function useStableHandler<A extends unknown[]>(fn: (...args: A) => void): (...args: A) => void {
-  const implRef = useRef(fn);
-  useEffect(() => {
-    implRef.current = fn;
-  });
-  // 항등성은 useCallback([])이 보장하고, ref는 호출 시점에만 읽는다(렌더 중 ref 접근 금지 규칙).
-  return useCallback((...args: A) => implRef.current(...args), []);
 }
 
 /**
@@ -987,6 +975,28 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         />
       )}
       <div className="wb-toolbar" onPointerDown={(e) => e.stopPropagation()}>
+        <span className="wb-tool-group" role="group" aria-label="포인터 모드">
+          <button
+            type="button"
+            className={penMode ? "" : "active"}
+            title="선택 도구"
+            onClick={() => setPenMode(false)}
+          >
+            ▲ 선택
+          </button>
+          <button
+            type="button"
+            className={penMode ? "active" : ""}
+            title="펜 도구 — 드래그로 그리기, 획마다 이어서 계속 (Esc=선택 복귀)"
+            onClick={() => {
+              setPenMode(true);
+              setSelectedIds(new Set<string>());
+            }}
+          >
+            ✏ 펜
+          </button>
+        </span>
+        <span className="wb-sep" />
         <button type="button" data-tour="add-node" onClick={addNodeAtCenter}>
           + 노드
         </button>
@@ -1004,14 +1014,6 @@ export function WhiteboardCanvas({ tabId }: { tabId: string }) {
         </button>
         <button type="button" onClick={() => void createKindAtCenter("SECTION")}>
           + 섹션
-        </button>
-        <button
-          type="button"
-          className={penMode ? "active" : ""}
-          title="펜 드로잉 — 배경을 드래그해 그리기 (Esc·재클릭으로 종료)"
-          onClick={() => setPenMode((v) => !v)}
-        >
-          ✏ 펜
         </button>
         <span className="wb-sep" />
         <span className="wb-tool-group" data-tour="zoom">

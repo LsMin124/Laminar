@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { BAR_H, cardMeta } from "./dagGeometry";
 import { CardCategoryTag } from "./CardCategoryTag";
 import type { Card, Category } from "../../lib/graphTypes";
@@ -8,31 +9,7 @@ interface NodeGeom {
   w: number;
 }
 
-/**
- * 카드 노드 막대 — 헤더(체크·제목·분류태그) / 본문 발췌 2줄 / 푸터(날짜·관계·지연 인디케이터).
- * 좌우 끝 리사이즈 핸들 + 우측 연결 nub. 좌표·상태·핸들러는 컨테이너(DagCanvas)에서 주입.
- */
-export function DagNode({
-  card,
-  geom,
-  selected,
-  isLinkSource,
-  overdue,
-  excerpt,
-  rels,
-  categoryId,
-  tabId,
-  categories,
-  onBodyDown,
-  onHandleDown,
-  onPointerMove,
-  onPointerUp,
-  onOpenCard,
-  onToggleComplete,
-  onNubDown,
-  onNubMove,
-  onNubUp,
-}: {
+interface DagNodeProps {
   card: Card;
   geom: NodeGeom;
   selected: boolean;
@@ -52,7 +29,33 @@ export function DagNode({
   onNubDown: (e: React.PointerEvent<HTMLSpanElement>, c: Card) => void;
   onNubMove: (e: React.PointerEvent<HTMLSpanElement>) => void;
   onNubUp: (e: React.PointerEvent<HTMLSpanElement>) => void;
-}) {
+}
+
+/**
+ * 카드 노드 막대 — 헤더(체크·제목·분류태그) / 본문 발췌 2줄 / 푸터(날짜·관계·지연 인디케이터).
+ * 좌우 끝 리사이즈 핸들 + 우측 연결 nub. 좌표·상태·핸들러는 컨테이너(DagCanvas)에서 주입.
+ */
+function DagNodeImpl({
+  card,
+  geom,
+  selected,
+  isLinkSource,
+  overdue,
+  excerpt,
+  rels,
+  categoryId,
+  tabId,
+  categories,
+  onBodyDown,
+  onHandleDown,
+  onPointerMove,
+  onPointerUp,
+  onOpenCard,
+  onToggleComplete,
+  onNubDown,
+  onNubMove,
+  onNubUp,
+}: DagNodeProps) {
   const c = card;
   const g = geom;
   const dated = !!c.startDate;
@@ -135,3 +138,19 @@ export function DagNode({
     </div>
   );
 }
+
+/**
+ * memo — 드래그 프레임마다 캔버스가 재렌더돼도 무변경 카드는 건너뛴다(WB 렌더 최적화 v158 동일 패턴).
+ * geom은 컨테이너가 매 렌더 새로 만드는 객체라 값으로 비교하고, 나머지는 얕은 비교 —
+ * 핸들러 항등성은 컨테이너(useStableHandler)가 보장한다.
+ */
+export const DagNode = memo(DagNodeImpl, (prev, next) => {
+  if (prev.geom.x !== next.geom.x || prev.geom.y !== next.geom.y || prev.geom.w !== next.geom.w) {
+    return false;
+  }
+  for (const key of Object.keys(next) as (keyof DagNodeProps)[]) {
+    if (key === "geom") continue;
+    if (!Object.is(prev[key], next[key])) return false;
+  }
+  return true;
+});

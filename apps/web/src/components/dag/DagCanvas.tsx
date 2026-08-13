@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMoveCard, useUpdateCard } from "../../lib/cards";
+import { useStableHandler } from "../../lib/useStableHandler";
 import { useTabGraph } from "../../lib/graph";
 import type { Card } from "../../lib/graphTypes";
 import { useRemoveCardFromGroup } from "../../lib/groups";
@@ -298,6 +299,22 @@ export function DagCanvas({
     }
   }
 
+  // memo된 DagNode에 넘기는 핸들러 — 항등성 고정으로 드래그 프레임마다의 전체 카드
+  // 재렌더를 차단한다(화이트보드 렌더 최적화 v158과 동일 패턴).
+  const stableBodyDown = useStableHandler(onBodyDown);
+  const stableHandleDown = useStableHandler(onHandleDown);
+  const stableDragMove = useStableHandler(handleDragMove);
+  const stablePointerUp = useStableHandler((c: Card) => void onPointerUp(c));
+  const stableOpenCard = useStableHandler((cardId: string, title: string) =>
+    onOpenCard?.(cardId, title),
+  );
+  const stableToggleComplete = useStableHandler((cardId: string, completed: boolean) =>
+    updateCard.mutate({ cardId, completed }),
+  );
+  const stableNubDown = useStableHandler(link.onNubDown);
+  const stableNubMove = useStableHandler(link.onNubMove);
+  const stableNubUp = useStableHandler(link.onNubUp);
+
   // 그룹 경계 박스 — 박스 렌더와 그룹 화살표 앵커가 공유(드래그 좌표 추종, dagGeometry 순수함수).
   const groupRects = computeGroupRects(groups, groupMembers, cards, isVisible, nodeGeom);
 
@@ -400,15 +417,15 @@ export function DagCanvas({
                 categoryId={cardCategoryIds[c.id] ?? null}
                 tabId={tabId}
                 categories={categories}
-                onBodyDown={onBodyDown}
-                onHandleDown={onHandleDown}
-                onPointerMove={handleDragMove}
-                onPointerUp={onPointerUp}
-                onOpenCard={onOpenCard}
-                onToggleComplete={(cardId, completed) => updateCard.mutate({ cardId, completed })}
-                onNubDown={link.onNubDown}
-                onNubMove={link.onNubMove}
-                onNubUp={link.onNubUp}
+                onBodyDown={stableBodyDown}
+                onHandleDown={stableHandleDown}
+                onPointerMove={stableDragMove}
+                onPointerUp={stablePointerUp}
+                onOpenCard={stableOpenCard}
+                onToggleComplete={stableToggleComplete}
+                onNubDown={stableNubDown}
+                onNubMove={stableNubMove}
+                onNubUp={stableNubUp}
               />
             );
           })}
